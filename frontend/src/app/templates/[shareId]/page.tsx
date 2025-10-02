@@ -396,11 +396,12 @@ export default function TemplateSharePage() {
             <div className="flex h-14 items-center">
               <div className="flex items-center">
                 <Link href="/" className="flex items-center">
-                  <img 
-                    src={resolvedTheme === 'dark' ? '/kortix-logo-white.svg' : '/kortix-logo.svg'} 
-                    alt="Adentic" 
-                    className="h-6 opacity-70"
-                  />
+                  <span
+                    className="font-bold text-xl"
+                    style={{ color: '#CC3A00' }}
+                  >
+                    Adentic
+                  </span>
                 </Link>
               </div>
               <div className="flex items-center space-x-3 ml-auto">

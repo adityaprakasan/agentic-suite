@@ -63,13 +63,12 @@ export function AdenticEnterpriseModal({
           <div className="p-6 lg:p-8 flex flex-col bg-white dark:bg-black relative h-full overflow-y-auto border-r border-gray-200 dark:border-gray-800">
             <div className="relative z-10 flex flex-col h-full">
               <div className="mb-6 flex-shrink-0">
-                <Image
-                  src={isDarkMode ? '/kortix-logo-white.svg' : '/kortix-logo.svg'}
-                  alt="Adentic Logo"
-                  width={80}
-                  height={28}
-                  className="h-7 w-auto"
-                />
+                <span
+                  className="font-bold text-2xl"
+                  style={{ color: '#CC3A00' }}
+                >
+                  Adentic
+                </span>
               </div>
 
               <div className="mb-6 flex-shrink-0">

@@ -103,11 +103,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setMounted(true);
   }, []);
 
-  const logoSrc = !mounted
-    ? '/kortix-logo.svg'
-    : resolvedTheme === 'dark'
-      ? '/kortix-logo-white.svg'
-      : '/kortix-logo.svg';
+  // Using text-based branding instead of logo files
   
 
   const isActive = (url: string) => {
@@ -117,14 +113,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar className="w-72 [&_[data-sidebar=sidebar]]:bg-white dark:[&_[data-sidebar=sidebar]]:bg-black border-none" {...props}>
       <SidebarHeader className="bg-transparent p-6 px-2">
-        <Image
-          src={logoSrc}
-          alt="Adentic Logo"
-          width={80}
-          height={14}
-          className="md:w-[100px] md:h-[18px]"
-          priority
-        /> 
+        <span
+          className="font-bold text-2xl"
+          style={{ color: '#CC3A00' }}
+        >
+          Adentic
+        </span> 
       </SidebarHeader>
       <SidebarContent className="px-2 bg-transparent scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
         {data.navMain.map((section) => (
