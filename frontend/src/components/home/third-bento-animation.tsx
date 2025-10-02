@@ -115,11 +115,11 @@ export function AITaskExecution({
           className="relative"
         >
           <div className="size-12 bg-black rounded-full flex items-center justify-center">
-            <img 
-              src="/kortix-symbol.svg" 
-              alt="Adentic Symbol" 
-              className="size-6 filter brightness-0 invert"
-            />
+            <span
+              className="font-bold text-2xl text-white"
+            >
+              A
+            </span>
           </div>
           {/* Pulsing ring */}
           <motion.div

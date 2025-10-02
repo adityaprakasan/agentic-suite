@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
@@ -16,18 +15,22 @@ export function AdenticLogo({ size = 24 }: AdenticLogoProps) {
     setMounted(true);
   }, []);
 
-  const shouldInvert = mounted && (
-    theme === 'dark' || (theme === 'system' && systemTheme === 'dark')
-  );
+  const brandColor = '#CC3A00';
+  const fontSize = Math.max(size * 0.75, 16); // Scale font size with logo size
 
   return (
-    <Image
-        src="/kortix-symbol.svg"
-        alt="Adentic"
-        width={size}
-        height={size}
-        className={`${shouldInvert ? 'invert' : ''} flex-shrink-0`}
-        style={{ width: size, height: size, minWidth: size, minHeight: size }}
-      />
+    <span
+      className="flex-shrink-0 font-bold flex items-center justify-center"
+      style={{
+        color: brandColor,
+        fontSize: `${fontSize}px`,
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size
+      }}
+    >
+      A
+    </span>
   );
 }
