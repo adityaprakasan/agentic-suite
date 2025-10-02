@@ -397,9 +397,9 @@ export default function TemplateSharePage() {
               <div className="flex items-center">
                 <Link href="/" className="flex items-center">
                   <img
-                    src="/adentic-logo-header.jpeg"
+                    src="/adentic-icon.avif"
                     alt="Adentic"
-                    className="h-8 w-auto"
+                    className="h-8 w-8"
                   />
                 </Link>
               </div>

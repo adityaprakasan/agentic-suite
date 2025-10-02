@@ -114,12 +114,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar className="w-72 [&_[data-sidebar=sidebar]]:bg-white dark:[&_[data-sidebar=sidebar]]:bg-black border-none" {...props}>
       <SidebarHeader className="bg-transparent p-6 px-2">
         <Image
-          src="/adentic-logo-header.jpeg"
+          src="/adentic-icon.avif"
           alt="Adentic"
-          width={150}
+          width={50}
           height={50}
           priority
-          className="h-10 w-auto"
+          className="h-12 w-12"
         /> 
       </SidebarHeader>
       <SidebarContent className="px-2 bg-transparent scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">

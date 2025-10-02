@@ -64,11 +64,11 @@ export function AdenticEnterpriseModal({
             <div className="relative z-10 flex flex-col h-full">
               <div className="mb-6 flex-shrink-0">
                 <Image
-                  src="/adentic-logo-header.jpeg"
+                  src="/adentic-icon.avif"
                   alt="Adentic"
-                  width={150}
+                  width={50}
                   height={50}
-                  className="h-10 w-auto"
+                  className="h-12 w-12"
                 />
               </div>
 

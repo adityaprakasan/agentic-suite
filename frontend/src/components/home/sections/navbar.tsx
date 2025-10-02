@@ -130,12 +130,12 @@ export function Navbar() {
             <div className="flex items-center justify-start flex-shrink-0 w-auto md:w-[200px]">
               <Link href="/" className="flex items-center gap-2">
                 <Image
-                  src="/adentic-logo-header.jpeg"
+                  src="/adentic-icon.avif"
                   alt="Adentic"
-                  width={120}
+                  width={40}
                   height={40}
                   priority
-                  className="h-8 w-auto"
+                  className="h-10 w-10"
                 />
               </Link>
             </div>
@@ -220,12 +220,12 @@ export function Navbar() {
                 <div className="flex items-center justify-between">
                   <Link href="/" className="flex items-center gap-2">
                     <Image
-                      src="/adentic-logo-header.jpeg"
+                      src="/adentic-icon.avif"
                       alt="Adentic"
-                      width={100}
-                      height={33}
+                      width={35}
+                      height={35}
                       priority
-                      className="h-7 w-auto"
+                      className="h-8 w-8"
                     />
                   </Link>
                   <button
