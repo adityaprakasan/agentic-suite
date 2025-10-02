@@ -16,19 +16,19 @@ export function AdenticLogo({ size = 24 }: AdenticLogoProps) {
     setMounted(true);
   }, []);
 
-  // Use a cropped version of the header logo for icon-only views
+  // Use AVIF icon for small logo instances
   return (
     <Image
-      src="/adentic-logo-header.jpeg"
+      src="/adentic-icon.avif"
       alt="Adentic"
-      width={size * 3}
+      width={size}
       height={size}
       className="object-contain"
       style={{
-        width: 'auto',
+        width: size,
         height: size,
-        minHeight: size,
-        maxHeight: size
+        minWidth: size,
+        minHeight: size
       }}
     />
   );

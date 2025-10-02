@@ -9,7 +9,7 @@ export function SecondBentoAnimation() {
 
       <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 size-16 bg-black p-2 rounded-full z-30 md:bottom-0 md:top-auto overflow-hidden">
         <img
-          src="/adentic-logo-header.jpeg"
+          src="/adentic-icon.avif"
           alt="Adentic"
           className="w-full h-full object-cover"
         />

@@ -116,7 +116,7 @@ export function AITaskExecution({
         >
           <div className="size-12 bg-black rounded-full flex items-center justify-center overflow-hidden">
             <img
-              src="/adentic-logo-header.jpeg"
+              src="/adentic-icon.avif"
               alt="Adentic"
               className="w-full h-full object-cover"
             />
