@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
@@ -15,22 +16,20 @@ export function AdenticLogo({ size = 24 }: AdenticLogoProps) {
     setMounted(true);
   }, []);
 
-  const brandColor = '#CC3A00';
-  const fontSize = Math.max(size * 0.75, 16); // Scale font size with logo size
-
+  // Use a cropped version of the header logo for icon-only views
   return (
-    <span
-      className="flex-shrink-0 font-bold flex items-center justify-center"
+    <Image
+      src="/adentic-logo-header.jpeg"
+      alt="Adentic"
+      width={size * 3}
+      height={size}
+      className="object-contain"
       style={{
-        color: brandColor,
-        fontSize: `${fontSize}px`,
-        width: size,
+        width: 'auto',
         height: size,
-        minWidth: size,
-        minHeight: size
+        minHeight: size,
+        maxHeight: size
       }}
-    >
-      A
-    </span>
+    />
   );
 }

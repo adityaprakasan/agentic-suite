@@ -7,12 +7,12 @@ export function SecondBentoAnimation() {
       <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-full bg-gradient-to-t from-background to-transparent z-20"></div>
       <div className="pointer-events-none absolute top-0 left-0 h-20 w-full bg-gradient-to-b from-background to-transparent z-20"></div>
 
-      <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 size-16 bg-black p-2 rounded-full z-30 md:bottom-0 md:top-auto">
-        <span
-          className="font-bold text-4xl text-white"
-        >
-          A
-        </span>
+      <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 size-16 bg-black p-2 rounded-full z-30 md:bottom-0 md:top-auto overflow-hidden">
+        <img
+          src="/adentic-logo-header.jpeg"
+          alt="Adentic"
+          className="w-full h-full object-cover"
+        />
       </div>
       <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
         <div className="relative flex h-full w-full items-center justify-center translate-y-0 md:translate-y-32">

@@ -83,13 +83,12 @@ export function FirstBentoAnimation() {
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <div className="flex items-center bg-background rounded-full size-10 flex-shrink-0 justify-center shadow-[0_0_10px_rgba(0,0,0,0.05)] border border-border">
-            <span
-              className="font-bold text-lg"
-              style={{ color: '#CC3A00' }}
-            >
-              A
-            </span>
+          <div className="flex items-center bg-background rounded-full size-10 flex-shrink-0 justify-center shadow-[0_0_10px_rgba(0,0,0,0.05)] border border-border overflow-hidden">
+            <img
+              src="/adentic-logo-header.jpeg"
+              alt="Adentic"
+              className="w-full h-full object-cover"
+            />
           </div>
 
           <div className="relative">

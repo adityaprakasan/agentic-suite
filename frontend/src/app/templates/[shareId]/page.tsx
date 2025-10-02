@@ -396,12 +396,11 @@ export default function TemplateSharePage() {
             <div className="flex h-14 items-center">
               <div className="flex items-center">
                 <Link href="/" className="flex items-center">
-                  <span
-                    className="font-bold text-xl"
-                    style={{ color: '#CC3A00' }}
-                  >
-                    Adentic
-                  </span>
+                  <img
+                    src="/adentic-logo-header.jpeg"
+                    alt="Adentic"
+                    className="h-8 w-auto"
+                  />
                 </Link>
               </div>
               <div className="flex items-center space-x-3 ml-auto">

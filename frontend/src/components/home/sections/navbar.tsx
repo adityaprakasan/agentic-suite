@@ -129,7 +129,14 @@ export function Navbar() {
             {/* Left Section - Logo */}
             <div className="flex items-center justify-start flex-shrink-0 w-auto md:w-[200px]">
               <Link href="/" className="flex items-center gap-2">
-                <span className="text-xl font-bold" style={{ color: '#CC3A00' }}>Adentic</span>
+                <Image
+                  src="/adentic-logo-header.jpeg"
+                  alt="Adentic"
+                  width={120}
+                  height={40}
+                  priority
+                  className="h-8 w-auto"
+                />
               </Link>
             </div>
 
@@ -212,7 +219,14 @@ export function Navbar() {
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <Link href="/" className="flex items-center gap-2">
-                    <span className="text-xl font-bold" style={{ color: '#CC3A00' }}>Adentic</span>
+                    <Image
+                      src="/adentic-logo-header.jpeg"
+                      alt="Adentic"
+                      width={100}
+                      height={33}
+                      priority
+                      className="h-7 w-auto"
+                    />
                   </Link>
                   <button
                     onClick={toggleDrawer}

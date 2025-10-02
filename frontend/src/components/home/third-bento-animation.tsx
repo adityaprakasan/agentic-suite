@@ -114,12 +114,12 @@ export function AITaskExecution({
           }}
           className="relative"
         >
-          <div className="size-12 bg-black rounded-full flex items-center justify-center">
-            <span
-              className="font-bold text-2xl text-white"
-            >
-              A
-            </span>
+          <div className="size-12 bg-black rounded-full flex items-center justify-center overflow-hidden">
+            <img
+              src="/adentic-logo-header.jpeg"
+              alt="Adentic"
+              className="w-full h-full object-cover"
+            />
           </div>
           {/* Pulsing ring */}
           <motion.div

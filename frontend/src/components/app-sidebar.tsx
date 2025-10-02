@@ -113,12 +113,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar className="w-72 [&_[data-sidebar=sidebar]]:bg-white dark:[&_[data-sidebar=sidebar]]:bg-black border-none" {...props}>
       <SidebarHeader className="bg-transparent p-6 px-2">
-        <span
-          className="font-bold text-2xl"
-          style={{ color: '#CC3A00' }}
-        >
-          Adentic
-        </span> 
+        <Image
+          src="/adentic-logo-header.jpeg"
+          alt="Adentic"
+          width={150}
+          height={50}
+          priority
+          className="h-10 w-auto"
+        /> 
       </SidebarHeader>
       <SidebarContent className="px-2 bg-transparent scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
         {data.navMain.map((section) => (

@@ -480,12 +480,11 @@ export const PlaybackControls = ({
             <div className="flex items-center gap-2">
               <div className="flex items-center justify-center w-6 h-6 rounded-md overflow-hidden bg-primary/10">
                 <Link href="/">
-                  <span
-                    className="font-bold text-sm"
-                    style={{ color: '#CC3A00' }}
-                  >
-                    A
-                  </span>
+                  <img
+                    src="/adentic-logo-header.jpeg"
+                    alt="Adentic"
+                    className="w-full h-full object-cover"
+                  />
                 </Link>
               </div>
               <h1>

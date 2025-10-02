@@ -19,7 +19,7 @@ export function FooterSection() {
     setMounted(true);
   }, []);
 
-  const logoSrc = '/logo-transparent.png';
+  const logoSrc = '/adentic-logo-footer.png';
 
   return (
     <footer id="footer" className="w-full pb-0 px-6">
@@ -31,9 +31,10 @@ export function FooterSection() {
                 <Image
                   src={logoSrc}
                   alt="Adentic Logo"
-                  width={122}
-                  height={22}
+                  width={200}
+                  height={134}
                   priority
+                  className="h-32 w-auto"
                 />
               </Link>
               <p className="tracking-tight text-muted-foreground font-medium">
