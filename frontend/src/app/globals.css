@@ -238,6 +238,7 @@
 }
 
 :root {
+  --brand-primary: #CC3A00;
   --background: oklch(0.9741 0 129.63);
   --foreground: oklch(0.2277 0.0034 67.65);
   --card: oklch(98.46% 0.002 247.84);
@@ -274,6 +275,7 @@
 }
 
 .dark {
+  --brand-primary: #CC3A00;
   --background: oklch(0.185 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.2 0.005 285.823);

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Kortix is an open-source platform for building, managing, and training AI agents. The flagship agent "Suna" demonstrates the platform's capabilities as a generalist AI worker. The platform consists of a Python FastAPI backend, Next.js frontend, Docker-based agent runtime environments, and Supabase for data/auth.
+Adentic is an open-source platform for building, managing, and training AI agents. The platform demonstrates its capabilities as a generalist AI worker platform. The platform consists of a Python FastAPI backend, Next.js frontend, Docker-based agent runtime environments, and Supabase for data/auth.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ Kortix is an open-source platform for building, managing, and training AI agents
 ### Infrastructure
 - **Database**: Supabase (PostgreSQL) with basejump schema for multi-tenancy
 - **Cache**: Redis for session state and background job queue (Dramatiq broker)
-- **Execution**: Daytona manages isolated Docker sandbox instances (kortix/suna:0.1.3.20 snapshot)
+- **Execution**: Daytona manages isolated Docker sandbox instances (adentic/adentic:0.1.3.20 snapshot)
 - **LLM**: LiteLLM for unified interface to Anthropic, OpenAI, Gemini, OpenRouter
 - **Tools**: Tavily (search), Firecrawl (scraping), Exa (people search), optional RapidAPI
 

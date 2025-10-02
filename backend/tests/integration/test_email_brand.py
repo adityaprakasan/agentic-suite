@@ -38,11 +38,11 @@ class TestEmailBrandConfig:
             assert "© 2025 Adentic. All rights reserved." in rendered
 
     def test_brand_name_not_kortix(self):
-        """Ensure Kortix has been replaced with Adentic"""
+        """Ensure Adentic has been replaced with Adentic"""
         from backend.core.config.brand import EmailBrandConfig
 
         config = EmailBrandConfig()
 
-        assert "Kortix" not in config.brand_name
-        assert "Kortix" not in config.copyright_text
+        assert "Adentic" not in config.brand_name
+        assert "Adentic" not in config.copyright_text
         assert config.brand_name == "Adentic"

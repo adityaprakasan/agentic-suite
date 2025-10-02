@@ -56,32 +56,32 @@
 - [x] T008 [P] Integration test visual branding in frontend/tests/integration/test_visual_brand.ts
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T009 [P] BrandConfig model in frontend/src/lib/brand-config.ts
-- [ ] T010 [P] BrandAssets model in frontend/src/lib/brand-assets.ts
-- [ ] T011 [P] EmailBrandConfig model in backend/core/config/brand.py
-- [ ] T012 [P] SEOMetadata service in frontend/src/lib/seo-metadata.ts
-- [ ] T013 Generate favicon.ico (16x16, 32x32) from logo
-- [ ] T014 Generate og-image.png (1200x630) with Adentic branding
-- [ ] T015 Generate apple-touch-icon.png (180x180) from logo
-- [ ] T016 Place all generated assets in frontend/public/
+- [x] T009 [P] BrandConfig model in frontend/src/lib/brand-config.ts
+- [x] T010 [P] BrandAssets model in frontend/src/lib/brand-assets.ts
+- [x] T011 [P] EmailBrandConfig model in backend/core/config/brand.py
+- [x] T012 [P] SEOMetadata service in frontend/src/lib/seo-metadata.ts
+- [x] T013 Generate favicon.ico (16x16, 32x32) from logo
+- [x] T014 Generate og-image.png (1200x630) with Adentic branding
+- [x] T015 Generate apple-touch-icon.png (180x180) from logo
+- [x] T016 Place all generated assets in frontend/public/
 
 ## Phase 3.4: Integration
-- [ ] T017 Update frontend/tailwind.config.js with brand-primary: '#CC3A00'
-- [ ] T018 Update frontend/src/app/layout.tsx with Adentic metadata
-- [ ] T019 Update frontend/src/components/layout/Header.tsx with logo and brand name
-- [ ] T020 Update frontend/src/components/layout/Footer.tsx with copyright and LinkedIn
-- [ ] T021 Update frontend/src/styles/globals.css with CSS variable --brand-primary
-- [ ] T022 Replace "Kortix" with "Adentic" in all frontend/src/**/*.tsx files
-- [ ] T023 Update backend email templates in backend/core/services/email/templates/
-- [ ] T024 Replace "Kortix" with "Adentic" in all backend/**/*.py files
+- [x] T017 Update frontend/tailwind.config.js with brand-primary: '#CC3A00'
+- [x] T018 Update frontend/src/app/layout.tsx with Adentic metadata
+- [x] T019 Update frontend/src/components/layout/Header.tsx with logo and brand name
+- [x] T020 Update frontend/src/components/layout/Footer.tsx with copyright and LinkedIn
+- [x] T021 Update frontend/src/styles/globals.css with CSS variable --brand-primary
+- [x] T022 Replace "Kortix" with "Adentic" in all frontend/src/**/*.tsx files
+- [x] T023 Update backend email templates in backend/core/services/email/templates/
+- [x] T024 Replace "Kortix" with "Adentic" in all backend/**/*.py files
 
 ## Phase 3.5: Polish
-- [ ] T025 [P] Unit tests for brand config validation in frontend/tests/unit/test_brand_validation.ts
-- [ ] T026 [P] Unit tests for email config in backend/tests/unit/test_brand_config.py
-- [ ] T027 [P] Update README.md with Adentic branding
-- [ ] T028 [P] Update CLAUDE.md project overview to use Adentic
-- [ ] T029 Optimize all image assets (compress, proper formats)
-- [ ] T030 Run quickstart.md verification checklist
+- [x] T025 [P] Unit tests for brand config validation in frontend/tests/unit/test_brand_validation.ts
+- [x] T026 [P] Unit tests for email config in backend/tests/unit/test_brand_config.py
+- [x] T027 [P] Update README.md with Adentic branding
+- [x] T028 [P] Update CLAUDE.md project overview to use Adentic
+- [x] T029 Optimize all image assets (compress, proper formats)
+- [x] T030 Run quickstart.md verification checklist
 
 ## Dependencies
 - Setup (T001-T003) before everything

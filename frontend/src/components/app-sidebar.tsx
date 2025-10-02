@@ -26,20 +26,20 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "./home/theme-toggle"
-import { KortixLogo } from "./sidebar/kortix-logo"
+import { AdenticLogo } from "./sidebar/kortix-logo"
 import Image from "next/image"
 import { useEffect } from "react"
 import { useTheme } from "next-themes"
 
 const data = {
   user: {
-    name: "Kortix User",
+    name: "Adentic User",
     email: "docs@kortix.ai",
     avatar: "/favicon.png",
   },
   teams: [
     {
-      name: "Kortix AI",
+      name: "Adentic AI",
       logo: GalleryVerticalEnd,
       plan: "Open Source",
     },
@@ -49,7 +49,7 @@ const data = {
       title: "Getting Started",
       items: [
         {
-          title: "What is Kortix?",
+          title: "What is Adentic?",
           url: "/docs/introduction",
         },
         {
@@ -119,7 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader className="bg-transparent p-6 px-2">
         <Image
           src={logoSrc}
-          alt="Kortix Logo"
+          alt="Adentic Logo"
           width={80}
           height={14}
           className="md:w-[100px] md:h-[18px]"

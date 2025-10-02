@@ -66,13 +66,13 @@ def validate_hex_color(color: str) -> bool:
 
 
 def get_brand_replaced_text(text: str) -> str:
-    """Replace any remaining Kortix references with Adentic"""
+    """Replace any remaining Adentic references with Adentic"""
     if not text:
         return text
 
     # Case-insensitive replacement
     replacements = {
-        "Kortix": "Adentic",
+        "Adentic": "Adentic",
         "kortix": "adentic",
         "KORTIX": "ADENTIC",
     }
