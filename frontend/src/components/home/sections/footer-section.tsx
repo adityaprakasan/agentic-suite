@@ -19,11 +19,7 @@ export function FooterSection() {
     setMounted(true);
   }, []);
 
-  const logoSrc = !mounted
-    ? '/logo.png'
-    : resolvedTheme === 'dark'
-      ? '/logo.png'
-      : '/logo.png';
+  const logoSrc = '/logo-transparent.png';
 
   return (
     <footer id="footer" className="w-full pb-0 px-6">

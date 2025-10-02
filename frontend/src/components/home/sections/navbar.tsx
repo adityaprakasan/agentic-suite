@@ -103,11 +103,7 @@ export function Navbar() {
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
   const handleOverlayClick = () => setIsDrawerOpen(false);
 
-  const logoSrc = !mounted
-    ? '/logo.png'
-    : resolvedTheme === 'dark'
-      ? '/logo.png'
-      : '/logo.png';
+  const logoSrc = '/logo-transparent.png';
 
   return (
     <header
@@ -132,15 +128,8 @@ export function Navbar() {
           <div className="flex h-[56px] items-center p-2 md:p-4">
             {/* Left Section - Logo */}
             <div className="flex items-center justify-start flex-shrink-0 w-auto md:w-[200px]">
-              <Link href="/" className="flex items-center gap-3">
-                <Image
-                  src={logoSrc}
-                  alt="Adentic Logo"
-                  width={80}
-                  height={14}
-                  className="md:w-[100px] md:h-[18px]"
-                  priority
-                /> 
+              <Link href="/" className="flex items-center gap-2">
+                <span className="text-xl font-bold" style={{ color: '#CC3A00' }}>Adentic</span>
               </Link>
             </div>
 
@@ -222,17 +211,8 @@ export function Navbar() {
               {/* Mobile menu content */}
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <Link href="/" className="flex items-center gap-3">
-                    <Image
-                      src={logoSrc}
-                      alt="Adentic Logo"
-                      width={120}
-                      height={22}
-                      priority
-                    />
-                    <span className="font-medium text-primary text-sm">
-                      / Adentic
-                    </span>
+                  <Link href="/" className="flex items-center gap-2">
+                    <span className="text-xl font-bold" style={{ color: '#CC3A00' }}>Adentic</span>
                   </Link>
                   <button
                     onClick={toggleDrawer}
