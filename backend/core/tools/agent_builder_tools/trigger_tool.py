@@ -598,7 +598,7 @@ class TriggerTool(AgentBuilderBaseTool):
             if not composio_trigger_id:
                 return self.fail_response("Failed to get Composio trigger id from response")
             
-            # Build Suna trigger config (same as API)
+            # Build Adentic trigger config (same as API)
             suna_config: Dict[str, Any] = {
                 "provider_id": "composio",
                 "composio_trigger_id": composio_trigger_id,
@@ -617,7 +617,7 @@ class TriggerTool(AgentBuilderBaseTool):
                 if workflow_input:
                     suna_config["workflow_input"] = workflow_input
             
-            # Create Suna trigger
+            # Create Adentic trigger
             trigger_svc = get_trigger_service(self.db)
             try:
                 trigger = await trigger_svc.create_trigger(
@@ -628,8 +628,8 @@ class TriggerTool(AgentBuilderBaseTool):
                     description=f"{slug}"
                 )
             except Exception as e:
-                logger.error(f"Failed to create Suna trigger: {e}")
-                return self.fail_response(f"Failed to create Suna trigger: {str(e)}")
+                logger.error(f"Failed to create Adentic trigger: {e}")
+                return self.fail_response(f"Failed to create Adentic trigger: {str(e)}")
 
             # Sync triggers to version config
             try:
