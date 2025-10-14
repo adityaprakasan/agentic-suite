@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAgent } from '@/hooks/react-query/agents/use-agents';
+import { useAgent, useAgentFromCache } from '@/hooks/react-query/agents/use-agents';
 import { AdenticLogo } from '@/components/sidebar/kortix-logo';
 import { DynamicIcon } from 'lucide-react/dynamic';
 import { cn } from '@/lib/utils';
@@ -61,8 +61,8 @@ export const AgentAvatar: React.FC<AgentAvatarProps> = ({
     borderRadius: `${Math.min(size * 0.25, 16)}px` // 25% of size, max 16px
   };
 
-  // Show skeleton for loading state or when no data is available
-  if ((isLoading && agentId) || (!agent && !agentId && !propIconName && !propIsAdenticDefault)) {
+  // Show skeleton when no data is available
+  if (!agent && !agentId && !propIconName && !propIsAdenticDefault) {
     return (
       <div 
         className={cn("bg-muted animate-pulse border", className)}
