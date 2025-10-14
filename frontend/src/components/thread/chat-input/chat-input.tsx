@@ -170,8 +170,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
     const [uncontrolledValue, setUncontrolledValue] = useState('');
     const value = isControlled ? controlledValue : uncontrolledValue;
 
-    const isAdenticAgent = agentMetadata?.is_suna_default || false;
-
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const [isUploading, setIsUploading] = useState(false);
