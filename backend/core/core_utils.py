@@ -1,74 +1,23 @@
-import json
-import traceback
 import uuid
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone, timedelta
-from fastapi import HTTPException
-from .utils.cache import Cache
-from .utils.logger import logger
-from .utils.config import config
-from .utils.auth_utils import verify_and_authorize_thread_access
+from typing import Optional
 from core.services import redis
 from core.services.supabase import DBConnection
-from core.services.llm import make_llm_api_call
-from run_agent_background import update_agent_run_status, _cleanup_redis_response_list
+from .utils.logger import logger
 
-# Load Lucide React icons once at module level for performance
-try:
-    from pathlib import Path
-    icons_file_path = Path(__file__).parent.parent / 'lucide_icons_cleaned.json'
-    with open(icons_file_path, 'r') as f:
-        RELEVANT_ICONS = json.load(f)
-    logger.info(f"Loaded {len(RELEVANT_ICONS)} Lucide React icons from file")
-except Exception as e:
-    logger.warning(f"Failed to load icons file: {e}. Using fallback icons.")
-    # Fallback to essential icons if file loading fails
-    RELEVANT_ICONS = [
-        # Core AI/Agent icons
-        "message-circle", "code", "brain", "sparkles", "zap", "rocket", "bot",
-        "cpu", "microchip", "terminal", "workflow", "target", "lightbulb",
-        
-        # Data & Storage
-        "database", "file", "files", "folder", "folders", "hard-drive", "cloud",
-        "download", "upload", "save", "copy", "trash", "archive",
-        
-        # User & Communication
-        "user", "users", "mail", "phone", "send", "reply", "bell", 
-        "headphones", "mic", "video", "camera",
-        
-        # Navigation & UI
-        "house", "globe", "map", "map-pin", "search", "filter", "settings",
-        "menu", "grid2x2", "list", "layout-grid", "panel-left", "panel-right",
-        
-        # Actions & Tools
-        "play", "pause", "refresh-cw", "rotate-cw", "wrench", "pen", "pencil", 
-        "brush", "scissors", "hammer",
-        
-        # Status & Feedback
-        "check", "x", "plus", "minus", "info", "thumbs-up", "thumbs-down", 
-        "heart", "star", "flag", "bookmark",
-        
-        # Time & Calendar
-        "clock", "calendar", "timer", "hourglass", "history",
-        
-        # Security & Privacy
-        "shield", "lock", "key", "fingerprint", "eye",
-        
-        # Business & Productivity
-        "briefcase", "building", "store", "shopping-cart", "credit-card",
-        "chart-bar", "chart-pie", "trending-up", "trending-down",
-        
-        # Creative & Media
-        "music", "image", "images", "film", "palette", "paintbrush",
-        "speaker", "volume",
-        
-        # System & Technical
-        "cog", "monitor", "laptop", "smartphone", "wifi", "bluetooth", 
-        "usb", "plug", "battery", "power",
-        
-        # Nature & Environment
-        "sun", "moon", "leaf", "flower", "mountain", "earth"
-    ]
+# Import and re-export from specialized modules
+from .utils.icon_generator import RELEVANT_ICONS, generate_icon_and_colors as generate_agent_icon_and_colors
+from .utils.limits_checker import (
+    check_agent_run_limit,
+    check_agent_count_limit, 
+    check_project_count_limit
+)
+from .utils.run_management import (
+    cleanup_instance_runs,
+    stop_agent_run_with_helpers,
+    check_for_active_project_agent_run
+)
+from .utils.project_helpers import generate_and_update_project_name
+from .utils.mcp_helpers import merge_custom_mcps
 
 # Global variables (will be set by initialize function)
 db = None
@@ -83,320 +32,18 @@ async def cleanup():
     """Clean up resources and stop running agents on shutdown."""
     logger.debug("Starting cleanup of agent API resources")
 
-    # Use the instance_id to find and clean up this instance's keys
+    # Clean up instance-specific agent runs
     try:
-        if instance_id: # Ensure instance_id is set
-            running_keys = await redis.keys(f"active_run:{instance_id}:*")
-            logger.debug(f"Found {len(running_keys)} running agent runs for instance {instance_id} to clean up")
-
-            for key in running_keys:
-                # Key format: active_run:{instance_id}:{agent_run_id}
-                parts = key.split(":")
-                if len(parts) == 3:
-                    agent_run_id = parts[2]
-                    await stop_agent_run_with_helpers(agent_run_id, error_message=f"Instance {instance_id} shutting down")
-                else:
-                    logger.warning(f"Unexpected key format found: {key}")
+        if instance_id:
+            await cleanup_instance_runs(instance_id)
         else:
             logger.warning("Instance ID not set, cannot clean up instance-specific agent runs.")
-
     except Exception as e:
         logger.error(f"Failed to clean up running agent runs: {str(e)}")
 
     # Close Redis connection
     await redis.close()
     logger.debug("Completed cleanup of agent API resources")
-
-async def stop_agent_run_with_helpers(agent_run_id: str, error_message: Optional[str] = None):
-    """Update database and publish stop signal to Redis."""
-    logger.debug(f"Stopping agent run: {agent_run_id}")
-    client = await db.client
-    final_status = "failed" if error_message else "stopped"
-
-    # Attempt to fetch final responses from Redis
-    response_list_key = f"agent_run:{agent_run_id}:responses"
-    all_responses = []
-    try:
-        all_responses_json = await redis.lrange(response_list_key, 0, -1)
-        all_responses = [json.loads(r) for r in all_responses_json]
-        logger.debug(f"Fetched {len(all_responses)} responses from Redis for DB update on stop/fail: {agent_run_id}")
-    except Exception as e:
-        logger.error(f"Failed to fetch responses from Redis for {agent_run_id} during stop/fail: {e}")
-        # Try fetching from DB as a fallback? Or proceed without responses? Proceeding without for now.
-
-    # Update the agent run status in the database
-    update_success = await update_agent_run_status(
-        client, agent_run_id, final_status, error=error_message
-    )
-
-    if not update_success:
-        logger.error(f"Failed to update database status for stopped/failed run {agent_run_id}")
-        raise HTTPException(status_code=500, detail="Failed to update agent run status in database")
-
-    # Send STOP signal to the global control channel
-    global_control_channel = f"agent_run:{agent_run_id}:control"
-    try:
-        await redis.publish(global_control_channel, "STOP")
-        logger.debug(f"Published STOP signal to global channel {global_control_channel}")
-    except Exception as e:
-        logger.error(f"Failed to publish STOP signal to global channel {global_control_channel}: {str(e)}")
-
-    # Find all instances handling this agent run and send STOP to instance-specific channels
-    try:
-        instance_keys = await redis.keys(f"active_run:*:{agent_run_id}")
-        logger.debug(f"Found {len(instance_keys)} active instance keys for agent run {agent_run_id}")
-
-        for key in instance_keys:
-            # Key format: active_run:{instance_id}:{agent_run_id}
-            parts = key.split(":")
-            if len(parts) == 3:
-                instance_id_from_key = parts[1]
-                instance_control_channel = f"agent_run:{agent_run_id}:control:{instance_id_from_key}"
-                try:
-                    await redis.publish(instance_control_channel, "STOP")
-                    logger.debug(f"Published STOP signal to instance channel {instance_control_channel}")
-                except Exception as e:
-                    logger.warning(f"Failed to publish STOP signal to instance channel {instance_control_channel}: {str(e)}")
-            else:
-                 logger.warning(f"Unexpected key format found: {key}")
-
-        # Clean up the response list immediately on stop/fail
-        await _cleanup_redis_response_list(agent_run_id)
-
-    except Exception as e:
-        logger.error(f"Failed to find or signal active instances for {agent_run_id}: {str(e)}")
-
-    logger.debug(f"Successfully initiated stop process for agent run: {agent_run_id}")
-
-async def get_agent_run_with_access_check(client, agent_run_id: str, user_id: str):
-    agent_run = await client.table('agent_runs').select('*, threads(account_id)').eq('id', agent_run_id).execute()
-    if not agent_run.data:
-        raise HTTPException(status_code=404, detail="Agent run not found")
-
-    agent_run_data = agent_run.data[0]
-    thread_id = agent_run_data['thread_id']
-    account_id = agent_run_data['threads']['account_id']
-    if account_id == user_id:
-        return agent_run_data
-    await verify_and_authorize_thread_access(client, thread_id, user_id)
-    return agent_run_data
-
-async def generate_and_update_project_name(project_id: str, prompt: str):
-    """Generates a project name and icon using an LLM and updates the database."""
-    logger.debug(f"Starting background task to generate name and icon for project: {project_id}")
-    try:
-        db_conn = DBConnection()
-        client = await db_conn.client
-
-        model_name = "openai/gpt-5-nano"
-        
-        # Use pre-loaded Lucide React icons (loaded once at module level)
-        relevant_icons = RELEVANT_ICONS
-        system_prompt = f"""You are a helpful assistant that generates extremely concise titles (2-4 words maximum) and selects appropriate icons for chat threads based on the user's message.
-
-        Available Lucide React icons to choose from:
-        {', '.join(relevant_icons)}
-
-        Respond with a JSON object containing:
-        - "title": A concise 2-4 word title for the thread
-        - "icon": The most appropriate icon name from the list above
-
-        Example response:
-        {{"title": "Code Review Help", "icon": "code"}}"""
-
-        user_message = f"Generate an extremely brief title (2-4 words only) and select the most appropriate icon for a chat thread that starts with this message: \"{prompt}\""
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message}]
-
-        logger.debug(f"Calling LLM ({model_name}) for project {project_id} naming and icon selection.")
-        response = await make_llm_api_call(
-            messages=messages, 
-            model_name=model_name, 
-            max_tokens=1000, 
-            temperature=0.7,
-            response_format={"type": "json_object"},
-            stream=False
-        )
-
-        generated_name = None
-        selected_icon = None
-        
-        if response and response.get('choices') and response['choices'][0].get('message'):
-            raw_content = response['choices'][0]['message'].get('content', '').strip()
-            try:
-                parsed_response = json.loads(raw_content)
-                
-                if isinstance(parsed_response, dict):
-                    # Extract title
-                    title = parsed_response.get('title', '').strip()
-                    if title:
-                        generated_name = title.strip('\'" \n\t')
-                        logger.debug(f"LLM generated name for project {project_id}: '{generated_name}'")
-                    
-                    # Extract icon
-                    icon = parsed_response.get('icon', '').strip()
-                    if icon and icon in relevant_icons:
-                        selected_icon = icon
-                        logger.debug(f"LLM selected icon for project {project_id}: '{selected_icon}'")
-                    else:
-                        logger.warning(f"LLM selected invalid icon '{icon}' for project {project_id}, using default 'message-circle'")
-                        selected_icon = "message-circle"
-                else:
-                    logger.warning(f"LLM returned non-dict JSON for project {project_id}: {parsed_response}")
-                    
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse LLM JSON response for project {project_id}: {e}. Raw content: {raw_content}")
-                # Fallback to extracting title from raw content
-                cleaned_content = raw_content.strip('\'" \n\t{}')
-                if cleaned_content:
-                    generated_name = cleaned_content[:50]  # Limit fallback title length
-                selected_icon = "message-circle"  # Default icon
-        else:
-            logger.warning(f"Failed to get valid response from LLM for project {project_id} naming. Response: {response}")
-
-        if generated_name:
-            # Store title and icon in dedicated fields
-            update_data = {"name": generated_name}
-            if selected_icon:
-                update_data["icon_name"] = selected_icon
-                logger.debug(f"Storing project {project_id} with title: '{generated_name}' and icon: '{selected_icon}'")
-            else:
-                logger.debug(f"Storing project {project_id} with title: '{generated_name}' (no icon)")
-            
-            update_result = await client.table('projects').update(update_data).eq("project_id", project_id).execute()
-            if hasattr(update_result, 'data') and update_result.data:
-                logger.debug(f"Successfully updated project {project_id} with clean title and dedicated icon field")
-            else:
-                logger.error(f"Failed to update project {project_id} in database. Update result: {update_result}")
-        else:
-            logger.warning(f"No generated name, skipping database update for project {project_id}.")
-
-    except Exception as e:
-        logger.error(f"Error in background naming task for project {project_id}: {str(e)}\n{traceback.format_exc()}")
-    finally:
-        # No need to disconnect DBConnection singleton instance here
-        logger.debug(f"Finished background naming and icon selection task for project: {project_id}")
-
-async def generate_agent_icon_and_colors(name: str) -> dict:
-    logger.debug(f"Generating icon and colors for agent: {name}")
-    try:
-        model_name = "openai/gpt-5-nano"
-        relevant_icons = RELEVANT_ICONS
-        
-        frontend_colors = [
-            "#000000", "#FFFFFF", "#6366F1", "#10B981", "#F59E0B", 
-            "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316",
-            "#06B6D4", "#84CC16", "#F43F5E", "#A855F7", "#3B82F6"
-        ]
-        
-        agent_context = f"Agent name: {name}"
-            
-        system_prompt = f"""You are a helpful assistant that selects appropriate icons and colors for AI agents based on their name and description.
-
-        Available Lucide React icons to choose from:
-        {', '.join(relevant_icons)}
-
-        Available colors (hex codes):
-        {', '.join(frontend_colors)}
-
-        Respond with a JSON object containing:
-        - "icon": The most appropriate icon name from the available icons
-        - "background_color": A background color hex code from the available colors
-        - "text_color": A text color hex code from the available colors (choose one that contrasts well with the background)
-
-        Example response:
-        {{"icon": "youtube", "background_color": "#EF4444", "text_color": "#FFFFFF"}}"""
-
-        user_message = f"Select the most appropriate icon and color scheme for this AI agent:\n{agent_context}"
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message}]
-
-        logger.debug(f"Calling LLM ({model_name}) for agent icon and color generation.")
-        response = await make_llm_api_call(
-            messages=messages, 
-            model_name=model_name, 
-            max_tokens=4000, 
-            temperature=0.7,
-            response_format={"type": "json_object"},
-            stream=False
-        )
-
-        # Default fallback values
-        result = {
-            "icon_name": "bot",
-            "icon_color": "#FFFFFF", 
-            "icon_background": "#6366F1"
-        }
-        
-        if response and response.get('choices') and response['choices'][0].get('message'):
-            raw_content = response['choices'][0]['message'].get('content', '').strip()
-            try:
-                parsed_response = json.loads(raw_content)
-                
-                if isinstance(parsed_response, dict):
-                    # Extract and validate icon
-                    icon = parsed_response.get('icon', '').strip()
-                    if icon and icon in relevant_icons:
-                        result["icon_name"] = icon
-                        logger.debug(f"LLM selected icon: '{icon}'")
-                    else:
-                        logger.warning(f"LLM selected invalid icon '{icon}', using default 'bot'")
-                    
-                    # Extract and validate colors
-                    bg_color = parsed_response.get('background_color', '').strip()
-                    text_color = parsed_response.get('text_color', '').strip()
-                    
-                    if bg_color in frontend_colors:
-                        result["icon_background"] = bg_color
-                        logger.debug(f"LLM selected background color: '{bg_color}'")
-                    else:
-                        logger.warning(f"LLM selected invalid background color '{bg_color}', using default")
-                    
-                    if text_color in frontend_colors:
-                        result["icon_color"] = text_color
-                        logger.debug(f"LLM selected text color: '{text_color}'")
-                    else:
-                        logger.warning(f"LLM selected invalid text color '{text_color}', using default")
-                        
-                else:
-                    logger.warning(f"LLM returned non-dict JSON: {parsed_response}")
-                    
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse LLM JSON response: {e}. Raw content: {raw_content}")
-        else:
-            logger.warning(f"Failed to get valid response from LLM for agent icon generation. Response: {response}")
-
-        logger.debug(f"Generated agent styling: icon={result['icon_name']}, bg={result['icon_background']}, color={result['icon_color']}")
-        return result
-
-    except Exception as e:
-        logger.error(f"Error in agent icon generation: {str(e)}\n{traceback.format_exc()}")
-        # Return safe defaults on error (using Indigo theme)
-        return {
-            "icon_name": "bot",
-            "icon_color": "#FFFFFF", 
-            "icon_background": "#6366F1"
-        }
-
-def merge_custom_mcps(existing_mcps: List[Dict[str, Any]], new_mcps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    if not new_mcps:
-        return existing_mcps
-    
-    merged_mcps = existing_mcps.copy()
-    
-    for new_mcp in new_mcps:
-        new_mcp_name = new_mcp.get('name')
-        existing_index = None
-        
-        for i, existing_mcp in enumerate(merged_mcps):
-            if existing_mcp.get('name') == new_mcp_name:
-                existing_index = i
-                break
-        
-        if existing_index is not None:
-            merged_mcps[existing_index] = new_mcp
-        else:
-            merged_mcps.append(new_mcp)
-    
-    return merged_mcps
 
 def initialize(
     _db: DBConnection,
@@ -419,13 +66,6 @@ def initialize(
 
     logger.debug(f"Initialized agent API with instance ID: {instance_id}")
 
-async def _cleanup_redis_response_list(agent_run_id: str):
-    try:
-        response_list_key = f"agent_run:{agent_run_id}:responses"
-        await redis.delete(response_list_key)
-        logger.debug(f"Cleaned up Redis response list for agent run {agent_run_id}")
-    except Exception as e:
-        logger.warning(f"Failed to clean up Redis response list for {agent_run_id}: {str(e)}")
 
 
 async def check_for_active_project_agent_run(client, project_id: str):
