@@ -13,4 +13,3 @@ export function AIDocsExamples({ onSelectPrompt, count = 4 }: AIDocsExamplesProp
   // For now, fall back to default examples
   return <DefaultExamples onSelectPrompt={onSelectPrompt} count={count} />;
 }
-
