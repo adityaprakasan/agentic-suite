@@ -1,10 +1,10 @@
 import React from 'react';
 import { Settings, Wrench, Server, BookOpen, Workflow, Zap, ChevronDown, Brain } from 'lucide-react';
 import { ExpandableMarkdownEditor } from '@/components/ui/expandable-markdown-editor';
-import { AgentToolsConfiguration } from '../agent-tools-configuration';
+import { GranularToolConfiguration } from '../tools/granular-tool-configuration';
 import { AgentMCPConfiguration } from '../agent-mcp-configuration';
 import { AgentKnowledgeBaseManager } from '../knowledge-base/agent-kb-tree';
-import { AgentPlaybooksConfiguration } from '../playbooks/agent-playbooks-configuration';
+// import { AgentPlaybooksConfiguration } from '../playbooks/agent-playbooks-configuration'; // TODO: Playbooks feature not yet implemented
 import { AgentTriggersConfiguration } from '../triggers/agent-triggers-configuration';
 import { AgentModelSelector } from './model-selector';
 import { toast } from 'sonner';
@@ -70,11 +70,11 @@ export function ConfigurationTab({
 
   const mapAccordion = (val?: string) => {
     if (val === 'instructions') return isAdenticAgent ? 'integrations' : 'system';
-    if (val === 'workflows') return 'playbooks';
+    // if (val === 'workflows') return 'playbooks'; // TODO: Playbooks feature not yet implemented
     if (isAdenticAgent && (val === 'system' || val === 'tools')) {
       return 'integrations';
     }
-    if (['system', 'tools', 'integrations', 'knowledge', 'playbooks', 'triggers'].includes(val || '')) {
+    if (['system', 'tools', 'integrations', 'knowledge', 'triggers'].includes(val || '')) { // Removed 'playbooks' temporarily
       return val!;
     }
     return isAdenticAgent ? 'integrations' : 'system';
@@ -134,7 +134,7 @@ export function ConfigurationTab({
               </div>
               <p className="text-sm text-primary-700">
                 This is Adentic's default agent with centrally managed system prompt and tools.
-                You can customize integrations, knowledge base, playbooks, and triggers to personalize your experience.
+                You can customize integrations, knowledge base, and triggers to personalize your experience.
               </p>
             </div>
           )}
@@ -237,7 +237,7 @@ export function ConfigurationTab({
               {openAccordion === 'tools' && (
                 <div className="border-t border-border bg-muted/10">
                   <div className="p-4">
-                    <AgentToolsConfiguration
+                    <GranularToolConfiguration
                       tools={displayData.agentpress_tools}
                       onToolsChange={areToolsEditable ? handleToolsChange : () => { }}
                       disabled={!areToolsEditable}
@@ -327,6 +327,7 @@ export function ConfigurationTab({
               </div>
             </div>
 
+            {/* TODO: Playbooks feature not yet implemented
             <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="playbooks-section">
               <button
                 className="w-full p-4 text-left group-hover:bg-muted/30 transition-all duration-300"
@@ -362,6 +363,8 @@ export function ConfigurationTab({
                 </div>
               </div>
             </div>
+            */}
+            
             <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-primary/10" data-tour="triggers-section">
               <button
                 className="w-full p-4 text-left group-hover:bg-muted/30 transition-all duration-300"
