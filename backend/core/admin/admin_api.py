@@ -12,7 +12,7 @@ from core.services.supabase import DBConnection
 from core.utils.logger import logger
 from core.utils.pagination import PaginationService, PaginationParams, PaginatedResponse
 from core.utils.auth_utils import verify_admin_api_key
-from core.utils.suna_default_agent_service import SunaDefaultAgentService
+from core.utils.suna_default_agent_service import AdenticDefaultAgentService
 from core.utils.config import config, EnvMode
 from dotenv import load_dotenv, set_key, find_dotenv, dotenv_values
 import os
@@ -499,7 +499,7 @@ async def admin_install_suna_for_user(
     """Install Suna agent for a specific user."""
     logger.debug(f"Admin installing Suna agent for user: {account_id}")
     
-    service = SunaDefaultAgentService()
+    service = AdenticDefaultAgentService()
     agent_id = await service.install_suna_agent_for_user(account_id, replace_existing)
     
     if agent_id:
