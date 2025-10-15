@@ -72,6 +72,9 @@ class ConnectedAccountService:
             if initiation_fields:
                 for field_name, field_value in initiation_fields.items():
                     if field_value:
+                        # Handle both string and list values from frontend
+                        if isinstance(field_value, list):
+                            field_value = field_value[0] if field_value else ""
                         if field_name == "suffix.one":
                             state_val["extension"] = str(field_value)
                         else:
