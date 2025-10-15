@@ -448,7 +448,7 @@ export function DashboardContent() {
                   </div>
 
                   {/* Modes Panel - Below chat input, doesn't affect its position */}
-                  {(isStagingMode() || isLocalMode()) && isSunaAgent && (
+                  {(isStagingMode() || isLocalMode()) && isAdenticAgent && (
                     <div className="px-4 pb-8">
                       <div className="max-w-3xl mx-auto">
                         <SunaModesPanel
