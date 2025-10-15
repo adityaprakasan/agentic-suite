@@ -7,10 +7,9 @@ from typing import Optional, Tuple
 from io import BytesIO
 from PIL import Image
 from urllib.parse import urlparse
-from core.agentpress.tool import ToolResult, openapi_schema, usage_example
+from core.agentpress.tool import ToolResult, openapi_schema, tool_metadata
 from core.sandbox.tool_base import SandboxToolsBase
 from core.agentpress.thread_manager import ThreadManager
-from core.tools.image_context_manager import ImageContextManager
 from core.services.supabase import DBConnection
 import json
 from svglib.svglib import svg2rlg
@@ -36,6 +35,14 @@ DEFAULT_MAX_HEIGHT = 1080
 DEFAULT_JPEG_QUALITY = 85
 DEFAULT_PNG_COMPRESS_LEVEL = 6
 
+@tool_metadata(
+    display_name="Image Vision",
+    description="View and analyze images to understand their content",
+    icon="Eye",
+    color="bg-pink-100 dark:bg-pink-800/50",
+    weight=40,
+    visible=True
+)
 class SandboxVisionTool(SandboxToolsBase):
     """Tool for allowing the agent to 'see' images within the sandbox."""
 
@@ -44,7 +51,6 @@ class SandboxVisionTool(SandboxToolsBase):
         self.thread_id = thread_id
         # Make thread_manager accessible within the tool instance
         self.thread_manager = thread_manager
-        self.image_context_manager = ImageContextManager(thread_manager)
         self.db = DBConnection()
 
     async def convert_svg_with_sandbox_browser(self, svg_full_path: str) -> Tuple[bytes, str]:
@@ -165,11 +171,9 @@ class SandboxVisionTool(SandboxToolsBase):
                             os.unlink(temp_svg_path)
                             
                     except ImportError:
-                        print(f"[SeeImage] SVG conversion not available - using original SVG file '{file_path}'")
-                        return image_bytes, mime_type
+                        raise Exception(f"SVG conversion libraries not available. Cannot display SVG file '{file_path}'. Please convert to PNG manually.")
                     except Exception as e:
-                        print(f"[SeeImage] SVG conversion failed - using original SVG file '{file_path}': {str(e)}")
-                        return image_bytes, mime_type
+                        raise Exception(f"SVG conversion failed for '{file_path}': {str(e)}. Please convert to PNG manually.")
             
             # Open image from bytes
             img = Image.open(BytesIO(image_bytes))
@@ -220,8 +224,14 @@ class SandboxVisionTool(SandboxToolsBase):
             return compressed_bytes, output_mime
             
         except Exception as e:
-            print(f"[SeeImage] Failed to compress image: {str(e)}. Using original.")
-            return image_bytes, mime_type
+            # CRITICAL: Never return unsupported formats
+            # If compression fails, we need to ensure we still return a supported format
+            if mime_type in ['image/jpeg', 'image/png', 'image/gif', 'image/webp']:
+                print(f"[SeeImage] Failed to compress image: {str(e)}. Using original (format is supported).")
+                return image_bytes, mime_type
+            else:
+                # Unsupported format and compression failed - must fail
+                raise Exception(f"Failed to process image '{file_path}' with unsupported format '{mime_type}': {str(e)}")
 
     def is_url(self, file_path: str) -> bool:
         """check if the file path is url"""
@@ -265,36 +275,25 @@ class SandboxVisionTool(SandboxToolsBase):
         "type": "function",
         "function": {
             "name": "load_image",
-            "description": "Loads an image file into conversation context from the /workspace directory or from a URL. Provide either a relative path to a local image or the URL to an image. The image will be compressed before sending to reduce token usage. IMPORTANT: If you previously loaded an image but cleared context, you can load it again by calling this tool with the same file path - no need to ask user to re-upload.",
+            "description": """Loads an image file into conversation context from the /workspace directory or from a URL so you can see and analyze it.
+
+⚠️ HARD LIMIT: Maximum 3 images can be loaded in context at any time. Images consume 1000+ tokens each.
+
+Images remain in the sandbox and can be loaded again anytime. SVG files are automatically converted to PNG.""",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "file_path": {
                         "type": "string",
-                        "description": "Either a relative path to the image file within the /workspace directory (e.g., 'screenshots/image.png') or a URL to an image (e.g., 'https://example.com/image.jpg'). Supported formats: JPG, PNG, GIF, WEBP, SVG. Max size: 10MB. SVG files are automatically converted to PNG using browser rendering for best quality."
+                        "description": "Either a relative path to the image file within the /workspace directory (e.g., 'screenshots/image.png') or a URL to an image (e.g., 'https://example.com/image.jpg'). Supported formats: JPG, PNG, GIF, WEBP, SVG. Max size: 10MB."
                     }
                 },
                 "required": ["file_path"]
             }
         }
     })
-    @usage_example('''
-        <!-- Example: Load a local image named 'diagram.png' inside the 'docs' folder into context -->
-        <function_calls>
-        <invoke name="load_image">
-        <parameter name="file_path">docs/diagram.png</parameter>
-        </invoke>
-        </function_calls>
-
-        <!-- Example: Load an image from a URL into context -->
-        <function_calls>
-        <invoke name="load_image">
-        <parameter name="file_path">https://example.com/image.jpg</parameter>
-        </invoke>
-        </function_calls>
-        ''')
     async def load_image(self, file_path: str) -> ToolResult:
-        """Loads an image file from local file system or from a URL, compresses it, converts it to base64, and adds it to conversation context."""
+        """Loads an image file from local file system or from a URL, compresses it, uploads to cloud storage, and returns the public URL."""
         try:
             is_url = self.is_url(file_path)
             if is_url:
@@ -368,6 +367,15 @@ class SandboxVisionTool(SandboxToolsBase):
                     print(f"[SeeImage] Warning: Could not save converted PNG to sandbox: {e}")
                     # Continue with original path if save fails
 
+            # CRITICAL: Validate MIME type before upload - Anthropic only accepts 4 formats
+            SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if compressed_mime_type not in SUPPORTED_MIME_TYPES:
+                return self.fail_response(
+                    f"Invalid image format '{compressed_mime_type}' after compression. "
+                    f"Only {', '.join(SUPPORTED_MIME_TYPES)} are supported for viewing by the AI. "
+                    f"Original file: '{cleaned_path}'. Please convert the image to a supported format."
+                )
+
             # Upload to Supabase Storage instead of base64
             try:
                 # Generate unique filename
@@ -398,28 +406,48 @@ class SandboxVisionTool(SandboxToolsBase):
                 # Get public URL
                 public_url = await client.storage.from_('image-uploads').get_public_url(storage_filename)
                 
-                print(f"[LoadImage] Uploaded image to S3: {public_url}")
+                print(f"[LoadImage] Uploaded image to cloud storage: {public_url}")
                 
             except Exception as upload_error:
-                print(f"[LoadImage] Failed to upload to S3: {upload_error}")
+                print(f"[LoadImage] Failed to upload to cloud storage: {upload_error}")
                 return self.fail_response(f"Failed to upload image to cloud storage: {str(upload_error)}")
 
-            # Add the image to context using the public URL
-            result = await self.image_context_manager.add_image_to_context(
+            # Check current image count in context (enforce 3-image limit)
+            current_image_count = await self._count_images_in_context()
+            if current_image_count >= 3:
+                return self.fail_response(
+                    f"Cannot load image '{cleaned_path}': Maximum limit of 3 images in context reached. "
+                    f"You currently have {current_image_count} images loaded. Use a tool to clear old images first."
+                )
+            
+            # Add the image to the thread as an image_context message with multi-modal content
+            # This allows the LLM to actually "see" the image
+            message_content = {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": f"[Image loaded from '{cleaned_path}']"},
+                    {"type": "image_url", "image_url": {"url": public_url}}
+                ]
+            }
+            
+            await self.thread_manager.add_message(
                 thread_id=self.thread_id,
-                image_url=public_url,
-                mime_type=compressed_mime_type,
-                file_path=cleaned_path,
-                original_size=original_size,
-                compressed_size=len(compressed_bytes)
+                type="image_context",
+                content=message_content,
+                is_llm_message=True,
+                metadata={
+                    "file_path": cleaned_path,
+                    "mime_type": compressed_mime_type,
+                    "original_size": original_size,
+                    "compressed_size": len(compressed_bytes)
+                }
             )
             
-            if not result:
-                return self.fail_response(f"Failed to add image '{cleaned_path}' to conversation context.")
-
-            # Return structured output like other tools
+            print(f"[LoadImage] Added image to context. Current count: {current_image_count + 1}/3")
+            
+            # Return structured output
             result_data = {
-                "message": f"Successfully loaded image '{cleaned_path}' and uploaded to cloud storage (reduced from {original_size / 1024:.1f}KB to {len(compressed_bytes) / 1024:.1f}KB). Using public URL instead of base64 for efficient token usage.",
+                "message": f"Successfully loaded image '{cleaned_path}' into context (reduced from {original_size/1024:.1f}KB to {len(compressed_bytes)/1024:.1f}KB). Image {current_image_count + 1}/3 in context.",
                 "file_path": cleaned_path,
                 "image_url": public_url
             }
@@ -428,12 +456,49 @@ class SandboxVisionTool(SandboxToolsBase):
 
         except Exception as e:
             return self.fail_response(f"An unexpected error occurred while trying to see the image: {str(e)}")
+    
+    async def _count_images_in_context(self) -> int:
+        """Count how many image_context messages are currently in the conversation."""
+        try:
+            messages = await self.thread_manager.get_messages(thread_id=self.thread_id)
+            
+            # Count messages with type "image_context"
+            image_count = sum(1 for msg in messages if msg.get("type") == "image_context")
+            
+            return image_count
+        except Exception as e:
+            print(f"[LoadImage] Error counting images in context: {e}")
+            return 0
+    
+    async def _clear_images_from_context(self) -> int:
+        """Remove all image_context messages from the thread."""
+        try:
+            messages = await self.thread_manager.get_messages(thread_id=self.thread_id)
+            
+            # Delete messages with type "image_context"
+            deleted_count = 0
+            for msg in messages:
+                if msg.get("type") == "image_context":
+                    await self.thread_manager.delete_message(
+                        thread_id=self.thread_id,
+                        message_id=msg["message_id"]
+                    )
+                    deleted_count += 1
+            
+            return deleted_count
+        except Exception as e:
+            print(f"[LoadImage] Error clearing images from context: {e}")
+            return 0
 
     @openapi_schema({
         "type": "function",
         "function": {
             "name": "clear_images_from_context",
-            "description": "Clears all images from conversation memory. Use when done analyzing images or to free up context tokens. IMPORTANT: Files remain accessible - use load_image with the same path to load any image again instead of asking user to re-upload.",
+            "description": """Removes all images from conversation context to free up slots for new images.
+
+⚠️ HARD LIMIT: Maximum 3 images allowed in context at any time.
+
+Call this when you need to load new images but have reached the limit.""",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -441,29 +506,24 @@ class SandboxVisionTool(SandboxToolsBase):
             }
         }
     })
-    @usage_example('''
-        <!-- Example: Clear all images from conversation context -->
-        <function_calls>
-        <invoke name="clear_images_from_context">
-        </invoke>
-        </function_calls>
-        ''')
     async def clear_images_from_context(self) -> ToolResult:
-        """Removes all image_context messages from the current thread to free up tokens."""
+        """Removes all image_context messages from the current thread."""
         try:
             await self._ensure_sandbox()
             
-            # Use the dedicated image context manager
-            deleted_count = await self.image_context_manager.clear_images_from_context(self.thread_id)
+            deleted_count = await self._clear_images_from_context()
             
             if deleted_count > 0:
-                return self.success_response(f"Successfully cleared {deleted_count} image(s) from conversation context. Visual memory has been reset.")
+                return self.success_response(
+                    f"Successfully cleared {deleted_count} image(s) from conversation context. "
+                    f"You can now load up to 3 new images."
+                )
             else:
                 return self.success_response("No images found in conversation context to clear.")
                 
         except Exception as e:
             return self.fail_response(f"Failed to clear images from context: {str(e)}")
-
+ 
     # @openapi_schema({
     #     "type": "function",
     #     "function": {
@@ -476,13 +536,6 @@ class SandboxVisionTool(SandboxToolsBase):
     #         }
     #     }
     # })
-    # @usage_example('''
-    #     <!-- Example: List all images currently in conversation context -->
-    #     <function_calls>
-    #     <invoke name="list_images_in_context">
-    #     </invoke>
-    #     </function_calls>
-    #     ''')
     # async def list_images_in_context(self) -> ToolResult:
     #     """Lists all images currently in the conversation context."""
     #     try:
