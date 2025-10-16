@@ -332,16 +332,6 @@ async def create_profile(
     current_user_id: str = Depends(verify_and_get_user_id_from_jwt)
 ) -> ProfileResponse:
     try:
-        # Handle cases where fields might be lists from frontend
-        if isinstance(request.toolkit_slug, list):
-            request.toolkit_slug = request.toolkit_slug[0] if request.toolkit_slug else ""
-        if isinstance(request.profile_name, list):
-            request.profile_name = request.profile_name[0] if request.profile_name else ""
-        if isinstance(request.display_name, list):
-            request.display_name = request.display_name[0] if request.display_name else None
-        if isinstance(request.mcp_server_name, list):
-            request.mcp_server_name = request.mcp_server_name[0] if request.mcp_server_name else None
-            
         # For Zendesk, we need a unique user_id for each connection
         # even when using a shared auth config
         if request.toolkit_slug.lower() == "zendesk":
