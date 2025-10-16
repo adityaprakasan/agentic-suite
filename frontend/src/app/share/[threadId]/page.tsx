@@ -572,14 +572,54 @@ export default function ShareThreadPage({
       >
         <div className="flex flex-1 items-center justify-center p-4">
           <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center">
-            <h2 className="text-lg font-semibold text-destructive">Error</h2>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <button
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              onClick={() => router.push('/')}
-            >
-              Back to Home
-            </button>
+            {error === 'LOGIN_REQUIRED' ? (
+              <>
+                <div className="rounded-full bg-primary/10 p-3">
+                  <svg
+                    className="h-6 w-6 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold">Login Required</h2>
+                <p className="text-sm text-muted-foreground">
+                  This chat is private. Please log in to view the full conversation and see how it was created.
+                </p>
+                <div className="flex flex-col gap-2 w-full">
+                  <a
+                    href="https://workspace.tryadentic.com"
+                    className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Login to View Chat
+                  </a>
+                  <button
+                    className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => router.push('/')}
+                  >
+                    Back to Home
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold text-destructive">Error</h2>
+                <p className="text-sm text-muted-foreground">{error}</p>
+                <button
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                  onClick={() => router.push('/')}
+                >
+                  Back to Home
+                </button>
+              </>
+            )}
           </div>
         </div>
       </ShareThreadLayout>
