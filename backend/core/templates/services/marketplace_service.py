@@ -32,7 +32,8 @@ class MarketplaceService:
         filters: MarketplaceFilters
     ) -> PaginatedResponse[Dict[str, Any]]:
         try:
-            # logger.debug(f"Fetching marketplace templates with filters: {filters.__dict__}")
+            logger.debug(f"[MARKETPLACE DEBUG] Fetching marketplace templates with filters: {filters.__dict__}")
+            logger.debug(f"[MARKETPLACE DEBUG] Pagination params: page={pagination_params.page}, page_size={pagination_params.page_size}")
             
             from ..template_service import get_template_service
             from ..utils import format_template_for_response
@@ -53,13 +54,20 @@ class MarketplaceService:
                 tags=filters.tags
             )
             
+            logger.debug(f"[MARKETPLACE DEBUG] get_public_templates returned {len(templates)} templates")
+            for t in templates:
+                logger.debug(f"[MARKETPLACE DEBUG]   - {t.name} (creator: {str(t.creator_id)[:8]}...)")
+            
             base_query = self._build_marketplace_base_query(filters)
             count_query = self._build_marketplace_count_query(filters)
             count_result = await count_query.execute()
             total_items = count_result.count if count_result.count is not None else 0
             
             if filters.creator_id is not None:
+                logger.debug(f"[MARKETPLACE DEBUG] Filtering by creator_id: {filters.creator_id}")
+                logger.debug(f"[MARKETPLACE DEBUG] Templates BEFORE creator filter: {len(templates)}")
                 templates = [t for t in templates if t.creator_id == filters.creator_id]
+                logger.debug(f"[MARKETPLACE DEBUG] Templates AFTER creator filter: {len(templates)}")
                 if filters.creator_id:
                     all_templates = await template_service.get_public_templates(
                         is_kortix_team=filters.is_kortix_team,
@@ -68,11 +76,16 @@ class MarketplaceService:
                     )
                     filtered_templates = [t for t in all_templates if t.creator_id == filters.creator_id]
                     total_items = len(filtered_templates)
+            else:
+                logger.debug(f"[MARKETPLACE DEBUG] No creator_id filter (filters.creator_id is None)")
             
             template_responses = []
             for template in templates:
                 template_response = format_template_for_response(template)
                 template_responses.append(template_response)
+            
+            logger.debug(f"[MARKETPLACE DEBUG] Returning {len(template_responses)} templates to frontend")
+            logger.debug(f"[MARKETPLACE DEBUG] Total items in count: {total_items}")
             
             total_pages = (total_items + pagination_params.page_size - 1) // pagination_params.page_size
             has_next = pagination_params.page < total_pages
