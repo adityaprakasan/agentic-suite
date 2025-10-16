@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from core.utils.logger import logger
 from .client import ComposioClient
+from .developer_managed_integrations import is_developer_managed
 
 
 class CategoryInfo(BaseModel):
@@ -17,6 +18,7 @@ class ToolkitInfo(BaseModel):
     tags: List[str] = []
     auth_schemes: List[str] = []
     categories: List[str] = []
+    is_developer_managed: bool = False
 
 
 class AuthConfigField(BaseModel):
@@ -138,8 +140,17 @@ class ToolkitService:
                 
                 auth_schemes = toolkit_data.get("auth_schemes", [])
                 composio_managed_auth_schemes = toolkit_data.get("composio_managed_auth_schemes", [])
-
-                if "OAUTH2" not in auth_schemes or "OAUTH2" not in composio_managed_auth_schemes:
+                toolkit_slug = toolkit_data.get("slug", "")
+                
+                # Include if either Composio-managed OR developer-managed
+                has_oauth2 = "OAUTH2" in auth_schemes
+                is_composio_managed = "OAUTH2" in composio_managed_auth_schemes
+                is_dev_managed = is_developer_managed(toolkit_slug)
+                
+                if not has_oauth2:
+                    continue
+                    
+                if not (is_composio_managed or is_dev_managed):
                     continue
                 
                 logo_url = None
@@ -184,7 +195,8 @@ class ToolkitService:
                     logo=logo_url,
                     tags=tags,
                     auth_schemes=auth_schemes,
-                    categories=categories
+                    categories=categories,
+                    is_developer_managed=is_developer_managed(toolkit_data.get("slug", ""))
                 )
                 toolkits.append(toolkit)
             

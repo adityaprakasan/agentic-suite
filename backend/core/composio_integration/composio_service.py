@@ -11,6 +11,7 @@ from .auth_config_service import AuthConfigService, AuthConfig
 from .connected_account_service import ConnectedAccountService, ConnectedAccount
 from .mcp_server_service import MCPServerService, MCPServer, MCPUrlResponse
 from .composio_profile_service import ComposioProfileService
+from .developer_managed_integrations import get_auth_config_id
 
 
 class ComposioIntegrationResult(BaseModel):
@@ -80,13 +81,28 @@ class ComposioIntegrationService:
             #     )
             #     logger.debug(f"Step 2 complete: Created auth config {auth_config.id}")
 
-            auth_config = await self.auth_config_service.create_auth_config(
-                toolkit_slug, 
-                initiation_fields=initiation_fields,
-                custom_auth_config=custom_auth_config,
-                use_custom_auth=use_custom_auth
-            )
-            logger.debug(f"Step 2 complete: Created {'custom' if use_custom_auth else 'managed'} auth config {auth_config.id}")
+            # Check if this is a developer-managed integration
+            developer_auth_config_id = get_auth_config_id(toolkit_slug)
+            
+            if developer_auth_config_id:
+                logger.debug(f"Using developer-managed auth config for {toolkit_slug}: {developer_auth_config_id}")
+                auth_config = AuthConfig(
+                    id=developer_auth_config_id,
+                    auth_scheme="OAUTH2",
+                    is_composio_managed=False,
+                    restrict_to_following_tools=[],
+                    toolkit_slug=toolkit_slug
+                )
+                logger.debug(f"Step 2 complete: Using developer-managed auth config {auth_config.id}")
+            else:
+                # Standard flow: create new auth config
+                auth_config = await self.auth_config_service.create_auth_config(
+                    toolkit_slug, 
+                    initiation_fields=initiation_fields,
+                    custom_auth_config=custom_auth_config,
+                    use_custom_auth=use_custom_auth
+                )
+                logger.debug(f"Step 2 complete: Created {'custom' if use_custom_auth else 'managed'} auth config {auth_config.id}")
             
             connected_account = await self.connected_account_service.create_connected_account(
                 auth_config_id=auth_config.id,
