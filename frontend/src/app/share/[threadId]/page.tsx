@@ -570,16 +570,87 @@ export default function ShareThreadPage({
         }}
         initialLoadCompleted={initialLoadCompleted}
       >
-        <div className="flex flex-1 items-center justify-center p-4">
-          <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center">
-            <h2 className="text-lg font-semibold text-destructive">Error</h2>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <button
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              onClick={() => router.push('/')}
-            >
-              Back to Home
-            </button>
+        <div className="flex flex-1 items-center justify-center p-4 bg-gradient-to-br from-background via-background to-muted/20">
+          <div className="flex w-full max-w-lg flex-col items-center gap-6 rounded-2xl border bg-card/50 backdrop-blur-sm p-8 shadow-2xl text-center">
+            {/* Icon or Logo */}
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-primary"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </div>
+
+            {/* Headline */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight">
+                Someone shared a conversation with you
+              </h2>
+              <p className="text-base text-muted-foreground">
+                Sign in to Adentic to view this AI conversation and create your own
+              </p>
+            </div>
+
+            {/* Benefits List */}
+            <div className="w-full space-y-3 rounded-lg bg-muted/30 p-4 text-left">
+              <div className="flex items-start gap-3">
+                <svg className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm">View and collaborate on AI conversations</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm">Build AI agents with code execution</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <svg className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm">Deploy and share your own AI workflows</span>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex w-full flex-col gap-3">
+              <a
+                href="https://workspace.tryadentic.com"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl"
+              >
+                Sign in to view conversation
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+              
+              <p className="text-xs text-muted-foreground">
+                Don't have an account?{' '}
+                <a
+                  href="https://workspace.tryadentic.com"
+                  className="font-medium text-primary hover:underline"
+                >
+                  Sign up free
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </ShareThreadLayout>
