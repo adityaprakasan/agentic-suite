@@ -37,9 +37,9 @@ class ComposioProfileService:
         self.db = db_connection or DBConnection()
         
     def _get_encryption_key(self) -> bytes:
-        key = os.getenv("ENCRYPTION_KEY")
+        key = os.getenv("MCP_CREDENTIAL_ENCRYPTION_KEY") or os.getenv("ENCRYPTION_KEY")
         if not key:
-            raise ValueError("ENCRYPTION_KEY environment variable is required")
+            raise ValueError("MCP_CREDENTIAL_ENCRYPTION_KEY environment variable is required")
         return key.encode()
 
     def _encrypt_config(self, config_json: str) -> str:
@@ -103,6 +103,18 @@ class ComposioProfileService:
         connected_account_id: Optional[str] = None,
     ) -> ComposioProfile:
         try:
+            # Ensure all string parameters are actually strings, not lists
+            account_id = str(account_id) if not isinstance(account_id, str) else account_id
+            profile_name = str(profile_name) if not isinstance(profile_name, str) else profile_name
+            toolkit_slug = str(toolkit_slug) if not isinstance(toolkit_slug, str) else toolkit_slug
+            toolkit_name = str(toolkit_name) if not isinstance(toolkit_name, str) else toolkit_name
+            mcp_url = str(mcp_url) if not isinstance(mcp_url, str) else mcp_url
+            user_id = str(user_id) if not isinstance(user_id, str) else user_id
+            if redirect_url is not None:
+                redirect_url = str(redirect_url) if not isinstance(redirect_url, str) else redirect_url
+            if connected_account_id is not None:
+                connected_account_id = str(connected_account_id) if not isinstance(connected_account_id, str) else connected_account_id
+            
             logger.debug(f"Creating Composio profile for user: {account_id}, toolkit: {toolkit_slug}")
             logger.debug(f"MCP URL to store: {mcp_url}")
             

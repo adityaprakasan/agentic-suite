@@ -109,7 +109,13 @@ class ComposioIntegrationService:
             )
             logger.debug(f"Step 5 complete: Generated MCP URLs")
             
-            final_mcp_url = mcp_url_response.user_ids_url[0] if mcp_url_response.user_ids_url else mcp_url_response.mcp_url
+            # Safely extract the MCP URL, ensuring it's always a string
+            if mcp_url_response.user_ids_url and len(mcp_url_response.user_ids_url) > 0:
+                final_mcp_url = str(mcp_url_response.user_ids_url[0])
+            else:
+                final_mcp_url = str(mcp_url_response.mcp_url)
+            
+            logger.debug(f"Final MCP URL type: {type(final_mcp_url)}, value: {final_mcp_url}")
             
             profile_id = None
             if save_as_profile and self.profile_service:
