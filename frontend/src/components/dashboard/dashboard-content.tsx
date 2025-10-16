@@ -417,7 +417,7 @@ export function DashboardContent() {
                           className="tracking-tight text-2xl md:text-3xl font-normal text-foreground/90"
                           data-tour="dashboard-title"
                         >
-                          What should Kortix Super Worker do for you today?
+                          What should Adentic Marketing Assistant do for you today?
                         </p>
                       </div>
 
