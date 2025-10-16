@@ -59,6 +59,10 @@ const extractErrorMessage = (error: any): string => {
   }
 
   if (error instanceof Error) {
+    // Make permission denied errors more user-friendly
+    if (error.message.includes('permission denied for table')) {
+      return 'Please sign in to view this content';
+    }
     return error.message;
   }
 
@@ -72,10 +76,18 @@ const extractErrorMessage = (error: any): string => {
   }
 
   if (typeof error === 'string') {
+    // Make permission denied errors more user-friendly
+    if (error.includes('permission denied for table')) {
+      return 'Please sign in to view this content';
+    }
     return error;
   }
 
   if (error?.message) {
+    // Make permission denied errors more user-friendly
+    if (error.message.includes('permission denied for table')) {
+      return 'Please sign in to view this content';
+    }
     return error.message;
   }
 
