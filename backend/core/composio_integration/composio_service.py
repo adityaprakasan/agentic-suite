@@ -33,8 +33,8 @@ class ComposioIntegrationService:
         self.profile_service = ComposioProfileService(db_connection) if db_connection else None
     
     async def integrate_toolkit(
-        self, 
-        toolkit_slug: str, 
+        self,
+        toolkit_slug: str,
         account_id: str,
         user_id: str,
         profile_name: Optional[str] = None,
@@ -46,6 +46,10 @@ class ComposioIntegrationService:
         use_custom_auth: bool = False
     ) -> ComposioIntegrationResult:
         try:
+            # Handle case where toolkit_slug might be a list from frontend
+            if isinstance(toolkit_slug, list):
+                toolkit_slug = toolkit_slug[0] if toolkit_slug else ""
+            
             logger.debug(f"Starting Composio integration for toolkit: {toolkit_slug}")
             logger.debug(f"Initiation fields: {initiation_fields}")
             logger.debug(f"Custom auth: {use_custom_auth}, Custom auth config: {bool(custom_auth_config)}")

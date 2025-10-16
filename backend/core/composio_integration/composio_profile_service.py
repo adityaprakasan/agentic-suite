@@ -254,6 +254,10 @@ class ComposioProfileService:
 
     async def get_profiles(self, account_id: str, toolkit_slug: Optional[str] = None) -> List[ComposioProfile]:
         try:
+            # Handle case where toolkit_slug might be a list from frontend
+            if isinstance(toolkit_slug, list):
+                toolkit_slug = toolkit_slug[0] if toolkit_slug else None
+            
             client = await self.db.client
             
             query = client.table('user_mcp_credential_profiles').select('*').eq('account_id', account_id)
