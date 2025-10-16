@@ -83,11 +83,6 @@ export function useShareThreadData(threadId: string): UseShareThreadDataReturn {
           }),
           getMessages(threadId).catch((err) => {
             console.warn('Failed to load messages:', err);
-            // Check for permission denied errors (user not logged in)
-            const errorMessage = err?.message || String(err);
-            if (errorMessage.includes('permission denied') || errorMessage.includes('JWT')) {
-              throw new Error('LOGIN_REQUIRED');
-            }
             return [];
           }),
         ]);
