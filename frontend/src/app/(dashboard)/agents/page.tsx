@@ -631,7 +631,6 @@ export default function AgentsPage() {
             />
           )}
 
-          {/* Marketplace tab is disabled
           {activeTab === "marketplace" && (
             <MarketplaceTab
               marketplaceSearchQuery={marketplaceSearchQuery}
@@ -653,7 +652,7 @@ export default function AgentsPage() {
               onMarketplacePageSizeChange={handleMarketplacePageSizeChange}
               marketplacePagination={marketplaceTemplates?.pagination}
             />
-          )} */}
+          )}
         </div>
 
         <PublishDialog
