@@ -261,7 +261,7 @@ def from_dict(cls, data: Dict[str, Any]):
 
 
 class AgentsClient:
-    """SDK client for Kortix Agents API with httpx client supporting custom headers"""
+    """SDK client for Adentic AI API with httpx client supporting custom headers"""
 
     def __init__(
         self,

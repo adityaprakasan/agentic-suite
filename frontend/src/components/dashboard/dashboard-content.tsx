@@ -383,7 +383,7 @@ export function DashboardContent() {
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    Kortix Super Worker
+                    Adentic Marketing Assistant
                   </button>
                   <button
                     onClick={() => {
