@@ -116,18 +116,11 @@ class ConnectedAccountService:
             deprecated_obj = getattr(response, 'deprecated', None)
             deprecated_value = self._extract_deprecated_value(deprecated_obj)
             
-            # Handle cases where Composio API returns lists instead of strings
-            redirect_url_raw = getattr(response, 'redirect_url', None)
-            redirect_url = redirect_url_raw[0] if isinstance(redirect_url_raw, list) and redirect_url_raw else redirect_url_raw
-            
-            redirect_uri_raw = getattr(response, 'redirect_uri', None)
-            redirect_uri = redirect_uri_raw[0] if isinstance(redirect_uri_raw, list) and redirect_uri_raw else redirect_uri_raw
-            
             connected_account = ConnectedAccount(
                 id=response.id,
                 status=response.status,
-                redirect_url=redirect_url,
-                redirect_uri=redirect_uri,
+                redirect_url=getattr(response, 'redirect_url', None),
+                redirect_uri=getattr(response, 'redirect_uri', None),
                 connection_data=connection_data,
                 auth_config_id=auth_config_id,
                 user_id=user_id,

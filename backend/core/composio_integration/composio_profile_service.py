@@ -103,22 +103,6 @@ class ComposioProfileService:
         connected_account_id: Optional[str] = None,
     ) -> ComposioProfile:
         try:
-            # Handle cases where parameters might be lists from frontend
-            if isinstance(profile_name, list):
-                profile_name = profile_name[0] if profile_name else "Default Profile"
-            if isinstance(toolkit_slug, list):
-                toolkit_slug = toolkit_slug[0] if toolkit_slug else ""
-            if isinstance(toolkit_name, list):
-                toolkit_name = toolkit_name[0] if toolkit_name else ""
-            if isinstance(mcp_url, list):
-                mcp_url = mcp_url[0] if mcp_url else ""
-            if isinstance(redirect_url, list):
-                redirect_url = redirect_url[0] if redirect_url else None
-            if isinstance(user_id, list):
-                user_id = user_id[0] if user_id else "default"
-            if isinstance(connected_account_id, list):
-                connected_account_id = connected_account_id[0] if connected_account_id else None
-                
             logger.debug(f"Creating Composio profile for user: {account_id}, toolkit: {toolkit_slug}")
             logger.debug(f"MCP URL to store: {mcp_url}")
             
