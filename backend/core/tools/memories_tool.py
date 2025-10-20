@@ -33,7 +33,7 @@ class MemoriesTool(Tool):
     def __init__(self, thread_manager: ThreadManager):
         super().__init__()  # Initialize base Tool class
         self.thread_manager = thread_manager
-        self.memories_client = get_memories_client()
+        self.memories_client = get_memories_client(api_key=config.MEMORIES_AI_API_KEY)
         self.db = DBConnection()
     
     def success_response(self, data: Any) -> ToolResult:
