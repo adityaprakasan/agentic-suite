@@ -55,17 +55,17 @@ class MemoriesTool(Tool):
             
             client = await self.db.client
             
-            # Get existing memories_user_id
-            result = await client.table('accounts').select('memories_user_id').eq('account_id', account_id).single().execute()
+            # Get existing memories_user_id from basejump schema
+            result = await client.schema("basejump").table('accounts').select('memories_user_id').eq('id', account_id).single().execute()
             
             if result.data and result.data.get('memories_user_id'):
                 return result.data['memories_user_id']
             
             # Generate new memories_user_id
             memories_user_id = str(uuid.uuid4())
-            await client.table('accounts').update({
+            await client.schema("basejump").table('accounts').update({
                 'memories_user_id': memories_user_id
-            }).eq('account_id', account_id).execute()
+            }).eq('id', account_id).execute()
             
             logger.info(f"Generated new memories_user_id for account {account_id}")
             return memories_user_id
