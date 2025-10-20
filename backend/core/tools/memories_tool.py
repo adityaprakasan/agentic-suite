@@ -410,7 +410,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "get_transcript",
-            "description": "Get the full transcript of a video",
+            "description": "Extract the full transcript of a video with timestamps. Use this when user wants to read video content as text, search for specific quotes, create captions/subtitles, or needs the spoken content for documentation, analysis, or repurposing. Returns timestamped transcript segments for easy reference.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -464,7 +464,7 @@ class MemoriesTool(Tool):
                     },
                     "question": {
                         "type": "string",
-                        "description": "Question to ask about the video"
+                        "description": "Specific question about the video content. Be precise and contextual. Good examples: 'Where does the speaker mention pricing?', 'What products are shown?', 'When does the CTA appear?', 'What is the main message?', 'How is the product demonstrated?' Avoid vague questions."
                     }
                 },
                 "required": ["video_id", "question"]
@@ -509,7 +509,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "search_in_video",
-            "description": "Search for specific moments in a video",
+            "description": "Search for specific moments or clips within a video based on visual or audio content. Use this to find when particular products appear, when specific topics are discussed, or when certain scenes occur. Returns timestamp ranges (start/end) for each matching moment. Also called 'clip search'.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -519,7 +519,7 @@ class MemoriesTool(Tool):
                     },
                     "query": {
                         "type": "string",
-                        "description": "What to search for in the video"
+                        "description": "What to search for in the video. Be specific about visual or audio elements. Examples: 'scenes with the product', 'when pricing is mentioned', 'moments with text overlays', 'scenes with people smiling', 'segments about features'"
                     }
                 },
                 "required": ["video_id", "query"]
@@ -559,14 +559,14 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "compare_videos",
-            "description": "Compare multiple videos side-by-side for marketing analysis",
+            "description": "Compare multiple videos side-by-side to identify patterns, differences, and which performs best. Use this when user wants to understand what makes certain videos more effective, identify winning strategies across campaigns, or decide which video approach to use. Returns comparative analysis with scores and recommendations.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "video_ids": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of video IDs to compare (2-10 videos)"
+                        "description": "Array of video IDs to compare (2-10 videos recommended for meaningful comparison). Use videos from same category/campaign for best insights. Get IDs from previous upload or search operations."
                     }
                 },
                 "required": ["video_ids"]
@@ -609,18 +609,18 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "multi_video_search",
-            "description": "Search across multiple videos to find patterns or specific content",
+            "description": "Search across multiple videos simultaneously for patterns, themes, or specific content. Use this to identify common elements across a campaign, find trend patterns, or analyze content strategies across multiple creators/videos. More powerful than individual searches when analyzing content at scale.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "video_ids": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of video IDs to search"
+                        "description": "Array of video IDs to search across (can handle 5-50 videos). Use when you have a collection of related videos (campaign series, competitor videos, trending content)."
                     },
                     "query": {
                         "type": "string",
-                        "description": "What to search for across videos"
+                        "description": "What to search for across all videos. Focus on patterns or themes. Examples: 'common hook strategies', 'how products are presented', 'trending audio patterns', 'CTA placement strategies', 'visual style elements'."
                     }
                 },
                 "required": ["video_ids", "query"]
@@ -749,7 +749,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "human_reid",
-            "description": "Track a specific person across multiple videos (useful for influencer analysis)",
+            "description": "Track a specific person across multiple videos using re-identification technology. Use this when user wants to find all appearances of a person (influencer, spokesperson, competitor personality), analyze their presence across content, or track product placements involving specific people. Can work from image reference or video frame.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -805,17 +805,17 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_creator",
-            "description": "Analyze a creator's account on TikTok, Instagram, or YouTube - generates full insight report on their stats, content style, posting patterns, and engagement trends. Use this when user asks about a specific creator, wants to understand their content strategy, or requests a creator analysis. Examples: 'analyze @nike on TikTok', 'get insights on MrBeast YouTube channel', 'what is @nike's content strategy'",
+            "description": "Analyze a creator's account on TikTok, Instagram, or YouTube to generate a comprehensive insight report on their content strategy, stats, posting patterns, and audience engagement. Use this when user asks about a specific creator's strategy, wants to learn from successful creators, or needs competitive intelligence. Simply provide the creator's URL or @handle - the tool will pull and analyze their recent videos automatically. Examples: 'analyze @nike on TikTok', 'get insights on MrBeast YouTube channel', 'what is @nike's content strategy'",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "creator_url": {
                         "type": "string",
-                        "description": "Creator profile URL: TikTok (@username or full URL), Instagram (@username or full URL), or YouTube (channel URL or @handle)"
+                        "description": "Creator's profile URL or handle. Formats: TikTok '@username' or 'tiktok.com/@username', Instagram '@username' or 'instagram.com/username', YouTube 'youtube.com/@channel' or 'youtube.com/channel/CHANNEL_ID'. The tool handles all platform-specific formats."
                     },
                     "video_count": {
                         "type": "integer",
-                        "description": "Number of recent videos to analyze for insights (default 10, recommended 10-20 for accurate patterns, max 30)",
+                        "description": "Number of recent videos to analyze for the report (default 10). Recommended: 10-15 for quick insights, 20-30 for comprehensive analysis of content patterns. More videos = more accurate pattern detection.",
                         "default": 10
                     }
                 },
@@ -871,14 +871,14 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_trend",
-            "description": "Analyze trending content on TikTok or Instagram by hashtag - pulls recent videos to identify trending patterns, common elements, and engagement trends. Use this when user asks about trends, wants to understand hashtag performance, or research trending topics. Examples: 'what's trending with #fitness on TikTok', 'analyze #skincare trend', 'show me trending #nike videos'",
+            "description": "Analyze trending content on TikTok or Instagram by hashtag(s) to identify what's currently viral, common content patterns, and trending formats. Use this when user asks what's trending with a topic, wants to understand hashtag performance, or needs to identify trending content strategies for campaign planning. The tool pulls recent trending videos using the hashtag(s) and analyzes patterns across them. Examples: 'what's trending with #fitness on TikTok', 'analyze #skincare trend', 'show me trending #nike videos'",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "hashtags": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Hashtags to analyze (without # symbol). Examples: ['fitness'], ['skincare', 'beauty'], ['nike']. Can be single or multiple tags."
+                        "description": "Array of hashtag(s) to analyze (without # symbol). Can be single ['fitness'] or multiple ['fitness', 'gym', 'workout'] for broader analysis. Use trending or relevant hashtags for the user's industry/topic."
                     },
                     "video_count": {
                         "type": "integer",
