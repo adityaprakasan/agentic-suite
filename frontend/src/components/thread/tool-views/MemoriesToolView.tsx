@@ -37,7 +37,8 @@ export function MemoriesToolView({
   }
 
   // Extract tool result from toolContent
-  const toolResult = extractToolData(toolContent);
+  const extracted = extractToolData(toolContent);
+  const toolResult = extracted.toolResult;
   
   if (!toolResult || typeof toolResult !== 'object') {
     return (
@@ -58,9 +59,9 @@ export function MemoriesToolView({
     <div className="p-4">
       <MemoriesToolRenderer
         result={{
-          success: isSuccess,
-          output: toolResult.toolOutput || toolResult,
-          method_name: toolResult.methodName || name,
+          success: toolResult.isSuccess,
+          output: toolResult.toolOutput || extracted,
+          method_name: toolResult.toolName || toolResult.functionName || name,
         }}
       />
     </div>
