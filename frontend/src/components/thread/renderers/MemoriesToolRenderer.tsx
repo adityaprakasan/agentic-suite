@@ -28,8 +28,11 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
     );
   }
 
+  // Normalize method name (handle both snake_case and kebab-case)
+  const normalizedMethod = method_name?.replace(/-/g, '_');
+
   // Route to appropriate renderer based on method
-  switch (method_name) {
+  switch (normalizedMethod) {
     case 'search_platform_videos':
       return <PlatformSearchResults data={output} />;
     case 'analyze_video':
