@@ -163,7 +163,14 @@ class ToolManager:
             enabled_methods = self._get_enabled_methods_for_tool('memories_tool')
             self.thread_manager.add_tool(MemoriesTool, function_names=enabled_methods, thread_manager=self.thread_manager)
             if enabled_methods:
-                logger.debug(f"✅ Registered memories_tool with methods: {enabled_methods}")
+                logger.info(f"✅ Registered Video Intelligence tool (memories_tool) with {len(enabled_methods)} methods")
+            else:
+                logger.warning("⚠️ Video Intelligence tool registered but no methods enabled")
+        else:
+            if not config.MEMORIES_AI_API_KEY:
+                logger.info("ℹ️  Video Intelligence tool not registered - MEMORIES_AI_API_KEY not configured")
+            if 'memories_tool' in disabled_tools:
+                logger.info("ℹ️  Video Intelligence tool disabled in agent configuration")
         
         if config.ENV_MODE != EnvMode.PRODUCTION and config.VAPI_PRIVATE_KEY and 'vapi_voice_tool' not in disabled_tools:
             enabled_methods = self._get_enabled_methods_for_tool('vapi_voice_tool')
