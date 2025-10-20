@@ -1168,6 +1168,12 @@ TOOL_GROUPS: Dict[str, ToolGroup] = {
                 description="Analyze trending videos by hashtag",
                 enabled=True
             ),
+            ToolMethod(
+                name="check_task_status",
+                display_name="Check Task Status",
+                description="Check status of async video scraping operations (creator/trend analysis)",
+                enabled=True
+            ),
         ]
     ),
 }

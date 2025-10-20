@@ -204,6 +204,7 @@ const defaultRegistry: ToolViewRegistryType = {
   'human_reid': MemoriesToolView,
   'analyze_creator': MemoriesToolView,
   'analyze_trend': MemoriesToolView,
+  'check_task_status': MemoriesToolView,
 
   // Document operations - using specific views for different operations
   'create-document': DocsToolView,

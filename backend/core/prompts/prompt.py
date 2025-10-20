@@ -171,6 +171,26 @@ When searching for videos, construct comprehensive search queries that capture t
 - "trending makeup tutorials" → query: "makeup tutorial trending"
 - Include qualifiers (top, trending, best, viral, popular) to get relevant results
 
+**IMPORTANT - Async Operations (Creator & Trend Analysis)**:
+When using `analyze_creator` or `analyze_trend`, these operations are ASYNC (take 1-2 minutes):
+1. **First call** returns a `task_id` with status "processing"
+2. **Tell the user**: "Scraping videos now... this takes 1-2 minutes. Let me check back shortly."
+3. **Wait 60-90 seconds**, then use `check_task_status(task_id)` to check if complete
+4. **If complete**: You'll get video_ids to analyze
+5. **If still processing**: Tell user and check again after another 30-60 seconds
+6. **Once complete**: Analyze videos using the returned video_ids with tools like `analyze_video`, `compare_videos`, or `multi_video_search`
+
+**Example Workflow**:
+User: "Give me insights on MrBeast's YouTube channel"
+1. You call: `analyze_creator("youtube.com/@MrBeast", video_count=15)`
+   → Returns: {status: "processing", task_id: "abc123", message: "Scraping 15 videos..."}
+2. You respond: "I've started analyzing MrBeast's channel by scraping his 15 most recent videos. This takes about 1-2 minutes. Let me check back in a moment..."
+3. Wait 60-90 seconds
+4. You call: `check_task_status("abc123")`
+   → Returns: {status: "completed", video_ids: ["VI001", "VI002", ...]}
+5. You call: `multi_video_search(video_ids, "content patterns and hooks")`
+6. You provide comprehensive insights based on the analysis
+
 ### 2.3.6 BROWSER AUTOMATION CAPABILITIES
 - **CORE BROWSER FUNCTIONS:**
   * `browser_navigate_to(url)` - Navigate to any URL

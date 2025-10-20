@@ -865,6 +865,81 @@ class MemoriesTool(Tool):
             logger.error(f"Error analyzing creator: {str(e)}")
             return self.fail_response(f"Failed to analyze creator: {str(e)}")
     
+    # Task Status Checking
+    
+    @openapi_schema({
+        "type": "function",
+        "function": {
+            "name": "check_task_status",
+            "description": "Check the status of an async task (video scraping from creator or hashtag). Use this to see if a previous analyze_creator or analyze_trend operation has completed. Returns task status and scraped video IDs if ready.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID returned from analyze_creator or analyze_trend"
+                    }
+                },
+                "required": ["task_id"]
+            }
+        }
+    })
+    async def check_task_status(self, task_id: str) -> ToolResult:
+        """Check status of async scraping task"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            # Check task status
+            status_result = await self.memories_client.get_task_status(
+                task_id=task_id,
+                unique_id=user_id
+            )
+            
+            task_status = status_result.get("status", "unknown")
+            
+            if task_status == "completed" or task_status == "success":
+                # Task completed - return video IDs
+                video_ids = status_result.get("video_ids", [])
+                video_count = len(video_ids)
+                
+                return self.success_response({
+                    "status": "completed",
+                    "task_id": task_id,
+                    "video_count": video_count,
+                    "video_ids": video_ids,
+                    "message": f"✅ Scraping complete! {video_count} videos are ready.",
+                    "next_steps": f"You can now analyze these videos using analyze_video, compare them with compare_videos, or search across them with multi_video_search. Video IDs: {', '.join(video_ids[:5])}{'...' if video_count > 5 else ''}"
+                })
+            
+            elif task_status == "processing" or task_status == "pending":
+                return self.success_response({
+                    "status": "processing",
+                    "task_id": task_id,
+                    "message": "⏳ Still processing... Videos typically take 1-2 minutes to scrape and parse.",
+                    "next_steps": "Check again in 30-60 seconds using check_task_status."
+                })
+            
+            elif task_status == "failed" or task_status == "error":
+                error_msg = status_result.get("error", "Unknown error")
+                return self.fail_response(f"Task failed: {error_msg}")
+            
+            else:
+                return self.success_response({
+                    "status": task_status,
+                    "task_id": task_id,
+                    "raw_response": status_result,
+                    "message": f"Task status: {task_status}"
+                })
+            
+        except MemoriesAPIError as e:
+            return self.fail_response(f"Memories.ai API error: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error checking task status: {str(e)}")
+            return self.fail_response(f"Failed to check task status: {str(e)}")
+    
     # Trend/Hashtag Analysis
     
     @openapi_schema({
