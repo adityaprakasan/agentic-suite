@@ -157,26 +157,26 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "upload_video",
-            "description": "Upload a video from URL for analysis. The video will be processed by memories.ai and can be saved to knowledge base.",
+            "description": "Upload and process a video from URL (YouTube, TikTok, Instagram, LinkedIn, or direct video URL) for analysis. Use this when user provides a specific video URL to analyze, or when you need to upload a video found from platform search for deeper analysis. The video will be processed to enable transcript extraction, content analysis, and Q&A capabilities.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "url": {
                         "type": "string",
-                        "description": "URL of the video to upload (YouTube, TikTok, Instagram, direct video URL)"
+                        "description": "Full video URL. Supported: YouTube (youtube.com/watch?v=..., youtu.be/...), TikTok (tiktok.com/@user/video/...), Instagram (instagram.com/reel/..., instagram.com/p/...), LinkedIn videos, or direct video file URLs (.mp4, .mov, etc.)"
                     },
                     "title": {
                         "type": "string",
-                        "description": "Title for the video"
+                        "description": "Descriptive title for the video. Use the actual video title if known, or create a descriptive title based on the content (e.g., 'Nike Air Max Commercial', 'Fitness Tutorial by @creator', 'Q3 2024 Campaign Video')"
                     },
                     "folder_name": {
                         "type": "string",
-                        "description": "Knowledge base folder to save video to (optional, defaults to 'Videos')",
+                        "description": "Knowledge base folder name to organize the video (e.g., 'Campaign Videos', 'Competitor Analysis', 'Client Content'). Defaults to 'Videos' if not specified.",
                         "default": "Videos"
                     },
                     "save_to_kb": {
                         "type": "boolean",
-                        "description": "Whether to save video to knowledge base after upload",
+                        "description": "Whether to automatically save to knowledge base after upload. Set to true (default) when user wants to keep the video for future reference, false for one-time analysis only.",
                         "default": True
                     }
                 },
@@ -255,26 +255,26 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "upload_video_file",
-            "description": "Upload a video file from local storage (e.g., user attachment or sandbox file) for analysis",
+            "description": "Upload and process a video file from local storage (e.g., user attachment or file in sandbox) for analysis. Use this when user has uploaded a video file directly (not a URL) or when you need to analyze a video file from the sandbox filesystem. The video will be processed for transcript extraction, content analysis, and Q&A capabilities.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "file_path": {
                         "type": "string",
-                        "description": "Path to video file"
+                        "description": "Absolute or relative path to video file on the filesystem. Can be a user-uploaded attachment path, sandbox file path, or any accessible video file. Supported formats: .mp4, .mov, .avi, .mkv, .webm, .flv"
                     },
                     "title": {
                         "type": "string",
-                        "description": "Title for the video"
+                        "description": "Descriptive title for the video. If filename is descriptive, you can derive from it; otherwise create a meaningful title based on context. Examples: 'Client Campaign Upload', 'Team Meeting Recording', 'Product Demo Video', 'User Submission'"
                     },
                     "folder_name": {
                         "type": "string",
-                        "description": "Knowledge base folder to save video to (optional, defaults to 'Videos')",
+                        "description": "Knowledge base folder name to organize the video (e.g., 'Uploads', 'Client Files', 'Recordings', 'User Content'). Defaults to 'Videos' if not specified.",
                         "default": "Videos"
                     },
                     "save_to_kb": {
                         "type": "boolean",
-                        "description": "Whether to save video to knowledge base after upload",
+                        "description": "Whether to save to knowledge base after processing. Set true (default) to keep for future access and reference, false for one-time analysis only.",
                         "default": True
                     }
                 },
@@ -336,13 +336,13 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_video",
-            "description": "Analyze a video for marketing insights: hooks, CTAs, visual elements, pacing, engagement prediction",
+            "description": "Analyze a video's content for marketing insights including hooks (attention-grabbing moments), CTAs (calls-to-action), visual elements, pacing, and engagement prediction. Use this when user wants to understand what makes a video effective, identify best practices, or get actionable feedback on video content. Best for marketing/campaign analysis and content strategy optimization.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "video_id": {
                         "type": "string",
-                        "description": "Video ID from memories.ai (from upload_video or search results)"
+                        "description": "Video identifier from previous upload or search operation. Format: 'VI-...' (uploaded) or 'PI-...' (platform search). Get this from upload_video, upload_video_file, or search_platform_videos results."
                     }
                 },
                 "required": ["video_id"]
