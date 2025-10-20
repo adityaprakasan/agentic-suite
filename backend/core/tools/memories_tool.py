@@ -11,7 +11,7 @@ Provides agents with video analysis capabilities:
 
 import uuid
 from typing import Optional, List, Dict, Any
-from core.agentpress.tool import ToolResult, openapi_schema, tool_metadata
+from core.agentpress.tool import Tool, ToolResult, openapi_schema, tool_metadata
 from core.agentpress.thread_manager import ThreadManager
 from core.services.memories_client import get_memories_client, MemoriesAPIError
 from core.services.supabase import DBConnection
@@ -27,7 +27,7 @@ from core.utils.config import config
     weight=150,
     visible=True
 )
-class MemoriesTool:
+class MemoriesTool(Tool):
     """Tool for video intelligence using memories.ai API"""
     
     def __init__(self, thread_manager: ThreadManager):
