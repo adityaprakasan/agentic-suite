@@ -31,6 +31,7 @@ class MemoriesTool(Tool):
     """Tool for video intelligence using memories.ai API"""
     
     def __init__(self, thread_manager: ThreadManager):
+        super().__init__()  # Initialize base Tool class
         self.thread_manager = thread_manager
         self.memories_client = get_memories_client()
         self.db = DBConnection()
