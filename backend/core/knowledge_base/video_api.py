@@ -208,7 +208,8 @@ async def delete_video(
         
         # Delete from memories.ai
         try:
-            memories_client = get_memories_client()
+            from core.utils.config import config
+            memories_client = get_memories_client(api_key=config.MEMORIES_AI_API_KEY)
             await memories_client.delete_video(user_id=memories_user_id, video_id=video_id)
         except MemoriesAPIError as e:
             logger.warning(f"Failed to delete video from memories.ai: {str(e)}")
@@ -248,7 +249,8 @@ async def chat_with_video(
         memories_user_id = video_result.data['memories_user_id']
         
         # Query video via memories.ai
-        memories_client = get_memories_client()
+        from core.utils.config import config
+        memories_client = get_memories_client(api_key=config.MEMORIES_AI_API_KEY)
         result = await memories_client.query_video(
             user_id=memories_user_id,
             video_id=video_id,
