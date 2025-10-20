@@ -672,7 +672,7 @@ class MemoriesTool(Tool):
                     },
                     "query": {
                         "type": "string",
-                        "description": "Search terms: brand names (Nike, Apple), hashtags (#fitness, #marketing), topics (workout routine, product review), or creator names"
+                        "description": "Search query - construct comprehensive search terms from user's request. Include qualifiers like 'top', 'trending', 'best', 'viral', 'popular' when user asks for top/trending content. Examples: 'nike trending' (for 'top Nike videos'), 'fitness viral' (for 'trending fitness'), 'skincare best' (for 'best skincare videos'). Can also search by hashtag (#fitness), brand name (Nike), or topic (workout tutorial)"
                     },
                     "limit": {
                         "type": "integer",
