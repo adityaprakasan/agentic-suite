@@ -34,6 +34,13 @@ class MemoriesTool(Tool):
         super().__init__()  # Initialize base Tool class
         self.thread_manager = thread_manager
         self.memories_client = get_memories_client(api_key=config.MEMORIES_AI_API_KEY)
+        
+        if self.memories_client is None:
+            logger.error("MemoriesTool initialized but memories_client is None - API key may be missing")
+            raise ValueError(
+                "Memories.ai API key not configured. Please set MEMORIES_AI_API_KEY in your environment variables."
+            )
+        
         self.db = DBConnection()
     
     def success_response(self, data: Any) -> ToolResult:

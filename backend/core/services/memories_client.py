@@ -692,12 +692,19 @@ class MemoriesClient:
 _client: Optional[MemoriesClient] = None
 
 
-def get_memories_client(api_key: Optional[str] = None) -> MemoriesClient:
+def get_memories_client(api_key: Optional[str] = None) -> Optional[MemoriesClient]:
     """Get or create singleton client"""
     global _client
-    if _client is None and api_key:
+    
+    if _client is not None:
+        return _client
+    
+    if api_key:
         _client = MemoriesClient(api_key)
-    return _client
+        return _client
+    
+    # No API key provided and no existing client
+    return None
 
 
 # Alias for backwards compatibility
