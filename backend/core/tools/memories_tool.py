@@ -661,22 +661,22 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "search_platform_videos",
-            "description": "Search for videos on social media platforms: YouTube, TikTok, Instagram, LinkedIn",
+            "description": "Search for videos on TikTok, YouTube, Instagram, or LinkedIn. Use this when user asks to find videos on these platforms, search for trending content, find videos by hashtag, or discover videos by brand/creator name. Examples: 'find Nike videos on TikTok', 'top fitness videos on YouTube', 'trending makeup tutorials on Instagram', 'search #sneakers on TikTok'",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "platform": {
                         "type": "string",
                         "enum": ["youtube", "tiktok", "instagram", "linkedin"],
-                        "description": "Platform to search on"
+                        "description": "Social media platform to search: 'tiktok' for TikTok, 'youtube' for YouTube, 'instagram' for Instagram Reels, 'linkedin' for LinkedIn videos"
                     },
                     "query": {
                         "type": "string",
-                        "description": "Search query (keywords, hashtags, channel names)"
+                        "description": "Search terms: brand names (Nike, Apple), hashtags (#fitness, #marketing), topics (workout routine, product review), or creator names"
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Maximum number of results to return (1-50)",
+                        "description": "Number of video results to return (default 10, max 50)",
                         "default": 10,
                         "minimum": 1,
                         "maximum": 50
@@ -805,17 +805,17 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_creator",
-            "description": "Analyze a TikTok/Instagram/YouTube creator's account - pulls recent videos and generates insights report on their content style, performance, and trends",
+            "description": "Analyze a creator's account on TikTok, Instagram, or YouTube - generates full insight report on their stats, content style, posting patterns, and engagement trends. Use this when user asks about a specific creator, wants to understand their content strategy, or requests a creator analysis. Examples: 'analyze @nike on TikTok', 'get insights on MrBeast YouTube channel', 'what is @nike's content strategy'",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "creator_url": {
                         "type": "string",
-                        "description": "TikTok/Instagram/YouTube creator profile URL (e.g. https://www.tiktok.com/@nike)"
+                        "description": "Creator profile URL: TikTok (@username or full URL), Instagram (@username or full URL), or YouTube (channel URL or @handle)"
                     },
                     "video_count": {
                         "type": "integer",
-                        "description": "Number of recent videos to analyze (default 10, max 30)",
+                        "description": "Number of recent videos to analyze for insights (default 10, recommended 10-20 for accurate patterns, max 30)",
                         "default": 10
                     }
                 },
@@ -871,18 +871,18 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_trend",
-            "description": "Analyze videos from TikTok/Instagram trends or hashtags - pulls recent videos using hashtag(s) to understand what's trending",
+            "description": "Analyze trending content on TikTok or Instagram by hashtag - pulls recent videos to identify trending patterns, common elements, and engagement trends. Use this when user asks about trends, wants to understand hashtag performance, or research trending topics. Examples: 'what's trending with #fitness on TikTok', 'analyze #skincare trend', 'show me trending #nike videos'",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "hashtags": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of hashtags to search (e.g. ['fitness', 'workout']). Don't include # symbol."
+                        "description": "Hashtags to analyze (without # symbol). Examples: ['fitness'], ['skincare', 'beauty'], ['nike']. Can be single or multiple tags."
                     },
                     "video_count": {
                         "type": "integer",
-                        "description": "Number of videos to pull (default 10, max 30)",
+                        "description": "Number of trending videos to analyze (default 10, recommended 15-20 for trend patterns, max 30)",
                         "default": 10
                     }
                 },
