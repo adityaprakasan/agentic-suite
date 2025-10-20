@@ -44,6 +44,7 @@ from core.tools.company_search_tool import CompanySearchTool
 from core.tools.paper_search_tool import PaperSearchTool
 from core.ai_models.manager import model_manager
 from core.tools.vapi_voice_tool import VapiVoiceTool
+from core.tools.memories_tool import MemoriesTool
 
 
 load_dotenv()
@@ -156,6 +157,13 @@ class ToolManager:
                 self.thread_manager.add_tool(CompanySearchTool, function_names=enabled_methods, thread_manager=self.thread_manager)
                 if enabled_methods:
                     logger.debug(f"✅ Registered company_search_tool with methods: {enabled_methods}")
+        
+        # Register Memories.ai video intelligence tool if API key is available
+        if config.MEMORIES_AI_API_KEY and 'memories_tool' not in disabled_tools:
+            enabled_methods = self._get_enabled_methods_for_tool('memories_tool')
+            self.thread_manager.add_tool(MemoriesTool, function_names=enabled_methods, thread_manager=self.thread_manager)
+            if enabled_methods:
+                logger.debug(f"✅ Registered memories_tool with methods: {enabled_methods}")
         
         if config.ENV_MODE != EnvMode.PRODUCTION and config.VAPI_PRIVATE_KEY and 'vapi_voice_tool' not in disabled_tools:
             enabled_methods = self._get_enabled_methods_for_tool('vapi_voice_tool')

@@ -69,6 +69,7 @@ import { createPresentationViewerToolContent, parsePresentationSlidePath } from 
 import { extractToolData } from '../utils';
 import { KbToolView } from '../KbToolView';
 import { ExpandMessageToolView } from '../expand-message-tool/ExpandMessageToolView';
+import { MemoriesToolView } from '../MemoriesToolView';
 
 
 export type ToolViewComponent = React.ComponentType<ToolViewProps>;
@@ -189,6 +190,20 @@ const defaultRegistry: ToolViewRegistryType = {
   'global-kb-delete-item': KbToolView,
   'global_kb_enable_item': KbToolView,
   'global-kb-enable-item': KbToolView,
+
+  // Memories.ai video intelligence tools
+  'upload_video': MemoriesToolView,
+  'upload_video_file': MemoriesToolView,
+  'search_platform_videos': MemoriesToolView,
+  'analyze_video': MemoriesToolView,
+  'query_video': MemoriesToolView,
+  'get_transcript': MemoriesToolView,
+  'compare_videos': MemoriesToolView,
+  'multi_video_search': MemoriesToolView,
+  'search_in_video': MemoriesToolView,
+  'human_reid': MemoriesToolView,
+  'analyze_creator': MemoriesToolView,
+  'analyze_trend': MemoriesToolView,
 
   // Document operations - using specific views for different operations
   'create-document': DocsToolView,

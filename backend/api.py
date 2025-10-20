@@ -181,7 +181,9 @@ api_router.include_router(transcription_api.router)
 api_router.include_router(email_api.router)
 
 from core.knowledge_base import api as knowledge_base_api
+from core.knowledge_base import video_api as knowledge_base_video_api
 api_router.include_router(knowledge_base_api.router)
+api_router.include_router(knowledge_base_video_api.router)
 
 api_router.include_router(triggers_api.router)
 

@@ -298,6 +298,10 @@ class Configuration:
     EXA_API_KEY: Optional[str] = None
     SEMANTIC_SCHOLAR_API_KEY: Optional[str] = None
     
+    # Memories.ai configuration for video intelligence
+    MEMORIES_AI_API_KEY: Optional[str] = None
+    MEMORIES_AI_BASE_URL: Optional[str] = "https://api.memories.ai"
+    
     VAPI_PRIVATE_KEY: Optional[str] = None
     VAPI_PHONE_NUMBER_ID: Optional[str] = None
     VAPI_SERVER_URL: Optional[str] = None
