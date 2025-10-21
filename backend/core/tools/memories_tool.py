@@ -1508,5 +1508,490 @@ Provide specific examples with video_no and timestamps."""
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}")
             return self.fail_response(f"Failed to generate summary: {str(e)}")
+    
+    @openapi_schema({
+        "name": "get_video_details",
+        "description": "Get complete metadata for a video including duration, resolution, fps, file size, and processing status.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to get details for"
+                }
+            },
+            "required": ["video_id"]
+        }
+    })
+    async def get_video_details(
+        self,
+        video_id: str
+    ) -> ToolResult:
+        """Get complete video metadata"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            details = self.memories_client.get_private_video_details(
+                video_no=video_id,
+                unique_id=user_id
+            )
+            
+            return self.success_response(details)
+            
+        except Exception as e:
+            logger.error(f"Error getting video details: {str(e)}")
+            return self.fail_response(f"Failed to get video details: {str(e)}")
+    
+    @openapi_schema({
+        "name": "download_video_file",
+        "description": "Download a video file from your library to the sandbox. Useful for editing or sharing.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to download"
+                },
+                "save_path": {
+                    "type": "string",
+                    "description": "Path in sandbox to save video (e.g., '/workspace/downloads/video.mp4')"
+                }
+            },
+            "required": ["video_id", "save_path"]
+        }
+    })
+    async def download_video_file(
+        self,
+        video_id: str,
+        save_path: str
+    ) -> ToolResult:
+        """Download video file to sandbox"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            sandbox = self.thread_manager.agent_run.sandbox
+            
+            # Download video binary
+            video_content = self.memories_client.download_video(
+                video_no=video_id,
+                unique_id=user_id
+            )
+            
+            # Upload to sandbox
+            sandbox.fs.upload_file(save_path, video_content)
+            
+            file_size_mb = len(video_content) / (1024 * 1024)
+            
+            return self.success_response({
+                "message": f"Video downloaded successfully to {save_path}",
+                "path": save_path,
+                "size_mb": round(file_size_mb, 2)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error downloading video: {str(e)}")
+            return self.fail_response(f"Failed to download video: {str(e)}")
+    
+    # ============ SESSION & CHAT HISTORY TOOLS ============
+    
+    @openapi_schema({
+        "name": "list_chat_sessions",
+        "description": "List all video chat sessions to review past conversations and analyses.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "description": "Page number (default: 1)",
+                    "default": 1
+                }
+            }
+        }
+    })
+    async def list_chat_sessions(
+        self,
+        page: int = 1
+    ) -> ToolResult:
+        """List chat sessions"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.list_sessions(
+                page=page,
+                unique_id=user_id
+            )
+            
+            sessions = result.get("sessions", [])
+            total_count = result.get("total_count", 0)
+            
+            return self.success_response({
+                "sessions": sessions,
+                "total_sessions": total_count,
+                "page": page
+            })
+            
+        except Exception as e:
+            logger.error(f"Error listing sessions: {str(e)}")
+            return self.fail_response(f"Failed to list sessions: {str(e)}")
+    
+    @openapi_schema({
+        "name": "get_session_history",
+        "description": "Get the full conversation history for a chat session, including all questions, answers, and referenced videos.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "session_id": {
+                    "type": "string",
+                    "description": "Session ID to retrieve"
+                }
+            },
+            "required": ["session_id"]
+        }
+    })
+    async def get_session_history(
+        self,
+        session_id: str
+    ) -> ToolResult:
+        """Get session conversation history"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.get_session_detail(
+                session_id=session_id,
+                unique_id=user_id
+            )
+            
+            return self.success_response(result)
+            
+        except Exception as e:
+            logger.error(f"Error getting session history: {str(e)}")
+            return self.fail_response(f"Failed to get session history: {str(e)}")
+    
+    @openapi_schema({
+        "name": "chat_with_media",
+        "description": "Chat with your personal media library (videos + images combined). Ask questions across all your uploaded content.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": "Question to ask about your media (e.g., 'When did I go to the beach?', 'Show me all fitness videos')"
+                }
+            },
+            "required": ["question"]
+        }
+    })
+    async def chat_with_media(
+        self,
+        question: str
+    ) -> ToolResult:
+        """Chat with videos + images combined"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.chat_personal(
+                prompt=question,
+                unique_id=user_id
+            )
+            
+            content = result.get("content", "")
+            refs = result.get("refs", [])
+            
+            return self.success_response({
+                "question": question,
+                "answer": content,
+                "references": refs,
+                "reference_count": len(refs)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error chatting with media: {str(e)}")
+            return self.fail_response(f"Failed to chat with media: {str(e)}")
+    
+    # ============ ADVANCED TRANSCRIPTION TOOLS ============
+    
+    @openapi_schema({
+        "name": "update_transcription",
+        "description": "Update a video's transcription with a custom prompt. Useful for specialized descriptions (e.g., e-commerce product descriptions).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to update"
+                },
+                "custom_prompt": {
+                    "type": "string",
+                    "description": "Custom instruction for transcription (e.g., 'Describe this video as an e-commerce product listing')"
+                }
+            },
+            "required": ["video_id", "custom_prompt"]
+        }
+    })
+    async def update_transcription(
+        self,
+        video_id: str,
+        custom_prompt: str
+    ) -> ToolResult:
+        """Update video transcription with custom prompt"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.update_video_transcription(
+                video_no=video_id,
+                prompt=custom_prompt,
+                unique_id=user_id
+            )
+            
+            return self.success_response({
+                "message": "Transcription update initiated",
+                "video_id": video_id,
+                "note": "Transcription will be permanently updated. This may take a few moments."
+            })
+            
+        except Exception as e:
+            logger.error(f"Error updating transcription: {str(e)}")
+            return self.fail_response(f"Failed to update transcription: {str(e)}")
+    
+    @openapi_schema({
+        "name": "get_audio_transcript",
+        "description": "Get audio-only transcription of a video. Useful for podcasts or audio-focused content.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to transcribe"
+                }
+            },
+            "required": ["video_id"]
+        }
+    })
+    async def get_audio_transcript(
+        self,
+        video_id: str
+    ) -> ToolResult:
+        """Get audio-only transcription"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.get_audio_transcription(
+                video_no=video_id,
+                unique_id=user_id
+            )
+            
+            transcriptions = result.get("transcriptions", [])
+            
+            # Format as continuous text
+            full_transcript = " ".join([t.get("content", "") for t in transcriptions])
+            word_count = len(full_transcript.split())
+            
+            return self.success_response({
+                "transcript": full_transcript,
+                "segments": transcriptions,
+                "word_count": word_count
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting audio transcript: {str(e)}")
+            return self.fail_response(f"Failed to get audio transcript: {str(e)}")
+    
+    # ============ IMAGE LIBRARY TOOLS ============
+    
+    @openapi_schema({
+        "name": "list_my_images",
+        "description": "List all images in your personal library.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of images to return (default: 50)",
+                    "default": 50
+                }
+            }
+        }
+    })
+    async def list_my_images(
+        self,
+        limit: int = 50
+    ) -> ToolResult:
+        """List user's image library"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.list_images(
+                page=1,
+                page_size=min(limit, 100),
+                unique_id=user_id
+            )
+            
+            images = result.get("images", [])
+            total_count = result.get("total_count", 0)
+            
+            return self.success_response({
+                "total_images": total_count,
+                "showing": len(images),
+                "images": images
+            })
+            
+        except Exception as e:
+            logger.error(f"Error listing images: {str(e)}")
+            return self.fail_response(f"Failed to list images: {str(e)}")
+    
+    # ============ ADVANCED SEARCH TOOLS ============
+    
+    @openapi_schema({
+        "name": "search_audio",
+        "description": "Search through audio transcripts to find specific spoken content in your videos or public content.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query for audio content"
+                },
+                "search_type": {
+                    "type": "string",
+                    "description": "Where to search",
+                    "enum": ["private", "public"],
+                    "default": "private"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum results (default: 50)",
+                    "default": 50
+                }
+            },
+            "required": ["query"]
+        }
+    })
+    async def search_audio(
+        self,
+        query: str,
+        search_type: str = "private",
+        limit: int = 50
+    ) -> ToolResult:
+        """Search audio transcripts"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            if search_type == "private":
+                result = self.memories_client.search_audio_transcripts(
+                    query=query,
+                    page=1,
+                    page_size=limit,
+                    unique_id=user_id
+                )
+            else:
+                result = self.memories_client.search_public_audio_transcripts(
+                    query=query,
+                    page=1,
+                    page_size=limit
+                )
+            
+            results = result.get("results", [])
+            total = result.get("total", 0)
+            
+            return self.success_response({
+                "query": query,
+                "search_type": search_type,
+                "results_found": total,
+                "results": results
+            })
+            
+        except Exception as e:
+            logger.error(f"Error searching audio: {str(e)}")
+            return self.fail_response(f"Failed to search audio: {str(e)}")
+    
+    @openapi_schema({
+        "name": "search_clips_by_image",
+        "description": "Find specific moments in a video that match a reference image. Useful for finding when a person, object, or scene appears.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to search in"
+                },
+                "image_path": {
+                    "type": "string",
+                    "description": "Path to reference image in sandbox"
+                },
+                "search_prompt": {
+                    "type": "string",
+                    "description": "What to look for (e.g., 'Find scenes with this person', 'Find when this product appears')"
+                }
+            },
+            "required": ["video_id", "image_path", "search_prompt"]
+        }
+    })
+    async def search_clips_by_image(
+        self,
+        video_id: str,
+        image_path: str,
+        search_prompt: str
+    ) -> ToolResult:
+        """Find video clips matching an image"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            sandbox = self.thread_manager.agent_run.sandbox
+            
+            # Download image from sandbox
+            content = sandbox.fs.download_file(image_path)
+            temp_path = f"/tmp/memories_clip_search_{os.path.basename(image_path)}"
+            with open(temp_path, 'wb') as f:
+                f.write(content)
+            
+            try:
+                clips = self.memories_client.search_clips_by_image(
+                    file_path=temp_path,
+                    video_no=video_id,
+                    prompt=search_prompt,
+                    unique_id=user_id
+                )
+                
+                return self.success_response({
+                    "video_id": video_id,
+                    "search_prompt": search_prompt,
+                    "clips_found": len(clips),
+                    "clips": clips
+                })
+                
+            finally:
+                os.remove(temp_path)
+            
+        except Exception as e:
+            logger.error(f"Error searching clips by image: {str(e)}")
+            return self.fail_response(f"Failed to search clips by image: {str(e)}")
 
 
