@@ -1136,10 +1136,15 @@ Provide specific examples with video_no and timestamps."""
                 unique_id=user_id
             )
             
-            task_id = scrape_result.get("taskId")
+            logger.info(f"Hashtag scrape response: {scrape_result}")
+            
+            # Extract task_id from nested data structure
+            task_id = scrape_result.get("data", {}).get("taskId") if isinstance(scrape_result.get("data"), dict) else scrape_result.get("taskId")
             
             if not task_id:
-                return self.fail_response("Failed to start trend analysis")
+                error_msg = scrape_result.get("msg", "Unknown error")
+                logger.error(f"No task_id in response. Full response: {scrape_result}")
+                return self.fail_response(f"Failed to start trend analysis: {error_msg}")
             
             # Return task info immediately (analysis happens async)
             return self.success_response({
