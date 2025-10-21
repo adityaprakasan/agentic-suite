@@ -267,8 +267,6 @@ async def chat_with_video(
         
     except HTTPException:
         raise
-    except MemoriesAPIError as e:
-        raise HTTPException(status_code=502, detail=f"Memories.ai API error: {str(e)}")
     except Exception as e:
         logger.error(f"Error chatting with video: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to chat with video")
