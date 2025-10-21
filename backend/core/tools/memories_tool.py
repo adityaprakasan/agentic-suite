@@ -1146,5 +1146,367 @@ Provide specific examples with video_no and timestamps."""
         except Exception as e:
             logger.error(f"Error analyzing trend: {str(e)}")
             return self.fail_response(f"Failed to analyze trend: {str(e)}")
+    
+    # ============ NEW TOOLS: TRENDING CONTENT & MARKETER CHAT ============
+    
+    @openapi_schema({
+        "name": "search_trending_content",
+        "description": "Search and analyze trending videos from 1M+ indexed public videos on TikTok/YouTube/Instagram. This accesses memories.ai's massive database of trending content to find viral videos, understand what's working in your niche, and identify content opportunities. Perfect for competitive research, trend analysis, and content ideation.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Natural language search query (e.g., 'What are the trending fitness videos on TikTok?', 'Show me viral Nike campaigns', 'What's working for skincare brands on Instagram?')"
+                },
+                "platform": {
+                    "type": "string",
+                    "description": "Platform to search (default: TIKTOK)",
+                    "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
+                    "default": "TIKTOK"
+                }
+            },
+            "required": ["query"]
+        }
+    })
+    async def search_trending_content(
+        self,
+        query: str,
+        platform: str = "TIKTOK"
+    ) -> ToolResult:
+        """Search 1M+ indexed videos for trends and insights"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            logger.info(f"Searching trending content: {query} on {platform}")
+            result = self.memories_client.marketer_chat(
+                prompt=query,
+                platform=platform.upper(),
+                unique_id=user_id
+            )
+            
+            content = result.get("content", "")
+            refs = result.get("refs", [])
+            
+            # Extract referenced videos
+            referenced_videos = []
+            for ref in refs:
+                video = ref.get("video", {})
+                if video:
+                    referenced_videos.append({
+                        "video_no": video.get("video_no"),
+                        "title": video.get("video_name"),
+                        "duration": video.get("duration")
+                    })
+            
+            return self.success_response({
+                "query": query,
+                "platform": platform,
+                "analysis": content,
+                "referenced_videos": referenced_videos,
+                "video_count": len(referenced_videos)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error searching trending content: {str(e)}")
+            return self.fail_response(f"Failed to search trending content: {str(e)}")
+    
+    # ============ IMAGE TOOLS ============
+    
+    @openapi_schema({
+        "name": "upload_image",
+        "description": "Upload image(s) to your personal library for similarity search and analysis. Supports multiple images at once.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_paths": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Paths to image files in the sandbox (e.g., ['/workspace/uploads/image.png'])"
+                }
+            },
+            "required": ["file_paths"]
+        }
+    })
+    async def upload_image(
+        self,
+        file_paths: List[str]
+    ) -> ToolResult:
+        """Upload images for similarity search"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            sandbox = self.thread_manager.agent_run.sandbox
+            
+            # Download images from sandbox to temp files
+            temp_files = []
+            for file_path in file_paths:
+                try:
+                    content = sandbox.fs.download_file(file_path)
+                    temp_path = f"/tmp/memories_img_{os.path.basename(file_path)}"
+                    with open(temp_path, 'wb') as f:
+                        f.write(content)
+                    temp_files.append(temp_path)
+                except Exception as e:
+                    logger.warning(f"Failed to download {file_path}: {str(e)}")
+            
+            if not temp_files:
+                return self.fail_response("No valid image files found")
+            
+            result = self.memories_client.upload_image_from_file(
+                file_paths=temp_files,
+                unique_id=user_id
+            )
+            
+            # Cleanup temp files
+            for temp_path in temp_files:
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+            
+            uploaded_count = len(result.get("data", []))
+            
+            return self.success_response({
+                "message": f"Successfully uploaded {uploaded_count} image(s)",
+                "count": uploaded_count,
+                "note": "Images can now be used for similarity search to find matching content"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error uploading images: {str(e)}")
+            return self.fail_response(f"Failed to upload images: {str(e)}")
+    
+    @openapi_schema({
+        "name": "search_similar_images",
+        "description": "Find visually similar images or videos in your library or public platforms. Upload a reference image and find matching content.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image_path": {
+                    "type": "string",
+                    "description": "Path to reference image in sandbox"
+                },
+                "search_type": {
+                    "type": "string",
+                    "description": "Where to search",
+                    "enum": ["private", "public_tiktok", "public_youtube", "public_instagram"],
+                    "default": "private"
+                },
+                "similarity_threshold": {
+                    "type": "number",
+                    "description": "Minimum similarity score (0.0-1.0, default: 0.8)",
+                    "default": 0.8
+                }
+            },
+            "required": ["image_path"]
+        }
+    })
+    async def search_similar_images(
+        self,
+        image_path: str,
+        search_type: str = "private",
+        similarity_threshold: float = 0.8
+    ) -> ToolResult:
+        """Search for visually similar content"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            sandbox = self.thread_manager.agent_run.sandbox
+            
+            # Download image from sandbox
+            content = sandbox.fs.download_file(image_path)
+            temp_path = f"/tmp/memories_search_{os.path.basename(image_path)}"
+            with open(temp_path, 'wb') as f:
+                f.write(content)
+            
+            try:
+                if search_type == "private":
+                    result = self.memories_client.search_similar_images(
+                        file_path=temp_path,
+                        unique_id=user_id,
+                        similarity=similarity_threshold
+                    )
+                else:
+                    platform = search_type.replace("public_", "").upper()
+                    result = self.memories_client.search_public_similar_images(
+                        file_path=temp_path,
+                        platform=platform,
+                        similarity=similarity_threshold
+                    )
+                
+                results = result.get("results", [])
+                
+                return self.success_response({
+                    "search_type": search_type,
+                    "similarity_threshold": similarity_threshold,
+                    "matches_found": len(results),
+                    "results": results[:20]  # Limit to top 20
+                })
+                
+            finally:
+                os.remove(temp_path)
+            
+        except Exception as e:
+            logger.error(f"Error searching similar images: {str(e)}")
+            return self.fail_response(f"Failed to search similar images: {str(e)}")
+    
+    # ============ VIDEO MANAGEMENT TOOLS ============
+    
+    @openapi_schema({
+        "name": "list_my_videos",
+        "description": "List all videos in your personal library with optional filtering by name or status.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of videos to return (default: 50)",
+                    "default": 50
+                },
+                "filter_name": {
+                    "type": "string",
+                    "description": "Optional: Filter by video name"
+                },
+                "filter_status": {
+                    "type": "string",
+                    "description": "Optional: Filter by status (PARSE, UNPARSE, FAILED)"
+                }
+            }
+        }
+    })
+    async def list_my_videos(
+        self,
+        limit: int = 50,
+        filter_name: Optional[str] = None,
+        filter_status: Optional[str] = None
+    ) -> ToolResult:
+        """List user's video library"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.list_videos(
+                page=1,
+                size=min(limit, 200),
+                unique_id=user_id,
+                video_name=filter_name,
+                status=filter_status
+            )
+            
+            videos = result.get("videos", [])
+            total_count = result.get("total_count", 0)
+            
+            return self.success_response({
+                "total_videos": total_count,
+                "showing": len(videos),
+                "videos": videos
+            })
+            
+        except Exception as e:
+            logger.error(f"Error listing videos: {str(e)}")
+            return self.fail_response(f"Failed to list videos: {str(e)}")
+    
+    @openapi_schema({
+        "name": "delete_videos",
+        "description": "Delete one or more videos from your library to free up space.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of video IDs to delete"
+                }
+            },
+            "required": ["video_ids"]
+        }
+    })
+    async def delete_videos(
+        self,
+        video_ids: List[str]
+    ) -> ToolResult:
+        """Delete videos from library"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            self.memories_client.delete_videos(
+                video_nos=video_ids,
+                unique_id=user_id
+            )
+            
+            return self.success_response({
+                "message": f"Successfully deleted {len(video_ids)} video(s)",
+                "deleted_count": len(video_ids)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error deleting videos: {str(e)}")
+            return self.fail_response(f"Failed to delete videos: {str(e)}")
+    
+    @openapi_schema({
+        "name": "get_video_summary",
+        "description": "Generate a structured summary of a video with chapters or topics. Useful for long-form content analysis.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to summarize"
+                },
+                "summary_type": {
+                    "type": "string",
+                    "description": "Type of summary",
+                    "enum": ["CHAPTER", "TOPIC"],
+                    "default": "CHAPTER"
+                }
+            },
+            "required": ["video_id"]
+        }
+    })
+    async def get_video_summary(
+        self,
+        video_id: str,
+        summary_type: str = "CHAPTER"
+    ) -> ToolResult:
+        """Generate video summary with chapters or topics"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.generate_summary(
+                video_no=video_id,
+                summary_type=summary_type.upper(),
+                unique_id=user_id
+            )
+            
+            summary = result.get("summary", "")
+            items = result.get("items", [])
+            
+            return self.success_response({
+                "video_id": video_id,
+                "summary_type": summary_type,
+                "summary": summary,
+                "items": items,
+                "chapter_count": len(items)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error generating summary: {str(e)}")
+            return self.fail_response(f"Failed to generate summary: {str(e)}")
 
 
