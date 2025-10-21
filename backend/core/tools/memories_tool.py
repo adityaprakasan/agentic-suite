@@ -488,10 +488,17 @@ Format with clear sections and timestamps where applicable."""
             
             user_id = await self._get_memories_user_id()
             
-            transcript = await self.memories_client.get_transcript(
-                user_id=user_id,
-                video_id=video_id
+            # Get both video and audio transcription
+            transcript_data = await self.memories_client.get_video_transcription(
+                video_no=video_id,
+                unique_id=user_id
             )
+            
+            # Combine transcripts into text
+            transcript = "\n".join([
+                f"[{t.get('startTime')}-{t.get('endTime')}s] {t.get('content', '')}"
+                for t in transcript_data
+            ])
             
             return self.success_response({
                 "video_id": video_id,
@@ -591,11 +598,17 @@ Format with clear sections and timestamps where applicable."""
             
             user_id = await self._get_memories_user_id()
             
-            results = await self.memories_client.search_in_video(
-                user_id=user_id,
-                video_id=video_id,
-                query=query
+            # Use search_private_library to search within uploaded videos
+            results = await self.memories_client.search_private_library(
+                search_param=query,
+                search_type="BY_VIDEO",
+                unique_id=user_id,
+                top_k=20,
+                filtering_level="high"
             )
+            
+            # Filter results to only this video
+            results = [r for r in results if r.get("videoNo") == video_id or r.get("video_no") == video_id]
             
             return self.success_response({
                 "video_id": video_id,
@@ -644,15 +657,33 @@ Format with clear sections and timestamps where applicable."""
             
             user_id = await self._get_memories_user_id()
             
-            comparison = await self.memories_client.compare_videos(
-                user_id=user_id,
-                video_ids=video_ids
+            # Use chat_with_video to compare multiple videos
+            compare_prompt = """Compare these videos and provide:
+
+1. COMMON THEMES: What topics/patterns appear across all videos?
+2. DIFFERENCES: How do these videos differ in style, approach, pacing?
+3. HOOK COMPARISON: Which video has the strongest hook and why?
+4. CTA COMPARISON: Which video has the clearest call-to-action?
+5. ENGAGEMENT PREDICTION: Rate each video 1-10 for predicted engagement
+6. WINNER: Which video performs best overall and why?
+
+Format as a comparative table where possible."""
+
+            results = await self.memories_client.chat_with_video(
+                video_nos=video_ids,
+                prompt=compare_prompt,
+                unique_id=user_id,
+                session_id=None,
+                stream=False
             )
+            
+            comparison_text = results.get("content", "") if isinstance(results, dict) else str(results)
             
             return self.success_response({
                 "video_ids": video_ids,
                 "video_count": len(video_ids),
-                "comparison": comparison,
+                "comparison": comparison_text,
+                "refs": results.get("refs", []) if isinstance(results, dict) else [],
                 "summary": f"Compared {len(video_ids)} videos across multiple dimensions"
             })
             
@@ -692,18 +723,35 @@ Format with clear sections and timestamps where applicable."""
             
             user_id = await self._get_memories_user_id()
             
-            results = await self.memories_client.multi_video_search(
-                user_id=user_id,
-                video_ids=video_ids,
-                query=query
+            # Use chat_with_video to search patterns across videos
+            search_prompt = f"""Analyze these {len(video_ids)} videos for: {query}
+
+Identify:
+1. Common patterns or themes related to "{query}"
+2. Examples with timestamps
+3. Frequency and variations
+4. Best practices observed
+5. Summary of findings
+
+Provide specific examples with video_no and timestamps."""
+
+            results = await self.memories_client.chat_with_video(
+                video_nos=video_ids,
+                prompt=search_prompt,
+                unique_id=user_id,
+                session_id=None,
+                stream=False
             )
+            
+            analysis_text = results.get("content", "") if isinstance(results, dict) else str(results)
             
             return self.success_response({
                 "video_ids": video_ids,
                 "query": query,
-                "results": results,
+                "analysis": analysis_text,
+                "refs": results.get("refs", []) if isinstance(results, dict) else [],
                 "videos_searched": len(video_ids),
-                "matches_found": len(results)
+                "summary": f"Searched {len(video_ids)} videos for '{query}'"
             })
             
         except MemoriesAPIError as e:
@@ -851,31 +899,13 @@ Format with clear sections and timestamps where applicable."""
         person_reference: str
     ) -> ToolResult:
         """Track a person across multiple videos"""
-        try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
-            
-            user_id = await self._get_memories_user_id()
-            
-            results = await self.memories_client.human_reid(
-                user_id=user_id,
-                video_ids=video_ids,
-                person_reference=person_reference
-            )
-            
-            return self.success_response({
-                "video_ids": video_ids,
-                "person_reference": person_reference,
-                "tracking_results": results,
-                "videos_with_person": len([r for r in results if r.get("found", False)]),
-                "total_videos_searched": len(video_ids)
-            })
-            
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error in human re-identification: {str(e)}")
-            return self.fail_response(f"Failed to track person: {str(e)}")
+        # Human ReID requires special API key and uses security.memories.ai endpoint
+        # This is not available with standard API keys
+        return self.fail_response(
+            "Human Re-identification feature requires a special API key. "
+            "This feature uses security.memories.ai endpoint and is not included in standard API access. "
+            "Contact techsupport@memories.ai to enable this feature for your account."
+        )
     
     # Creator Analysis
     
