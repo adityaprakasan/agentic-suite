@@ -721,19 +721,40 @@ class MemoriesTool(Tool):
                 filtering_level="medium"
             )
             
+            # Fetch full details for each video to get thumbnails and URLs
             formatted_results = []
-            for video in results:
-                formatted_results.append({
-                    "title": video.get("videoName", ""),
-                    "url": video.get("video_url", ""),
-                    "thumbnail_url": video.get("thumbnail_url", ""),
-                    "duration_seconds": video.get("duration"),
-                    "platform": platform,
-                    "video_no": video.get("videoNo"),
-                    "start_time": video.get("startTime"),
-                    "end_time": video.get("endTime"),
-                    "score": video.get("score")
-                })
+            for video in results[:limit]:  # Limit results
+                video_no = video.get("videoNo") or video.get("video_no")
+                if not video_no:
+                    continue
+                
+                try:
+                    # Get full video details including thumbnail
+                    details = await self.memories_client.get_public_video_detail(video_no=video_no)
+                    
+                    formatted_results.append({
+                        "title": details.get("video_name") or video.get("videoName", "Untitled"),
+                        "url": details.get("video_url") or video.get("video_url", ""),
+                        "thumbnail_url": details.get("thumbnail_url") or details.get("cover_url", ""),
+                        "duration_seconds": details.get("duration") or video.get("duration"),
+                        "platform": platform,
+                        "video_no": video_no,
+                        "views": details.get("views"),
+                        "likes": details.get("likes"),
+                        "score": video.get("score")
+                    })
+                except Exception as e:
+                    logger.warning(f"Failed to get details for video {video_no}: {e}")
+                    # Fallback to basic info
+                    formatted_results.append({
+                        "title": video.get("videoName", "Untitled"),
+                        "url": video.get("video_url", ""),
+                        "thumbnail_url": video.get("thumbnail_url", ""),
+                        "duration_seconds": video.get("duration"),
+                        "platform": platform,
+                        "video_no": video_no,
+                        "score": video.get("score")
+                    })
             
             return self.success_response({
                 "platform": platform,
@@ -905,40 +926,66 @@ class MemoriesTool(Tool):
                 unique_id=user_id
             )
             
+            # Check if response has videos array (actual format from API)
+            if "videos" in status_result:
+                videos = status_result["videos"]
+                
+                # Extract video IDs and count parsed vs unparsed
+                parsed_videos = [v for v in videos if v.get("status") == "PARSE"]
+                unparsed_videos = [v for v in videos if v.get("status") in ["UNPARSE", None]]
+                
+                video_ids = [v["video_no"] for v in parsed_videos if v.get("video_no")]
+                total_count = len(videos)
+                parsed_count = len(parsed_videos)
+                
+                # If majority parsed, consider it ready
+                if parsed_count > 0:
+                    return self.success_response({
+                        "status": "ready",
+                        "task_id": task_id,
+                        "total_videos": total_count,
+                        "parsed_videos": parsed_count,
+                        "unparsed_videos": len(unparsed_videos),
+                        "video_ids": video_ids,
+                        "message": f"✅ {parsed_count}/{total_count} videos ready! {len(unparsed_videos)} still processing.",
+                        "videos": parsed_videos[:5],  # First 5 for preview
+                        "next_steps": f"You can analyze the {parsed_count} ready videos using analyze_video, compare them with compare_videos, or search across them with multi_video_search."
+                    })
+                else:
+                    return self.success_response({
+                        "status": "processing",
+                        "task_id": task_id,
+                        "total_videos": total_count,
+                        "message": f"⏳ Still processing... {total_count} videos scraped but none parsed yet. Check again in 30-60 seconds.",
+                        "next_steps": "Use check_task_status again in a moment."
+                    })
+            
+            # Fallback for simple status response
             task_status = status_result.get("status", "unknown")
             
             if task_status == "completed" or task_status == "success":
-                # Task completed - return video IDs
                 video_ids = status_result.get("video_ids", [])
-                video_count = len(video_ids)
-                
                 return self.success_response({
                     "status": "completed",
                     "task_id": task_id,
-                    "video_count": video_count,
+                    "video_count": len(video_ids),
                     "video_ids": video_ids,
-                    "message": f"✅ Scraping complete! {video_count} videos are ready.",
-                    "next_steps": f"You can now analyze these videos using analyze_video, compare them with compare_videos, or search across them with multi_video_search. Video IDs: {', '.join(video_ids[:5])}{'...' if video_count > 5 else ''}"
+                    "message": f"✅ Scraping complete! {len(video_ids)} videos ready."
                 })
-            
             elif task_status == "processing" or task_status == "pending":
                 return self.success_response({
                     "status": "processing",
                     "task_id": task_id,
-                    "message": "⏳ Still processing... Videos typically take 1-2 minutes to scrape and parse.",
-                    "next_steps": "Check again in 30-60 seconds using check_task_status."
+                    "message": "⏳ Still processing..."
                 })
-            
             elif task_status == "failed" or task_status == "error":
-                error_msg = status_result.get("error", "Unknown error")
-                return self.fail_response(f"Task failed: {error_msg}")
-            
+                return self.fail_response(f"Task failed: {status_result.get('error', 'Unknown error')}")
             else:
                 return self.success_response({
-                    "status": task_status,
+                    "status": "unknown",
                     "task_id": task_id,
                     "raw_response": status_result,
-                    "message": f"Task status: {task_status}"
+                    "message": "Task status unclear - see raw_response for details"
                 })
             
         except MemoriesAPIError as e:
