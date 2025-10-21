@@ -9,6 +9,7 @@ Provides agents with video analysis capabilities:
 - Extract hooks, CTAs, trends
 """
 
+import os
 import uuid
 from typing import Optional, List, Dict, Any
 from core.agentpress.tool import Tool, ToolResult, openapi_schema, tool_metadata
@@ -303,11 +304,31 @@ class MemoriesTool(Tool):
             
             user_id = await self._get_memories_user_id()
             
-            # Upload file to memories.ai
-            video_meta = await self.memories_client.upload_video_from_file(
-                file_path=file_path,
-                unique_id=user_id
-            )
+            # Get sandbox instance
+            from core.utils.sandbox_utils import get_sandbox
+            sandbox = get_sandbox(self.thread_manager)
+            
+            # Download file from sandbox to temp location
+            import tempfile
+            try:
+                file_content = await sandbox.fs.download_file(file_path)
+                
+                # Save to temp file for upload
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_path)[1]) as temp_file:
+                    temp_file.write(file_content)
+                    temp_path = temp_file.name
+                
+                # Upload to memories.ai
+                video_meta = await self.memories_client.upload_video_from_file(
+                    file_path=temp_path,
+                    unique_id=user_id
+                )
+                
+                # Clean up temp file
+                os.unlink(temp_path)
+                
+            except Exception as e:
+                return self.fail_response(f"Failed to read file from sandbox: {str(e)}")
             
             result_data = {
                 "video_id": video_meta.video_no,
