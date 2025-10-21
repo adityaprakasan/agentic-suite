@@ -437,13 +437,20 @@ Format with clear sections and timestamps where applicable."""
             analysis_text = result.get("data", {}).get("content", "") if isinstance(result.get("data"), dict) else str(result.get("data", ""))
             refs = result.get("data", {}).get("refs", []) if isinstance(result.get("data"), dict) else []
             
-            # Return structured analysis result
+            # Return analysis result with compatibility for frontend
+            # Frontend VideoAnalysisDisplay expects: hooks[], ctas[], summary, analysis text
             result_data = {
                 "video_id": video_id,
-                "analysis": analysis_text,
-                "refs": refs,
+                "analysis": analysis_text,  # Full markdown-formatted analysis
+                "refs": refs,  # Timestamp references from memories.ai
                 "session_id": result.get("session_id"),
-                "summary": f"Video {video_id} analyzed. Analysis includes hooks, CTAs, visual elements, pacing, and engagement prediction."
+                "summary": analysis_text[:200] + "..." if len(analysis_text) > 200 else analysis_text,
+                # Compatibility fields for frontend (will be empty, frontend shows analysis text)
+                "hooks": [],
+                "ctas": [],
+                "visual_elements": [],
+                "pacing": "",
+                "engagement_prediction": 0
             }
             
             # Update KB if video exists there
@@ -830,15 +837,35 @@ Provide specific examples with video_no and timestamps."""
                     # Get full video details including thumbnail
                     details = await self.memories_client.get_public_video_detail(video_no=video_no)
                     
+                    # Generate thumbnail from platform URL if not available
+                    video_url = details.get("video_url") or ""
+                    thumbnail_url = ""
+                    
+                    # For TikTok, we can use the video_url as thumbnail (TikTok player supports it)
+                    # For Instagram, construct thumbnail from post ID
+                    # For YouTube, extract video ID and use YouTube thumbnail API
+                    if platform == "tiktok" and video_url:
+                        thumbnail_url = video_url  # TikTok player URLs work as previews
+                    elif platform == "instagram" and video_url:
+                        # Instagram URL format: https://www.instagram.com/p/{POST_ID}/
+                        thumbnail_url = video_url  # Instagram embed works
+                    elif platform == "youtube" and video_url:
+                        # Extract video ID and use YouTube thumbnail
+                        import re
+                        youtube_match = re.search(r'(?:v=|/)([a-zA-Z0-9_-]{11})', video_url)
+                        if youtube_match:
+                            video_id = youtube_match.group(1)
+                            thumbnail_url = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+                    
                     formatted_results.append({
                         "title": details.get("video_name") or video.get("videoName", "Untitled"),
-                        "url": details.get("video_url") or video.get("video_url", ""),
-                        "thumbnail_url": details.get("thumbnail_url") or details.get("cover_url", ""),
+                        "url": video_url,
+                        "thumbnail_url": thumbnail_url,
                         "duration_seconds": details.get("duration") or video.get("duration"),
                         "platform": platform,
                         "video_no": video_no,
-                        "views": details.get("views"),
-                        "likes": details.get("likes"),
+                        "views": details.get("view_count"),  # API uses "view_count" not "views"
+                        "likes": details.get("like_count"),  # API uses "like_count" not "likes"
                         "score": video.get("score")
                     })
                 except Exception as e:

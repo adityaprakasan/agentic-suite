@@ -49,6 +49,11 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
       return <TranscriptDisplay data={output} />;
     case 'multi_video_search':
       return <MultiVideoSearchDisplay data={output} />;
+    case 'check_task_status':
+      return <TaskStatusDisplay data={output} />;
+    case 'analyze_creator':
+    case 'analyze_trend':
+      return <AsyncTaskDisplay data={output} />;
     default:
       return <DefaultDisplay data={output} />;
   }
@@ -137,6 +142,8 @@ function VideoSearchCard({ video }: { video: any }) {
 
 // Video Analysis Display
 function VideoAnalysisDisplay({ data }: { data: any }) {
+  // New format: analysis is a text string from chat_with_video
+  const analysis = data.analysis || data.summary || '';
   const hooks = data.hooks || [];
   const ctas = data.ctas || [];
   const engagementScore = data.engagement_prediction || 0;
@@ -153,12 +160,16 @@ function VideoAnalysisDisplay({ data }: { data: any }) {
         )}
       </div>
 
-      {/* Summary */}
-      {data.summary && (
-        <p className="text-sm text-gray-700 dark:text-gray-300">{data.summary}</p>
+      {/* Full Analysis Text (primary display) */}
+      {analysis && (
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+            {analysis}
+          </div>
+        </div>
       )}
 
-      {/* Hooks */}
+      {/* Hooks (legacy format - only if structured data available) */}
       {hooks.length > 0 && (
         <div>
           <h5 className="text-sm font-medium mb-2">Hooks ({hooks.length})</h5>
@@ -178,7 +189,7 @@ function VideoAnalysisDisplay({ data }: { data: any }) {
         </div>
       )}
 
-      {/* CTAs */}
+      {/* CTAs (legacy format - only if structured data available) */}
       {ctas.length > 0 && (
         <div>
           <h5 className="text-sm font-medium mb-2">CTAs ({ctas.length})</h5>
@@ -200,7 +211,7 @@ function VideoAnalysisDisplay({ data }: { data: any }) {
 
 // Video Comparison Display
 function VideoComparisonDisplay({ data }: { data: any }) {
-  const comparison = data.comparison || {};
+  const comparison = data.comparison || '';
   const videoCount = data.video_count || 0;
 
   return (
@@ -211,15 +222,26 @@ function VideoComparisonDisplay({ data }: { data: any }) {
       </div>
 
       {data.summary && (
-        <p className="text-sm text-gray-700 dark:text-gray-300">{data.summary}</p>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{data.summary}</p>
       )}
 
-      {/* Render comparison table or data */}
-      <div className="overflow-x-auto">
-        <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded">
-          {JSON.stringify(comparison, null, 2)}
-        </pre>
-      </div>
+      {/* Render comparison analysis (text format from chat_with_video) */}
+      {comparison && typeof comparison === 'string' && (
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+            {comparison}
+          </div>
+        </div>
+      )}
+      
+      {/* Fallback for legacy structured format */}
+      {comparison && typeof comparison === 'object' && (
+        <div className="overflow-x-auto">
+          <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded">
+            {JSON.stringify(comparison, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
@@ -329,7 +351,8 @@ function TranscriptDisplay({ data }: { data: any }) {
 
 // Multi Video Search Display
 function MultiVideoSearchDisplay({ data }: { data: any }) {
-  const results = data.results || [];
+  // New format: analysis is text from chat_with_video
+  const analysis = data.analysis || '';
   const videosSearched = data.videos_searched || 0;
 
   return (
@@ -340,30 +363,103 @@ function MultiVideoSearchDisplay({ data }: { data: any }) {
       </div>
 
       {data.query && (
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
           Query: <span className="font-medium">{data.query}</span>
         </p>
       )}
 
-      <div className="space-y-2">
-        {results.slice(0, 10).map((result: any, idx: number) => (
-          <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-            <div className="flex items-center justify-between mb-1">
-              <Badge variant="outline" className="text-xs">
-                Video {idx + 1}
-              </Badge>
-              {result.timestamp && (
-                <Badge className="text-xs">{result.timestamp}</Badge>
-              )}
-            </div>
-            <p className="text-xs">{result.text || result.description || 'Match found'}</p>
+      {/* Display analysis text */}
+      {analysis && (
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+            {analysis}
           </div>
-        ))}
+        </div>
+      )}
+
+      {data.summary && (
+        <p className="text-xs text-gray-600 dark:text-gray-400 italic mt-2">
+          {data.summary}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Task Status Display (for check_task_status)
+function TaskStatusDisplay({ data }: { data: any }) {
+  const videos = data.videos || [];
+  const taskId = data.task_id || '';
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold">Task Status</h4>
+        <Badge variant="secondary">{videos.length} videos</Badge>
       </div>
 
-      <p className="text-xs text-gray-600 dark:text-gray-400">
-        Found {results.length} matches across {videosSearched} videos
-      </p>
+      {taskId && (
+        <p className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+          Task ID: {taskId}
+        </p>
+      )}
+
+      {videos.length > 0 && (
+        <div className="space-y-2">
+          {videos.map((video: any, idx: number) => (
+            <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium">{video.video_name || video.video_no}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {video.duration}s • {video.video_no}
+                </p>
+              </div>
+              <Badge variant={video.status === 'PARSE' ? 'default' : 'secondary'}>
+                {video.status}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {videos.length === 0 && (
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {data.message || 'Videos are still being processed...'}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Async Task Display (for analyze_creator, analyze_trend)
+function AsyncTaskDisplay({ data }: { data: any }) {
+  const taskId = data.task_id || '';
+  const status = data.status || 'processing';
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+          <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+        </div>
+        <div>
+          <h4 className="font-semibold">Task Started</h4>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{data.message}</p>
+        </div>
+      </div>
+
+      {taskId && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+          <p className="text-xs text-blue-900 dark:text-blue-100 mb-1">
+            Task ID: <span className="font-mono">{taskId}</span>
+          </p>
+          <p className="text-xs text-blue-800 dark:text-blue-200">
+            {data.action_hint || 'Use check_task_status with this task_id to monitor progress'}
+          </p>
+        </div>
+      )}
+
+      <Badge variant="secondary">{status}</Badge>
     </div>
   );
 }
