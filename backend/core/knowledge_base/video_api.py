@@ -211,7 +211,7 @@ async def delete_video(
             from core.utils.config import config
             memories_client = get_memories_client(api_key=config.MEMORIES_AI_API_KEY)
             await memories_client.delete_video(user_id=memories_user_id, video_id=video_id)
-        except MemoriesAPIError as e:
+        except Exception as e:
             logger.warning(f"Failed to delete video from memories.ai: {str(e)}")
             # Continue with local deletion even if memories.ai fails
         
