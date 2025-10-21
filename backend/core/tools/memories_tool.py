@@ -14,7 +14,7 @@ import uuid
 from typing import Optional, List, Dict, Any
 from core.agentpress.tool import Tool, ToolResult, openapi_schema, tool_metadata
 from core.agentpress.thread_manager import ThreadManager
-from core.services.memories_client import get_memories_client, MemoriesAPIError
+from core.services.memories_client import get_memories_client
 from core.services.supabase import DBConnection
 from core.utils.logger import logger
 from core.utils.config import config
@@ -227,7 +227,7 @@ class MemoriesTool(Tool):
             # Upload to memories.ai
             # For platform URLs (Instagram/TikTok/YouTube), use upload_from_platform_urls
             if platform in ['youtube', 'tiktok', 'instagram', 'linkedin']:
-                task_response = await self.memories_client.upload_from_platform_urls(
+                task_response = self.memories_client.upload_from_platform_urls(
                     video_urls=[url],
                     unique_id=user_id,
                     is_public=False
@@ -246,7 +246,7 @@ class MemoriesTool(Tool):
                 })
             else:
                 # For direct video URLs
-                video_meta = await self.memories_client.upload_video_from_url(
+                video_meta = self.memories_client.upload_video_from_url(
                     url=url,
                     unique_id=user_id
                 )
@@ -278,8 +278,6 @@ class MemoriesTool(Tool):
             
             return self.success_response(result_data)
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error uploading video: {str(e)}")
             return self.fail_response(f"Failed to upload video: {str(e)}")
@@ -346,7 +344,7 @@ class MemoriesTool(Tool):
                     temp_path = temp_file.name
                 
                 # Upload to memories.ai
-                video_meta = await self.memories_client.upload_video_from_file(
+                video_meta = self.memories_client.upload_video_from_file(
                     file_path=temp_path,
                     unique_id=user_id
                 )
@@ -379,8 +377,6 @@ class MemoriesTool(Tool):
             
             return self.success_response(result_data)
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error uploading video file: {str(e)}")
             return self.fail_response(f"Failed to upload video file: {str(e)}")
@@ -425,7 +421,7 @@ class MemoriesTool(Tool):
 
 Format with clear sections and timestamps where applicable."""
 
-            result = await self.memories_client.chat_with_video(
+            result = self.memories_client.chat_with_video(
                 video_nos=[video_id],
                 prompt=analysis_prompt,
                 unique_id=user_id,
@@ -464,8 +460,6 @@ Format with clear sections and timestamps where applicable."""
             
             return self.success_response(result_data)
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error analyzing video: {str(e)}")
             return self.fail_response(f"Failed to analyze video: {str(e)}")
@@ -496,7 +490,7 @@ Format with clear sections and timestamps where applicable."""
             user_id = await self._get_memories_user_id()
             
             # Get both video and audio transcription
-            transcript_data = await self.memories_client.get_video_transcription(
+            transcript_data = self.memories_client.get_video_transcription(
                 video_no=video_id,
                 unique_id=user_id
             )
@@ -513,8 +507,6 @@ Format with clear sections and timestamps where applicable."""
                 "word_count": len(transcript.split()) if transcript else 0
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error getting transcript: {str(e)}")
             return self.fail_response(f"Failed to get transcript: {str(e)}")
@@ -551,7 +543,7 @@ Format with clear sections and timestamps where applicable."""
             user_id = await self._get_memories_user_id()
             
             # Use correct API method: chat_with_video
-            result = await self.memories_client.chat_with_video(
+            result = self.memories_client.chat_with_video(
                 video_nos=[video_id],
                 prompt=question,
                 unique_id=user_id,
@@ -570,8 +562,6 @@ Format with clear sections and timestamps where applicable."""
                 "refs": result.get("data", {}).get("refs", []) if isinstance(result.get("data"), dict) else []
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error querying video: {str(e)}")
             return self.fail_response(f"Failed to query video: {str(e)}")
@@ -606,7 +596,7 @@ Format with clear sections and timestamps where applicable."""
             user_id = await self._get_memories_user_id()
             
             # Use search_private_library to search within uploaded videos
-            results = await self.memories_client.search_private_library(
+            results = self.memories_client.search_private_library(
                 search_param=query,
                 search_type="BY_VIDEO",
                 unique_id=user_id,
@@ -624,8 +614,6 @@ Format with clear sections and timestamps where applicable."""
                 "matches_found": len(results)
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error searching in video: {str(e)}")
             return self.fail_response(f"Failed to search in video: {str(e)}")
@@ -676,7 +664,7 @@ Format with clear sections and timestamps where applicable."""
 
 Format as a comparative table where possible."""
 
-            results = await self.memories_client.chat_with_video(
+            results = self.memories_client.chat_with_video(
                 video_nos=video_ids,
                 prompt=compare_prompt,
                 unique_id=user_id,
@@ -694,8 +682,6 @@ Format as a comparative table where possible."""
                 "summary": f"Compared {len(video_ids)} videos across multiple dimensions"
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error comparing videos: {str(e)}")
             return self.fail_response(f"Failed to compare videos: {str(e)}")
@@ -742,7 +728,7 @@ Identify:
 
 Provide specific examples with video_no and timestamps."""
 
-            results = await self.memories_client.chat_with_video(
+            results = self.memories_client.chat_with_video(
                 video_nos=video_ids,
                 prompt=search_prompt,
                 unique_id=user_id,
@@ -761,8 +747,6 @@ Provide specific examples with video_no and timestamps."""
                 "summary": f"Searched {len(video_ids)} videos for '{query}'"
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error in multi-video search: {str(e)}")
             return self.fail_response(f"Failed to search videos: {str(e)}")
@@ -818,9 +802,9 @@ Provide specific examples with video_no and timestamps."""
             platform_type = platform_map.get(platform.lower(), 'TIKTOK')
             
             # Use correct API method: search_public_videos
-            results = await self.memories_client.search_public_videos(
-                search_param=query,
-                platform_type=platform_type,
+            results = self.memories_client.search_public_videos(
+                query=query,
+                platform=platform_type,
                 search_type="BY_VIDEO",
                 top_k=min(limit, 50),
                 filtering_level="medium"
@@ -835,7 +819,7 @@ Provide specific examples with video_no and timestamps."""
                 
                 try:
                     # Get full video details including thumbnail
-                    details = await self.memories_client.get_public_video_detail(video_no=video_no)
+                    details = self.memories_client.get_public_video_detail(video_no=video_no)
                     
                     # Generate thumbnail from platform URL if not available
                     video_url = details.get("video_url") or ""
@@ -890,8 +874,6 @@ Provide specific examples with video_no and timestamps."""
                 "next_action_hint": "You can upload any video by URL using upload_video, or analyze the video directly"
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error searching platform videos: {str(e)}")
             return self.fail_response(f"Failed to search {platform}: {str(e)}")
@@ -972,7 +954,7 @@ Provide specific examples with video_no and timestamps."""
             
             # Scrape videos from creator's account
             logger.info(f"Scraping {video_count} videos from creator: {creator_url}")
-            scrape_result = await self.memories_client.upload_from_creator_url(
+            scrape_result = self.memories_client.upload_from_creator_url(
                 creator_url=creator_url,
                 scraper_cnt=min(video_count, 30),
                 unique_id=user_id
@@ -994,8 +976,6 @@ Provide specific examples with video_no and timestamps."""
                 "note": "Once videos are scraped, I can analyze them for content patterns, performance metrics, and style insights."
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error analyzing creator: {str(e)}")
             return self.fail_response(f"Failed to analyze creator: {str(e)}")
@@ -1028,7 +1008,7 @@ Provide specific examples with video_no and timestamps."""
             user_id = await self._get_memories_user_id()
             
             # Check task status
-            status_result = await self.memories_client.get_task_status(
+            status_result = self.memories_client.check_task_status(
                 task_id=task_id,
                 unique_id=user_id
             )
@@ -1095,8 +1075,6 @@ Provide specific examples with video_no and timestamps."""
                     "message": "Task status unclear - see raw_response for details"
                 })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error checking task status: {str(e)}")
             return self.fail_response(f"Failed to check task status: {str(e)}")
@@ -1143,7 +1121,7 @@ Provide specific examples with video_no and timestamps."""
             
             # Scrape videos from hashtag
             logger.info(f"Scraping {video_count} videos from hashtags: {cleaned_hashtags}")
-            scrape_result = await self.memories_client.upload_from_hashtag(
+            scrape_result = self.memories_client.upload_from_hashtag(
                 hashtags=cleaned_hashtags,
                 scraper_cnt=min(video_count, 30),
                 unique_id=user_id
@@ -1165,8 +1143,6 @@ Provide specific examples with video_no and timestamps."""
                 "note": "Once scraped, I can compare all videos to identify common themes, popular formats, and trending elements."
             })
             
-        except MemoriesAPIError as e:
-            return self.fail_response(f"Memories.ai API error: {str(e)}")
         except Exception as e:
             logger.error(f"Error analyzing trend: {str(e)}")
             return self.fail_response(f"Failed to analyze trend: {str(e)}")
