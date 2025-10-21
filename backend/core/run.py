@@ -159,22 +159,35 @@ class ToolManager:
                     logger.debug(f"✅ Registered company_search_tool with methods: {enabled_methods}")
         
         # Register Memories.ai video intelligence tool if API key is available
-        if config.MEMORIES_AI_API_KEY and 'memories_tool' not in disabled_tools:
-            try:
-                enabled_methods = self._get_enabled_methods_for_tool('memories_tool')
-                logger.debug(f"Memories tool enabled_methods type: {type(enabled_methods)}, value: {enabled_methods}")
-                self.thread_manager.add_tool(MemoriesTool, function_names=enabled_methods, thread_manager=self.thread_manager)
-                if enabled_methods:
-                    logger.info(f"✅ Registered Video Intelligence tool (memories_tool) with {len(enabled_methods)} methods")
-                else:
-                    logger.info("✅ Registered Video Intelligence tool (memories_tool) with all methods enabled")
-            except Exception as e:
-                logger.error(f"❌ Failed to register Video Intelligence tool: {e}", exc_info=True)
+        logger.error("=" * 80)
+        logger.error("🎥 MEMORIES.AI VIDEO INTELLIGENCE TOOL")
+        logger.error("=" * 80)
+        
+        if not config.MEMORIES_AI_API_KEY:
+            logger.error("❌ MEMORIES_AI_API_KEY NOT SET - Tool will NOT be registered")
+            logger.error("   Set MEMORIES_AI_API_KEY in your .env file")
+            logger.error("=" * 80)
+        elif 'memories_tool' in disabled_tools:
+            logger.error("⚠️  MEMORIES_AI_API_KEY is set but tool is DISABLED in agent config")
+            logger.error("=" * 80)
         else:
-            if not config.MEMORIES_AI_API_KEY:
-                logger.info("ℹ️  Video Intelligence tool not registered - MEMORIES_AI_API_KEY not configured")
-            if 'memories_tool' in disabled_tools:
-                logger.info("ℹ️  Video Intelligence tool disabled in agent configuration")
+            try:
+                logger.error(f"✅ API Key detected: {config.MEMORIES_AI_API_KEY[:10]}... (length: {len(config.MEMORIES_AI_API_KEY)})")
+                enabled_methods = self._get_enabled_methods_for_tool('memories_tool')
+                logger.error(f"   Registering tool with methods: {enabled_methods if enabled_methods else 'ALL'}")
+                
+                self.thread_manager.add_tool(MemoriesTool, function_names=enabled_methods, thread_manager=self.thread_manager)
+                
+                if enabled_methods:
+                    logger.error(f"✅ SUCCESS - Video Intelligence tool registered with {len(enabled_methods)} methods")
+                else:
+                    logger.error("✅ SUCCESS - Video Intelligence tool registered with ALL methods enabled")
+                logger.error("=" * 80)
+            except Exception as e:
+                logger.error(f"❌ FAILED to register Video Intelligence tool")
+                logger.error(f"   Error: {str(e)}")
+                logger.error("=" * 80)
+                logger.error(f"   Full traceback:", exc_info=True)
         
         if config.ENV_MODE != EnvMode.PRODUCTION and config.VAPI_PRIVATE_KEY and 'vapi_voice_tool' not in disabled_tools:
             enabled_methods = self._get_enabled_methods_for_tool('vapi_voice_tool')

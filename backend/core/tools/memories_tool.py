@@ -35,18 +35,20 @@ class MemoriesTool(Tool):
         super().__init__()  # Initialize base Tool class
         self.thread_manager = thread_manager
         
-        # DEBUG: Log API key presence
+        # Get API key
         api_key = config.MEMORIES_AI_API_KEY
-        logger.error(f"🔍 MemoriesTool.__init__: API_KEY = {api_key[:10] if api_key else 'NONE'}... (length: {len(api_key) if api_key else 0})")
+        logger.error(f"   🔧 MemoriesTool.__init__ called with API_KEY: {api_key[:10] if api_key else 'NONE'}... (length: {len(api_key) if api_key else 0})")
         
+        # Initialize memories.ai client
         self.memories_client = get_memories_client(api_key=api_key)
         
         if self.memories_client is None:
-            logger.error(f"❌ MemoriesTool initialized but memories_client is None - API key was: {api_key[:10] if api_key else 'NONE'}...")
+            logger.error(f"   ❌ memories_client is None after get_memories_client() call")
             raise ValueError(
-                f"Memories.ai API key not configured. API_KEY={'SET' if api_key else 'NOT SET'}. Please set MEMORIES_AI_API_KEY in your environment variables."
+                f"Memories.ai client failed to initialize. API_KEY={'SET' if api_key else 'NOT SET'}. Please check MEMORIES_AI_API_KEY."
             )
         
+        logger.error(f"   ✅ memories_client initialized successfully")
         self.db = DBConnection()
     
     def success_response(self, data: Any) -> ToolResult:
