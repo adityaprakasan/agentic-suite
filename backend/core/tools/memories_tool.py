@@ -952,6 +952,10 @@ Provide specific examples with video_no and timestamps."""
             
             user_id = await self._get_memories_user_id()
             
+            # Normalize creator URL - add https:// if missing
+            if not creator_url.startswith('http'):
+                creator_url = f"https://{creator_url}"
+            
             # Scrape videos from creator's account
             logger.info(f"Scraping {video_count} videos from creator: {creator_url}")
             scrape_result = self.memories_client.upload_from_creator_url(
