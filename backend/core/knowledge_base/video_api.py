@@ -12,7 +12,7 @@ from datetime import datetime
 
 from core.utils.auth_utils import verify_and_get_user_id_from_jwt
 from core.services.supabase import DBConnection
-from core.services.memories_client import get_memories_client, MemoriesAPIError
+from core.services.memories_client import get_memories_client
 from core.utils.logger import logger
 
 router = APIRouter(prefix="/knowledge-base/videos", tags=["knowledge-base-videos"])
