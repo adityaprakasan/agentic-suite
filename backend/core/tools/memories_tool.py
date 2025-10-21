@@ -225,11 +225,31 @@ class MemoriesTool(Tool):
                 platform = "linkedin"
             
             # Upload to memories.ai
-            video_meta = await self.memories_client.upload_video(
-                user_id=user_id,
-                video_url=url,
-                title=title
-            )
+            # For platform URLs (Instagram/TikTok/YouTube), use upload_from_platform_urls
+            if platform in ['youtube', 'tiktok', 'instagram', 'linkedin']:
+                task_response = await self.memories_client.upload_from_platform_urls(
+                    video_urls=[url],
+                    unique_id=user_id,
+                    is_public=False
+                )
+                task_id = task_response.get("data", {}).get("taskId")
+                
+                # Return task_id for async tracking
+                return self.success_response({
+                    "task_id": task_id,
+                    "url": url,
+                    "title": title,
+                    "platform": platform,
+                    "status": "processing",
+                    "message": f"Video '{title}' is being uploaded from {platform}. Use check_task_status with task_id to monitor progress.",
+                    "action_hint": "This is an async operation. Check status in a few seconds with check_task_status."
+                })
+            else:
+                # For direct video URLs
+                video_meta = await self.memories_client.upload_video_from_url(
+                    url=url,
+                    unique_id=user_id
+                )
             
             result_data = {
                 "video_id": video_meta.video_id,
@@ -392,48 +412,50 @@ class MemoriesTool(Tool):
             
             user_id = await self._get_memories_user_id()
             
-            # Get video analysis
-            analysis = await self.memories_client.analyze_video(
-                user_id=user_id,
-                video_id=video_id
+            # Use chat_with_video to get analysis
+            # memories.ai doesn't have a dedicated analyze endpoint - we use chat with analysis prompt
+            analysis_prompt = """Analyze this video for marketing insights. Provide:
+
+1. HOOKS: Identify attention-grabbing moments in the first 3-5 seconds with timestamps
+2. CTAs (Calls-to-Action): Note any prompts for engagement (like, share, comment, link clicks) with timestamps
+3. VISUAL ELEMENTS: Key visual patterns, text overlays, transitions
+4. PACING: How the video flows (fast cuts vs slow transitions)
+5. ENGAGEMENT PREDICTION: Rate 1-10 how engaging this content is
+6. SUMMARY: Overall marketing effectiveness
+
+Format with clear sections and timestamps where applicable."""
+
+            result = await self.memories_client.chat_with_video(
+                video_nos=[video_id],
+                prompt=analysis_prompt,
+                unique_id=user_id,
+                session_id=None,
+                stream=False
             )
             
-            # Format analysis results
-            result = {
+            # Extract the analysis from chat response
+            analysis_text = result.get("data", {}).get("content", "") if isinstance(result.get("data"), dict) else str(result.get("data", ""))
+            refs = result.get("data", {}).get("refs", []) if isinstance(result.get("data"), dict) else []
+            
+            # Return structured analysis result
+            result_data = {
                 "video_id": video_id,
-                "hooks": [
-                    {
-                        "timestamp": hook.get("timestamp", "0:00"),
-                        "type": hook.get("type", "Unknown"),
-                        "description": hook.get("description", ""),
-                        "strength": hook.get("strength", "medium")
-                    }
-                    for hook in analysis.hooks[:5]  # Top 5 hooks
-                ],
-                "ctas": [
-                    {
-                        "timestamp": cta.get("timestamp", "0:00"),
-                        "text": cta.get("text", ""),
-                        "type": cta.get("type", "Unknown")
-                    }
-                    for cta in analysis.ctas
-                ],
-                "visual_elements": analysis.visual_elements[:10],
-                "pacing": analysis.pacing,
-                "engagement_prediction": analysis.engagement_prediction,
-                "summary": f"Video analyzed. Found {len(analysis.hooks)} hooks, {len(analysis.ctas)} CTAs. Engagement score: {analysis.engagement_prediction:.1f}/10"
+                "analysis": analysis_text,
+                "refs": refs,
+                "session_id": result.get("session_id"),
+                "summary": f"Video {video_id} analyzed. Analysis includes hooks, CTAs, visual elements, pacing, and engagement prediction."
             }
             
             # Update KB if video exists there
             try:
                 client = await self.db.client
                 await client.table('knowledge_base_videos').update({
-                    'analysis_data': analysis.analysis_data
+                    'analysis_data': {"analysis": analysis_text, "analyzed_at": "now"}
                 }).eq('video_id', video_id).execute()
             except:
                 pass  # Not in KB yet
             
-            return self.success_response(result)
+            return self.success_response(result_data)
             
         except MemoriesAPIError as e:
             return self.fail_response(f"Memories.ai API error: {str(e)}")
