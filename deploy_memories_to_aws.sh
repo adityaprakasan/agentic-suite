@@ -200,3 +200,5 @@ echo "  tail -f /tmp/worker.log     # Worker logs"
 echo "  tail -f /tmp/frontend.log   # Frontend logs"
 echo ""
 
+
+

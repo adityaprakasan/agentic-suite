@@ -696,15 +696,17 @@ def get_memories_client(api_key: Optional[str] = None) -> Optional[MemoriesClien
     """Get or create singleton client"""
     global _client
     
+    # If client exists and is valid, return it
     if _client is not None:
         return _client
     
-    if api_key:
-        _client = MemoriesClient(api_key)
-        return _client
+    # If no API key provided, cannot create client
+    if not api_key:
+        return None
     
-    # No API key provided and no existing client
-    return None
+    # Create new client with provided API key
+    _client = MemoriesClient(api_key)
+    return _client
 
 
 # Alias for backwards compatibility

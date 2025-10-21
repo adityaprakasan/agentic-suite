@@ -302,6 +302,12 @@ class Configuration:
     MEMORIES_AI_API_KEY: Optional[str] = None
     MEMORIES_AI_BASE_URL: Optional[str] = "https://api.memories.ai"
     
+    # DEBUG: Log at class level if API key is present
+    def __setattr__(self, name, value):
+        if name == "MEMORIES_AI_API_KEY":
+            logger.error(f"🔍 Config.MEMORIES_AI_API_KEY being set to: {value[:10] if value else 'NONE'}... (length: {len(value) if value else 0})")
+        super().__setattr__(name, value)
+    
     VAPI_PRIVATE_KEY: Optional[str] = None
     VAPI_PHONE_NUMBER_ID: Optional[str] = None
     VAPI_SERVER_URL: Optional[str] = None
