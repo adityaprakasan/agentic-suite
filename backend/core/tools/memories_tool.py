@@ -1511,7 +1511,7 @@ Provide specific examples with video_no and timestamps."""
                         try:
                             # Fetch full video details to get URL for embedding
                             details = self.memories_client.get_public_video_detail(video_no=video_no)
-                    referenced_videos.append({
+                            referenced_videos.append({
                                 "video_no": video_no,
                                 "title": video.get("video_name") or details.get("video_name"),
                                 "duration": video.get("duration") or details.get("duration"),
@@ -1524,9 +1524,9 @@ Provide specific examples with video_no and timestamps."""
                             logger.warning(f"Failed to fetch details for {video_no}: {str(e)}")
                             referenced_videos.append({
                                 "video_no": video_no,
-                        "title": video.get("video_name"),
-                        "duration": video.get("duration")
-                    })
+                                "title": video.get("video_name"),
+                                "duration": video.get("duration")
+                            })
             
             # Save/update session in database for future reference
             if returned_session_id and account_id:
