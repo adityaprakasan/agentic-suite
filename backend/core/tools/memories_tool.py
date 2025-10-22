@@ -499,8 +499,7 @@ Format with clear sections and timestamps where applicable."""
                 video_nos=[video_id],
                 prompt=analysis_prompt,
                 unique_id=user_id,
-                session_id=None,
-                stream=False
+                session_id=None
             )
             
             # Extract the analysis from chat response
