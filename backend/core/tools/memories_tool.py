@@ -39,16 +39,19 @@ class MemoriesTool(Tool):
         api_key = config.MEMORIES_AI_API_KEY
         logger.error(f"   🔧 MemoriesTool.__init__ called with API_KEY: {api_key[:10] if api_key else 'NONE'}... (length: {len(api_key) if api_key else 0})")
         
-        # Initialize memories.ai client
+        # Initialize memories.ai client (allow None for graceful degradation)
+        try:
         self.memories_client = get_memories_client(api_key=api_key)
         
         if self.memories_client is None:
-            logger.error(f"   ❌ memories_client is None after get_memories_client() call")
-            raise ValueError(
-                f"Memories.ai client failed to initialize. API_KEY={'SET' if api_key else 'NOT SET'}. Please check MEMORIES_AI_API_KEY."
-            )
-        
+                logger.warning(f"   ⚠️  memories_client is None - tool will be available but methods will fail gracefully")
+                logger.warning(f"   API_KEY={'SET' if api_key else 'NOT SET'}, Length={len(api_key) if api_key else 0}")
+            else:
         logger.error(f"   ✅ memories_client initialized successfully")
+        except Exception as e:
+            logger.error(f"   ❌ Exception during client initialization: {str(e)}")
+            self.memories_client = None
+        
         self.db = DBConnection()
     
     def success_response(self, data: Any) -> ToolResult:
@@ -58,6 +61,14 @@ class MemoriesTool(Tool):
     def fail_response(self, error: str) -> ToolResult:
         """Create failure ToolResult"""
         return ToolResult(success=False, output={"error": error})
+    
+    def _check_client_initialized(self) -> Optional[ToolResult]:
+        """Check if memories client is initialized, return error ToolResult if not"""
+        if not self.memories_client:
+            return self.fail_response(
+                "Memories.ai client not initialized. Please ensure MEMORIES_AI_API_KEY environment variable is set correctly."
+            )
+        return None
     
     async def _get_memories_user_id(self) -> str:
         """Get or create memories.ai user_id for current account"""
@@ -70,17 +81,20 @@ class MemoriesTool(Tool):
             
             client = await self.db.client
             
-            # Get existing memories_user_id from basejump schema
-            result = await client.schema("basejump").table('accounts').select('memories_user_id').eq('id', account_id).single().execute()
+            # Get existing memories_user_id from account_settings (public schema)
+            result = await client.table('account_settings').select('memories_user_id').eq('account_id', account_id).maybe_single().execute()
             
             if result.data and result.data.get('memories_user_id'):
                 return result.data['memories_user_id']
             
             # Generate new memories_user_id
             memories_user_id = str(uuid.uuid4())
-            await client.schema("basejump").table('accounts').update({
+            
+            # Upsert into account_settings
+            await client.table('account_settings').upsert({
+                'account_id': account_id,
                 'memories_user_id': memories_user_id
-            }).eq('id', account_id).execute()
+            }).execute()
             
             logger.info(f"Generated new memories_user_id for account {account_id}")
             return memories_user_id
@@ -226,8 +240,9 @@ class MemoriesTool(Tool):
     ) -> ToolResult:
         """Upload a video from URL"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -375,8 +390,9 @@ class MemoriesTool(Tool):
     ) -> ToolResult:
         """Upload video file from local storage"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -460,8 +476,9 @@ class MemoriesTool(Tool):
     async def analyze_video(self, video_id: str) -> ToolResult:
         """Analyze video for marketing insights"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -575,8 +592,9 @@ Format with clear sections and timestamps where applicable."""
     async def get_transcript(self, video_id: str) -> ToolResult:
         """Get video transcript"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -637,8 +655,9 @@ Format with clear sections and timestamps where applicable."""
     ) -> ToolResult:
         """Ask questions about a video with conversation context"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             agent_config = getattr(self.thread_manager, 'agent_config', {})
@@ -770,8 +789,9 @@ Format with clear sections and timestamps where applicable."""
     async def search_in_video(self, video_id: str, query: str) -> ToolResult:
         """Search for specific moments in a video"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -926,8 +946,9 @@ Format as a comparative table where possible."""
     async def multi_video_search(self, video_ids: List[str], query: str) -> ToolResult:
         """Search across multiple videos"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1040,8 +1061,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Search for videos on social platforms"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             # Map platform names to API format
             platform_map = {
@@ -1197,8 +1219,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Analyze a creator's account and generate insights report"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1213,7 +1236,7 @@ Provide specific examples with video_no and timestamps."""
                     creator_url = f"https://www.tiktok.com/@{creator_url}"
                 else:
                     # Has path but no protocol - add https://
-                    creator_url = f"https://{creator_url}"
+                creator_url = f"https://{creator_url}"
             
             # Scrape videos from creator's account
             logger.info(f"Scraping {video_count} videos from creator: {creator_url}")
@@ -1270,8 +1293,9 @@ Provide specific examples with video_no and timestamps."""
     async def check_task_status(self, task_id: str) -> ToolResult:
         """Check status of async scraping task"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1379,8 +1403,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Analyze videos from trend/hashtag"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1454,8 +1479,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Search 1M+ indexed videos for trends and insights with conversation context"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             agent_config = getattr(self.thread_manager, 'agent_config', {})
@@ -1485,7 +1511,7 @@ Provide specific examples with video_no and timestamps."""
                         try:
                             # Fetch full video details to get URL for embedding
                             details = self.memories_client.get_public_video_detail(video_no=video_no)
-                            referenced_videos.append({
+                    referenced_videos.append({
                                 "video_no": video_no,
                                 "title": video.get("video_name") or details.get("video_name"),
                                 "duration": video.get("duration") or details.get("duration"),
@@ -1498,9 +1524,9 @@ Provide specific examples with video_no and timestamps."""
                             logger.warning(f"Failed to fetch details for {video_no}: {str(e)}")
                             referenced_videos.append({
                                 "video_no": video_no,
-                                "title": video.get("video_name"),
-                                "duration": video.get("duration")
-                            })
+                        "title": video.get("video_name"),
+                        "duration": video.get("duration")
+                    })
             
             # Save/update session in database for future reference
             if returned_session_id and account_id:
@@ -1659,8 +1685,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Upload images with metadata for similarity search"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             sandbox = self.thread_manager.agent_run.sandbox
@@ -1742,8 +1769,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Search for visually similar content"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             sandbox = self.thread_manager.agent_run.sandbox
@@ -1817,8 +1845,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """List user's video library"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1864,8 +1893,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Delete videos from library"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1910,8 +1940,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Generate video summary with chapters or topics"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1956,8 +1987,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Get complete video metadata"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -1997,8 +2029,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Download video file to sandbox"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             sandbox = self.thread_manager.agent_run.sandbox
@@ -2096,8 +2129,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """List chat sessions"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -2139,8 +2173,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Get session conversation history"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -2180,8 +2215,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Chat with your personal media library with conversation context"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             agent_config = getattr(self.thread_manager, 'agent_config', {})
@@ -2297,8 +2333,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Update video transcription with custom prompt"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -2338,8 +2375,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Get audio-only transcription"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -2386,8 +2424,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """List user's image library"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -2445,8 +2484,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Search audio transcripts"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             
@@ -2508,8 +2548,9 @@ Provide specific examples with video_no and timestamps."""
     ) -> ToolResult:
         """Find video clips matching an image"""
         try:
-            if not config.MEMORIES_AI_API_KEY:
-                return self.fail_response("Memories.ai API key not configured")
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
             
             user_id = await self._get_memories_user_id()
             sandbox = self.thread_manager.agent_run.sandbox

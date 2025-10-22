@@ -75,9 +75,9 @@ export const metadata: Metadata = {
     siteName: 'Adentic',
     images: [
       {
-        url: '/banner.png',
-        width: 1200,
-        height: 630,
+        url: '/og-image-new.png',
+        width: 1536,
+        height: 1024,
         alt: 'Adentic - AI Marketing Intelligence Workspace',
         type: 'image/png',
       },
@@ -94,16 +94,21 @@ export const metadata: Metadata = {
     site: '@adenticai',
     images: [
       {
-        url: '/banner.png',
-        width: 1200,
-        height: 630,
+        url: '/og-image-new.png',
+        width: 1536,
+        height: 1024,
         alt: 'Adentic - AI Marketing Intelligence Workspace',
       },
     ],
   },
   icons: {
-    icon: [{ url: '/favicon.png', sizes: 'any' }],
-    shortcut: '/favicon.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      { url: '/favicon.png', sizes: 'any' },
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   // manifest: "/manifest.json",
   alternates: {

@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   keywords: ['Adentic Adentic', 'Adentic', 'Adentic', 'AI', 'Agent', 'Open Source'],
   authors: [
     {
-      name: 'Adentic AI Corp',
-      url: 'https://kortix.ai',
+      name: 'Adentic Team',
+      url: 'https://tryadentic.com',
     },
   ],
-  creator: 'Adentic AI Corp',
+  creator: 'Adentic Team',
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     images: [
       {
-        url: '/banner.png',
-        width: 1200,
-        height: 630,
+        url: '/og-image-new.png',
+        width: 1536,
+        height: 1024,
         alt: siteConfig.name,
       },
     ],
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: siteConfig.name,
     description: siteConfig.description,
-    creator: '@kortixai',
-    images: ['/banner.png'],
+    creator: '@adenticai',
+    images: ['/og-image-new.png'],
   },
   robots: {
     index: true,

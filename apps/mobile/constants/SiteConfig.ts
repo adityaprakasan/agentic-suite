@@ -1,30 +1,31 @@
 export const siteConfig = {
-  name: "Suna",
-  url: "https://suna.so",
-  description: "Suna is a fully open source AI assistant that helps you accomplish real-world tasks with ease. Through natural conversation, Suna becomes your digital companion for research, data analysis, and everyday challenges.",
+  name: "Adentic",
+  url: "https://tryadentic.com",
+  description: "Adentic is the AI marketing intelligence workspace that combines video analytics, competitive research, content strategy, and campaign automation—turning insights into execution across every channel.",
   keywords: [
-    'AI',
-    'artificial intelligence',
-    'browser automation',
-    'web scraping',
-    'file management',
-    'AI assistant',
-    'open source',
+    'AI marketing',
+    'marketing intelligence',
+    'video analytics',
+    'competitive research',
+    'content strategy',
+    'campaign automation',
+    'marketing automation',
     'research',
     'data analysis',
+    'marketing workspace',
   ],
-  authors: [{ name: 'Kortix Team', url: 'https://suna.so' }],
-  creator: 'Kortix Team - Adam Cohen Hillel, Marko Kraemer, Domenico Gagliardi, and Quoc Dat Le',
-  publisher: 'Kortix Team - Adam Cohen Hillel, Marko Kraemer, Domenico Gagliardi, and Quoc Dat Le',
+  authors: [{ name: 'Adentic Team', url: 'https://tryadentic.com' }],
+  creator: 'Adentic Team',
+  publisher: 'Adentic Team',
   category: 'Technology',
-  applicationName: 'Suna',
-  twitterHandle: '@kortixai',
-  githubUrl: 'https://github.com/kortix-ai/suna',
+  applicationName: 'Adentic',
+  twitterHandle: '@adenticai',
+  githubUrl: 'https://github.com/adentic/',
   
   // Mobile-specific configurations
   bundleId: {
-    ios: 'com.kortix.suna',
-    android: 'com.kortix.suna'
+    ios: 'workspace.tryadentic.com',
+    android: 'workspace.tryadentic.com'
   },
   
   // Theme colors
@@ -54,16 +55,16 @@ export const mobileMetadata = {
     address: false,
   },
   openGraph: {
-    title: 'Suna - Open Source Generalist AI Agent',
+    title: 'Adentic - AI Marketing Intelligence Workspace',
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: siteConfig.name,
     images: [
       {
-        url: '/banner.png',
-        width: 1200,
-        height: 630,
-        alt: 'Suna - Open Source Generalist AI Agent',
+        url: '/og-image-new.png',
+        width: 1536,
+        height: 1024,
+        alt: 'Adentic - AI Marketing Intelligence Workspace',
         type: 'image/png',
       },
     ],
@@ -72,22 +73,27 @@ export const mobileMetadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Suna - Open Source Generalist AI Agent',
+    title: 'Adentic - AI Marketing Intelligence Workspace',
     description: siteConfig.description,
     creator: siteConfig.twitterHandle,
     site: siteConfig.twitterHandle,
     images: [
       {
-        url: '/banner.png',
-        width: 1200,
-        height: 630,
-        alt: 'Suna - Open Source Generalist AI Agent',
+        url: '/og-image-new.png',
+        width: 1536,
+        height: 1024,
+        alt: 'Adentic - AI Marketing Intelligence Workspace',
       },
     ],
   },
   icons: {
-    icon: [{ url: '/favicon.png', sizes: 'any' }],
-    shortcut: '/favicon.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      { url: '/favicon.png', sizes: 'any' },
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   alternates: {
     canonical: siteConfig.url,

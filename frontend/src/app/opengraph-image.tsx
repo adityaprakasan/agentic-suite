@@ -3,10 +3,10 @@ import { ImageResponse } from 'next/og';
 
 // Configuration exports
 export const runtime = 'edge';
-export const alt = 'Adentic Adentic';
+export const alt = 'Adentic - AI Marketing Intelligence Workspace';
 export const size = {
-  width: 1200,
-  height: 630,
+  width: 1536,
+  height: 1024,
 };
 export const contentType = 'image/png';
 
@@ -31,7 +31,7 @@ export default async function Image() {
           }}
         >
           <img
-            src={`${baseUrl}/banner.png`}
+            src={`${baseUrl}/og-image-new.png`}
             alt={alt}
             style={{
               width: '100%',
