@@ -1236,7 +1236,7 @@ Provide specific examples with video_no and timestamps."""
                     creator_url = f"https://www.tiktok.com/@{creator_url}"
                 else:
                     # Has path but no protocol - add https://
-                creator_url = f"https://{creator_url}"
+                    creator_url = f"https://{creator_url}"
             
             # Scrape videos from creator's account
             logger.info(f"Scraping {video_count} videos from creator: {creator_url}")
