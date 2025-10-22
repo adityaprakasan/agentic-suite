@@ -544,7 +544,7 @@ export const siteConfig = {
         content: <FirstBentoAnimation />,
         title: 'Autonomous Task Execution',
         description:
-          'Experience true automation with Adentic. Ask your AI Worker to complete tasks, research information, and handle complex workflows with minimal supervision.',
+          'Experience true marketing automation with Adentic. From video analytics and competitive research to content strategy and campaign execution—all through natural conversation.',
       },
       {
         id: 2,
@@ -1180,9 +1180,9 @@ export const siteConfig = {
     faQitems: [
       {
         id: 1,
-        question: 'What is an AI Worker?',
+        question: 'What is a marketing assistant?',
         answer:
-          'An AI Worker is an intelligent software program that can perform tasks autonomously, learn from interactions, and make decisions to help achieve specific goals. It combines artificial intelligence and machine learning to provide personalized assistance and automation.',
+          'A marketing assistant is an AI-powered agent that autonomously handles marketing tasks like video analysis, competitive research, content strategy, and campaign execution. It combines artificial intelligence with marketing intelligence to turn insights into action across all your marketing channels.',
       },
       {
         id: 2,
@@ -1603,7 +1603,7 @@ export const siteConfig = {
       id: 'seo-analysis',
       title: 'SEO Analysis',
       description:
-        "Based on my website suna.so, generate an SEO report analysis, find top-ranking pages by keyword clusters, and identify topics I'm missing.",
+        "Based on my website tryadentic.com, generate an SEO report analysis, find top-ranking pages by keyword clusters, and identify topics I'm missing.",
       category: 'marketing',
       featured: true,
       icon: (

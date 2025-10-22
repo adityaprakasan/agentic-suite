@@ -34,19 +34,20 @@ export const metadata: Metadata = {
     template: `%s - ${siteConfig.name}`,
   },
   description:
-    'Adentic is a fully open source AI assistant platform that helps you build, manage, and train AI agents. Through natural conversation, Adentic becomes your platform for creating intelligent digital workers.',
+    'Adentic is the AI marketing intelligence workspace that combines video analytics, competitive research, content strategy, and campaign automation—turning insights into execution across every channel.',
   keywords: [
-    'AI',
-    'artificial intelligence',
-    'browser automation',
-    'web scraping',
-    'file management',
-    'AI assistant',
-    'open source',
+    'AI marketing',
+    'marketing intelligence',
+    'video analytics',
+    'competitive research',
+    'content strategy',
+    'campaign automation',
+    'marketing automation',
     'research',
     'data analysis',
+    'marketing workspace',
   ],
-  authors: [{ name: 'Adentic Team', url: 'https://suna.so' }],
+  authors: [{ name: 'Adentic Team', url: 'https://tryadentic.com' }],
   creator:
     'Adentic Team',
   publisher:
@@ -67,9 +68,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Adentic - Open Source Generalist AI Worker',
+    title: 'Adentic - AI Marketing Intelligence Workspace',
     description:
-      'Adentic is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
+      'The AI marketing intelligence workspace that combines video analytics, competitive research, content strategy, and campaign automation—turning insights into execution.',
     url: siteConfig.url,
     siteName: 'Adentic',
     images: [
@@ -77,7 +78,7 @@ export const metadata: Metadata = {
         url: '/banner.png',
         width: 1200,
         height: 630,
-        alt: 'Adentic - Open Source Generalist AI Worker',
+        alt: 'Adentic - AI Marketing Intelligence Workspace',
         type: 'image/png',
       },
     ],
@@ -86,17 +87,17 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Adentic - Open Source Generalist AI Worker',
+    title: 'Adentic - AI Marketing Intelligence Workspace',
     description:
-      'Adentic is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
-    creator: '@kortixai',
-    site: '@kortixai',
+      'The AI marketing intelligence workspace that combines video analytics, competitive research, content strategy, and campaign automation.',
+    creator: '@adenticai',
+    site: '@adenticai',
     images: [
       {
         url: '/banner.png',
         width: 1200,
         height: 630,
-        alt: 'Adentic - Open Source Generalist AI Worker',
+        alt: 'Adentic - AI Marketing Intelligence Workspace',
       },
     ],
   },

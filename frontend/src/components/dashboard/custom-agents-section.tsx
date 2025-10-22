@@ -36,7 +36,7 @@ const TitleSection = () => (
           Workers & Workflows
         </p>
         <p className="text-sm text-muted-foreground mt-2">
-          Configure and install AI workers from templates
+          Configure and install marketing assistants from templates
         </p>
       </div>
     </div>
