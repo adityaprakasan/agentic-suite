@@ -158,10 +158,10 @@ function LegalContent() {
                       PLEASE READ THESE TERMS OF USE ("AGREEMENT" OR "TERMS OF
                       USE" or "TERMS OF SERVICE" or "TERMS AND CONDITIONS")
                       CAREFULLY BEFORE USING THE SERVICES OFFERED BY Adentic AI
-                      Corp (701 Tillery Street Unit 12-2521 Austin, Texas 78702,
-                      United States). THIS AGREEMENT SETS FORTH THE LEGALLY
-                      BINDING TERMS AND CONDITIONS FOR YOUR USE OF THE SUNA
-                      WEBSITE AND ALL RELATED SERVICES.
+                      Corp (272 London Rd, Wallington, United Kingdom, SM6 7DJ). 
+                      THIS AGREEMENT SETS FORTH THE LEGALLY BINDING TERMS AND 
+                      CONDITIONS FOR YOUR USE OF THE ADENTIC WEBSITE AND ALL 
+                      RELATED SERVICES.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
@@ -169,8 +169,8 @@ function LegalContent() {
                     </h3>
                     <ul className="text-muted-foreground space-y-1 mb-6">
                       <li>
-                        "Company" refers to Adentic AI Corp (701 Tillery Street
-                        Unit 12-2521 Austin, Texas 78702, United States).
+                        "Company" refers to Adentic AI Corp (272 London Rd, 
+                        Wallington, United Kingdom, SM6 7DJ).
                       </li>
                       <li>
                         "Site" refers to the Adentic website, including any related
