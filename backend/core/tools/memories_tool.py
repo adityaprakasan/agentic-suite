@@ -41,13 +41,13 @@ class MemoriesTool(Tool):
         
         # Initialize memories.ai client (allow None for graceful degradation)
         try:
-        self.memories_client = get_memories_client(api_key=api_key)
-        
-        if self.memories_client is None:
+            self.memories_client = get_memories_client(api_key=api_key)
+            
+            if self.memories_client is None:
                 logger.warning(f"   ⚠️  memories_client is None - tool will be available but methods will fail gracefully")
                 logger.warning(f"   API_KEY={'SET' if api_key else 'NOT SET'}, Length={len(api_key) if api_key else 0}")
             else:
-        logger.error(f"   ✅ memories_client initialized successfully")
+                logger.error(f"   ✅ memories_client initialized successfully")
         except Exception as e:
             logger.error(f"   ❌ Exception during client initialization: {str(e)}")
             self.memories_client = None
