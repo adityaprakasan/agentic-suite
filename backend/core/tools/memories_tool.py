@@ -193,6 +193,21 @@ class MemoriesTool(Tool):
                         "type": "boolean",
                         "description": "Whether to automatically save to knowledge base after upload. Set to true (default) when user wants to keep the video for future reference, false for one-time analysis only.",
                         "default": True
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional list of tags for organizing and searching videos (e.g., ['campaign', 'Q1-2024', 'nike', 'social-media']). Up to 20 tags supported."
+                    },
+                    "transcription_prompt": {
+                        "type": "string",
+                        "description": "Optional custom prompt to guide video transcription/analysis. Use this to focus on specific aspects (e.g., 'Focus on product mentions and prices', 'Describe visual styling and color palette', 'Extract all spoken dialogue verbatim')"
+                    },
+                    "quality": {
+                        "type": "integer",
+                        "description": "Optional video quality/resolution for YouTube videos (480, 720, 1080). Default 720. Final resolution will be <= specified value based on source. Only effective for YouTube URLs; other platforms use original resolution.",
+                        "default": 720,
+                        "enum": [480, 720, 1080]
                     }
                 },
                 "required": ["url", "title"]
@@ -204,7 +219,10 @@ class MemoriesTool(Tool):
         url: str,
         title: str,
         folder_name: str = "Videos",
-        save_to_kb: bool = True
+        save_to_kb: bool = True,
+        tags: Optional[List[str]] = None,
+        transcription_prompt: Optional[str] = None,
+        quality: int = 720
     ) -> ToolResult:
         """Upload a video from URL"""
         try:
@@ -228,9 +246,9 @@ class MemoriesTool(Tool):
             # For platform URLs (Instagram/TikTok/YouTube), use upload_from_platform_urls
             if platform in ['youtube', 'tiktok', 'instagram', 'linkedin']:
                 task_response = self.memories_client.upload_from_platform_urls(
-                    video_urls=[url],
+                    urls=[url],  # ✅ Correct parameter name
                     unique_id=user_id,
-                    is_public=False
+                    quality=quality  # ✅ Pass user-specified quality
                 )
                 task_id = task_response.get("data", {}).get("taskId")
                 
@@ -248,7 +266,9 @@ class MemoriesTool(Tool):
                 # For direct video URLs
                 video_meta = self.memories_client.upload_video_from_url(
                     url=url,
-                    unique_id=user_id
+                    unique_id=user_id,
+                    tags=tags,
+                    video_transcription_prompt=transcription_prompt
                 )
             
             result_data = {
@@ -288,7 +308,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "upload_video_file",
-            "description": "Upload and process a video file from local storage (e.g., user attachment or file in sandbox) for analysis. Use this when user has uploaded a video file directly (not a URL) or when you need to analyze a video file from the sandbox filesystem. The video will be processed for transcript extraction, content analysis, and Q&A capabilities.",
+            "description": "Upload and process a video file from local storage (e.g., user attachment or file in sandbox) for analysis. Use this when user has uploaded a video file directly (not a URL) or when you need to analyze a video file from the sandbox filesystem. Supports metadata like camera info, GPS location, and tags for organization. The video will be processed for transcript extraction, content analysis, and Q&A capabilities.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -309,6 +329,31 @@ class MemoriesTool(Tool):
                         "type": "boolean",
                         "description": "Whether to save to knowledge base after processing. Set true (default) to keep for future access and reference, false for one-time analysis only.",
                         "default": True
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional list of tags for organizing and searching videos (e.g., ['meeting', 'Q4-2024', 'client-review', 'internal']). Up to 20 tags supported."
+                    },
+                    "transcription_prompt": {
+                        "type": "string",
+                        "description": "Optional custom prompt to guide video transcription/analysis. Use this to focus on specific aspects (e.g., 'Extract action items from meeting', 'Describe all products shown', 'Transcribe all spoken dialogue verbatim')"
+                    },
+                    "datetime_taken": {
+                        "type": "string",
+                        "description": "Optional date/time when video was captured (format: YYYY-MM-DD HH:MM:SS). Useful for organizing videos chronologically, especially for phone/camera uploads."
+                    },
+                    "camera_model": {
+                        "type": "string",
+                        "description": "Optional camera model metadata (e.g., 'iPhone 15 Pro', 'Canon EOS R5'). Useful for tracking video source and quality."
+                    },
+                    "latitude": {
+                        "type": "string",
+                        "description": "Optional GPS latitude where video was captured (e.g., '40.7128'). Useful for location-based organization."
+                    },
+                    "longitude": {
+                        "type": "string",
+                        "description": "Optional GPS longitude where video was captured (e.g., '-74.0060'). Useful for location-based organization."
                     }
                 },
                 "required": ["file_path", "title"]
@@ -320,7 +365,13 @@ class MemoriesTool(Tool):
         file_path: str,
         title: str,
         folder_name: str = "Videos",
-        save_to_kb: bool = True
+        save_to_kb: bool = True,
+        tags: Optional[List[str]] = None,
+        transcription_prompt: Optional[str] = None,
+        datetime_taken: Optional[str] = None,
+        camera_model: Optional[str] = None,
+        latitude: Optional[str] = None,
+        longitude: Optional[str] = None
     ) -> ToolResult:
         """Upload video file from local storage"""
         try:
@@ -346,7 +397,13 @@ class MemoriesTool(Tool):
                 # Upload to memories.ai
                 video_meta = self.memories_client.upload_video_from_file(
                     file_path=temp_path,
-                    unique_id=user_id
+                    unique_id=user_id,
+                    tags=tags,
+                    video_transcription_prompt=transcription_prompt,
+                    datetime_taken=datetime_taken,
+                    camera_model=camera_model,
+                    latitude=latitude,
+                    longitude=longitude
                 )
                 
                 # Clean up temp file
@@ -433,10 +490,44 @@ Format with clear sections and timestamps where applicable."""
             analysis_text = result.get("data", {}).get("content", "") if isinstance(result.get("data"), dict) else str(result.get("data", ""))
             refs = result.get("data", {}).get("refs", []) if isinstance(result.get("data"), dict) else []
             
-            # Return analysis result with compatibility for frontend
-            # Frontend VideoAnalysisDisplay expects: hooks[], ctas[], summary, analysis text
+            # ✅ Fetch video metadata for UI rendering
+            video_metadata = None
+            try:
+                if video_id.startswith("VI"):
+                    # Private video
+                    video_details = self.memories_client.get_private_video_details(
+                        video_no=video_id,
+                        unique_id=user_id
+                    )
+                    video_metadata = {
+                        "video_id": video_id,
+                        "video_no": video_id,
+                        "title": video_details.get("video_name", ""),
+                        "duration": video_details.get("duration"),
+                        "url": video_details.get("video_url"),
+                        "type": "private"
+                    }
+                elif video_id.startswith("PI"):
+                    # Public platform video
+                    video_details = self.memories_client.get_public_video_detail(video_no=video_id)
+                    video_metadata = {
+                        "video_id": video_id,
+                        "video_no": video_id,
+                        "title": video_details.get("video_name", ""),
+                        "duration": video_details.get("duration"),
+                        "url": video_details.get("video_url"),
+                        "type": "public",
+                        "platform": "tiktok" if "tiktok" in (video_details.get("video_url") or "").lower() else "youtube" if "youtube" in (video_details.get("video_url") or "").lower() else "instagram",
+                        "view_count": video_details.get("view_count"),
+                        "like_count": video_details.get("like_count")
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to fetch video metadata for rendering: {str(e)}")
+            
+            # Return analysis result with video metadata for frontend rendering
             result_data = {
                 "video_id": video_id,
+                "video": video_metadata,  # ✅ For UI rendering (video player)
                 "analysis": analysis_text,  # Full markdown-formatted analysis
                 "refs": refs,  # Timestamp references from memories.ai
                 "session_id": result.get("session_id"),
@@ -517,49 +608,138 @@ Format with clear sections and timestamps where applicable."""
         "type": "function",
         "function": {
             "name": "query_video",
-            "description": "Ask a question about a video. Get answers with timestamps.",
+            "description": "Ask questions about a video with full conversation context. Supports multi-turn Q&A - provide session_id to continue a conversation about the same video(s). The video will be rendered in the UI for user reference.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "video_id": {
                         "type": "string",
-                        "description": "Video ID from memories.ai"
+                        "description": "Video ID from memories.ai (VI-... for uploaded, PI-... for platform videos)"
                     },
                     "question": {
                         "type": "string",
-                        "description": "Specific question about the video content. Be precise and contextual. Good examples: 'Where does the speaker mention pricing?', 'What products are shown?', 'When does the CTA appear?', 'What is the main message?', 'How is the product demonstrated?' Avoid vague questions."
+                        "description": "Question about the video. Be precise and contextual. Examples: 'Where does the speaker mention pricing?', 'What products are shown?', 'When does the CTA appear?', 'Tell me more about that product' (in follow-up with session_id)"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "Optional: Session ID from previous query_video call. Provide this to continue the conversation with full context. Example: User asks 'What products appear?' then 'Tell me more about the Nike shoes' - use session_id to maintain context about which video and previous discussion."
                     }
                 },
                 "required": ["video_id", "question"]
             }
         }
     })
-    async def query_video(self, video_id: str, question: str) -> ToolResult:
-        """Ask a question about a video"""
+    async def query_video(
+        self, 
+        video_id: str, 
+        question: str,
+        session_id: Optional[str] = None
+    ) -> ToolResult:
+        """Ask questions about a video with conversation context"""
         try:
             if not config.MEMORIES_AI_API_KEY:
                 return self.fail_response("Memories.ai API key not configured")
             
             user_id = await self._get_memories_user_id()
+            agent_config = getattr(self.thread_manager, 'agent_config', {})
+            account_id = agent_config.get('account_id')
             
-            # Use correct API method: chat_with_video
+            logger.info(f"Querying video {video_id}: {question} (session: {session_id})")
+            
+            # Chat with video (with session context)
             result = self.memories_client.chat_with_video(
                 video_nos=[video_id],
                 prompt=question,
                 unique_id=user_id,
-                session_id=None,
+                session_id=session_id,  # ✅ Pass session for context
                 stream=False
             )
             
-            # Extract response from result
-            answer = result.get("data", {}).get("content", "") if isinstance(result.get("data"), dict) else str(result.get("data", ""))
+            # Extract response
+            data = result.get("data", {}) if isinstance(result.get("data"), dict) else {}
+            answer = data.get("content", "")
+            refs = data.get("refs", [])
+            returned_session_id = result.get("session_id")
+            
+            # Get video details for UI rendering
+            video_metadata = None
+            try:
+                if video_id.startswith("VI"):
+                    # Private video
+                    video_details = self.memories_client.get_private_video_details(
+                        video_no=video_id,
+                        unique_id=user_id
+                    )
+                    video_metadata = {
+                        "video_id": video_id,
+                        "video_no": video_id,
+                        "title": video_details.get("video_name", ""),
+                        "duration": video_details.get("duration"),
+                        "url": video_details.get("video_url"),
+                        "thumbnail_url": None,  # Private videos may not have thumbnail
+                        "type": "private"
+                    }
+                elif video_id.startswith("PI"):
+                    # Public platform video
+                    video_details = self.memories_client.get_public_video_detail(video_no=video_id)
+                    video_metadata = {
+                        "video_id": video_id,
+                        "video_no": video_id,
+                        "title": video_details.get("video_name", ""),
+                        "duration": video_details.get("duration"),
+                        "url": video_details.get("video_url"),
+                        "thumbnail_url": None,  # Can be derived from platform URL
+                        "platform": "public",
+                        "view_count": video_details.get("view_count"),
+                        "like_count": video_details.get("like_count")
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to fetch video metadata: {str(e)}")
+            
+            # Save/update session in database
+            if returned_session_id and account_id:
+                try:
+                    client = await self.db.client
+                    
+                    existing = await client.table('memories_chat_sessions').select('id, video_ids').eq(
+                        'session_id', returned_session_id
+                    ).eq('account_id', account_id).execute()
+                    
+                    if existing.data:
+                        # Update existing session
+                        existing_video_ids = existing.data[0].get('video_ids', []) or []
+                        if video_id not in existing_video_ids:
+                            existing_video_ids.append(video_id)
+                        
+                        await client.table('memories_chat_sessions').update({
+                            'last_prompt': question,
+                            'last_message_at': 'now()',
+                            'video_ids': existing_video_ids
+                        }).eq('id', existing.data[0]['id']).execute()
+                    else:
+                        # Create new session
+                        await client.table('memories_chat_sessions').insert({
+                            'account_id': account_id,
+                            'session_id': returned_session_id,
+                            'memories_user_id': user_id,
+                            'session_type': 'video_chat',
+                            'title': question[:100],
+                            'last_prompt': question,
+                            'video_ids': [video_id]
+                        }).execute()
+                    
+                    logger.info(f"Saved video chat session: {returned_session_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to save session: {str(e)}")
             
             return self.success_response({
                 "video_id": video_id,
                 "question": question,
                 "answer": answer,
-                "session_id": result.get("session_id"),
-                "refs": result.get("data", {}).get("refs", []) if isinstance(result.get("data"), dict) else []
+                "session_id": returned_session_id,
+                "refs": refs,
+                "video": video_metadata,  # ✅ For UI rendering
+                "conversation_hint": "💡 Use this session_id in your next question to maintain conversation context!"
             })
             
         except Exception as e:
@@ -595,17 +775,17 @@ Format with clear sections and timestamps where applicable."""
             
             user_id = await self._get_memories_user_id()
             
-            # Use search_private_library to search within uploaded videos
+            # Use video_nos parameter to search ONLY within this specific video (more efficient!)
             results = self.memories_client.search_private_library(
-                search_param=query,
+                query=query,
                 search_type="BY_VIDEO",
                 unique_id=user_id,
                 top_k=20,
-                filtering_level="high"
+                filtering_level="high",
+                video_nos=[video_id]  # ✅ NEW: Search only in this video
             )
             
-            # Filter results to only this video
-            results = [r for r in results if r.get("videoNo") == video_id or r.get("video_no") == video_id]
+            # Results are already filtered by API, no manual filtering needed
             
             return self.success_response({
                 "video_id": video_id,
@@ -672,13 +852,48 @@ Format as a comparative table where possible."""
                 stream=False
             )
             
-            comparison_text = results.get("content", "") if isinstance(results, dict) else str(results)
+            # Extract from new response format
+            data = results.get("data", {})
+            comparison_text = data.get("content", "")
+            refs = data.get("refs", [])
+            
+            # ✅ Fetch metadata for ALL compared videos for UI rendering
+            videos_metadata = []
+            for vid_id in video_ids:
+                try:
+                    if vid_id.startswith("VI"):
+                        details = self.memories_client.get_private_video_details(
+                            video_no=vid_id,
+                            unique_id=user_id
+                        )
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "private"
+                        })
+                    elif vid_id.startswith("PI"):
+                        details = self.memories_client.get_public_video_detail(video_no=vid_id)
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "public",
+                            "view_count": details.get("view_count"),
+                            "like_count": details.get("like_count")
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to fetch metadata for {vid_id}: {str(e)}")
             
             return self.success_response({
                 "video_ids": video_ids,
                 "video_count": len(video_ids),
+                "videos": videos_metadata,  # ✅ For UI rendering (show all videos side-by-side)
                 "comparison": comparison_text,
-                "refs": results.get("refs", []) if isinstance(results, dict) else [],
+                "refs": refs,
+                "session_id": results.get("session_id"),
                 "summary": f"Compared {len(video_ids)} videos across multiple dimensions"
             })
             
@@ -736,13 +951,48 @@ Provide specific examples with video_no and timestamps."""
                 stream=False
             )
             
-            analysis_text = results.get("content", "") if isinstance(results, dict) else str(results)
+            # Extract from new response format
+            data = results.get("data", {})
+            analysis_text = data.get("content", "")
+            refs = data.get("refs", [])
+            
+            # ✅ Fetch metadata for ALL searched videos for UI rendering
+            videos_metadata = []
+            for vid_id in video_ids:
+                try:
+                    if vid_id.startswith("VI"):
+                        details = self.memories_client.get_private_video_details(
+                            video_no=vid_id,
+                            unique_id=user_id
+                        )
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "private"
+                        })
+                    elif vid_id.startswith("PI"):
+                        details = self.memories_client.get_public_video_detail(video_no=vid_id)
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "public",
+                            "view_count": details.get("view_count"),
+                            "like_count": details.get("like_count")
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to fetch metadata for {vid_id}: {str(e)}")
             
             return self.success_response({
                 "video_ids": video_ids,
                 "query": query,
+                "videos": videos_metadata,  # ✅ For UI rendering (show all videos)
                 "analysis": analysis_text,
-                "refs": results.get("refs", []) if isinstance(results, dict) else [],
+                "refs": refs,
+                "session_id": results.get("session_id"),
                 "videos_searched": len(video_ids),
                 "summary": f"Searched {len(video_ids)} videos for '{query}'"
             })
@@ -928,7 +1178,7 @@ Provide specific examples with video_no and timestamps."""
                 "properties": {
                     "creator_url": {
                         "type": "string",
-                        "description": "Creator's profile URL or handle. Formats: TikTok '@username' or 'tiktok.com/@username', Instagram '@username' or 'instagram.com/username', YouTube 'youtube.com/@channel' or 'youtube.com/channel/CHANNEL_ID'. The tool handles all platform-specific formats."
+                        "description": "Creator's profile URL or handle. Flexible formats accepted: '@cutshall73' (assumes TikTok), 'cutshall73' (adds @ for TikTok), 'tiktok.com/@cutshall73', 'https://www.tiktok.com/@cutshall73', 'instagram.com/nike', 'youtube.com/@channel'. The tool automatically normalizes URLs and preserves @ symbols for TikTok handles."
                     },
                     "video_count": {
                         "type": "integer",
@@ -952,9 +1202,18 @@ Provide specific examples with video_no and timestamps."""
             
             user_id = await self._get_memories_user_id()
             
-            # Normalize creator URL - add https:// if missing
+            # Normalize creator URL
             if not creator_url.startswith('http'):
-                creator_url = f"https://{creator_url}"
+                # Handle different input formats
+                if creator_url.startswith('@'):
+                    # Just a handle like @cutshall73 - assume TikTok
+                    creator_url = f"https://www.tiktok.com/{creator_url}"
+                elif '/' not in creator_url:
+                    # Just a username without platform - assume TikTok and add @
+                    creator_url = f"https://www.tiktok.com/@{creator_url}"
+                else:
+                    # Has path but no protocol - add https://
+                    creator_url = f"https://{creator_url}"
             
             # Scrape videos from creator's account
             logger.info(f"Scraping {video_count} videos from creator: {creator_url}")
@@ -1165,19 +1424,23 @@ Provide specific examples with video_no and timestamps."""
     
     @openapi_schema({
         "name": "search_trending_content",
-        "description": "Search and analyze trending videos from 1M+ indexed public videos on TikTok/YouTube/Instagram. This accesses memories.ai's massive database of trending content to find viral videos, understand what's working in your niche, and identify content opportunities. Perfect for competitive research, trend analysis, and content ideation.",
+        "description": "Search and analyze trending videos from 1M+ indexed public videos on TikTok/YouTube/Instagram. This accesses memories.ai's massive database of trending content to find viral videos, understand what's working in your niche, and identify content opportunities. Supports multi-turn conversations - provide session_id to continue a previous conversation. Perfect for competitive research, trend analysis, and content ideation.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Natural language search query (e.g., 'What are the trending fitness videos on TikTok?', 'Show me viral Nike campaigns', 'What's working for skincare brands on Instagram?')"
+                    "description": "Natural language search query (e.g., 'What are the trending fitness videos on TikTok?', 'Show me viral Nike campaigns', 'What's working for skincare brands on Instagram?'). Can also use @creator or #hashtag filters (e.g., 'What does @nike post?', 'Show me #fitness trends')"
                 },
                 "platform": {
                     "type": "string",
                     "description": "Platform to search (default: TIKTOK)",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK"
+                },
+                "session_id": {
+                    "type": "string",
+                    "description": "Optional: Session ID from a previous search_trending_content call. Provide this to continue a multi-turn conversation with context. Example: 'Tell me more about the collaboration you mentioned' or 'Compare that to their competitor'"
                 }
             },
             "required": ["query"]
@@ -1186,60 +1449,200 @@ Provide specific examples with video_no and timestamps."""
     async def search_trending_content(
         self,
         query: str,
-        platform: str = "TIKTOK"
+        platform: str = "TIKTOK",
+        session_id: Optional[str] = None
     ) -> ToolResult:
-        """Search 1M+ indexed videos for trends and insights"""
+        """Search 1M+ indexed videos for trends and insights with conversation context"""
         try:
             if not config.MEMORIES_AI_API_KEY:
                 return self.fail_response("Memories.ai API key not configured")
             
             user_id = await self._get_memories_user_id()
+            agent_config = getattr(self.thread_manager, 'agent_config', {})
+            account_id = agent_config.get('account_id')
             
-            logger.info(f"Searching trending content: {query} on {platform}")
+            logger.info(f"Searching trending content: {query} on {platform} (session: {session_id})")
+            
+            # Call memories.ai API with session context
             result = self.memories_client.marketer_chat(
                 prompt=query,
                 platform=platform.upper(),
-                unique_id=user_id
+                unique_id=user_id,
+                session_id=session_id  # Pass session_id for conversation continuity
             )
             
             content = result.get("content", "")
             refs = result.get("refs", [])
+            returned_session_id = result.get("session_id")
             
-            # Extract referenced videos
+            # Extract referenced videos and fetch full details for UI rendering
             referenced_videos = []
             for ref in refs:
                 video = ref.get("video", {})
                 if video:
-                    referenced_videos.append({
-                        "video_no": video.get("video_no"),
-                        "title": video.get("video_name"),
-                        "duration": video.get("duration")
-                    })
+                    video_no = video.get("video_no")
+                    if video_no:
+                        try:
+                            # Fetch full video details to get URL for embedding
+                            details = self.memories_client.get_public_video_detail(video_no=video_no)
+                            referenced_videos.append({
+                                "video_no": video_no,
+                                "title": video.get("video_name") or details.get("video_name"),
+                                "duration": video.get("duration") or details.get("duration"),
+                                "url": details.get("video_url"),  # ✅ For video player embedding
+                                "view_count": details.get("view_count"),
+                                "like_count": details.get("like_count")
+                            })
+                        except Exception as e:
+                            # Fallback to basic info if details fetch fails
+                            logger.warning(f"Failed to fetch details for {video_no}: {str(e)}")
+                            referenced_videos.append({
+                                "video_no": video_no,
+                                "title": video.get("video_name"),
+                                "duration": video.get("duration")
+                            })
+            
+            # Save/update session in database for future reference
+            if returned_session_id and account_id:
+                try:
+                    client = await self.db.client
+                    
+                    # Check if session exists
+                    existing = await client.table('memories_chat_sessions').select('id').eq(
+                        'session_id', returned_session_id
+                    ).eq('account_id', account_id).execute()
+                    
+                    if existing.data:
+                        # Update existing session
+                        await client.table('memories_chat_sessions').update({
+                            'last_prompt': query,
+                            'last_message_at': 'now()',
+                            'title': query[:100] if not existing.data[0].get('title') else existing.data[0].get('title')
+                        }).eq('id', existing.data[0]['id']).execute()
+                    else:
+                        # Create new session
+                        await client.table('memories_chat_sessions').insert({
+                            'account_id': account_id,
+                            'session_id': returned_session_id,
+                            'memories_user_id': user_id,
+                            'session_type': 'marketer_chat',
+                            'title': query[:100],  # Use first query as title
+                            'last_prompt': query,
+                            'platform': platform.upper()
+                        }).execute()
+                    
+                    logger.info(f"Saved marketer chat session: {returned_session_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to save session to DB: {str(e)}")
+                    # Don't fail the whole request if DB save fails
             
             return self.success_response({
                 "query": query,
                 "platform": platform,
                 "analysis": content,
                 "referenced_videos": referenced_videos,
-                "video_count": len(referenced_videos)
+                "video_count": len(referenced_videos),
+                "session_id": returned_session_id,  # Return for future queries
+                "conversation_hint": "💡 Use this session_id in your next query to continue the conversation with context!"
             })
             
         except Exception as e:
             logger.error(f"Error searching trending content: {str(e)}")
             return self.fail_response(f"Failed to search trending content: {str(e)}")
     
+    @openapi_schema({
+        "name": "list_trending_sessions",
+        "description": "List your recent Video Marketer Chat sessions. Use this to find previous conversations and their session IDs to continue discussions.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Number of recent sessions to return (default: 10)",
+                    "default": 10
+                },
+                "platform": {
+                    "type": "string",
+                    "description": "Filter by platform (optional)",
+                    "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"]
+                }
+            }
+        }
+    })
+    async def list_trending_sessions(
+        self,
+        limit: int = 10,
+        platform: Optional[str] = None
+    ) -> ToolResult:
+        """List recent Video Marketer Chat sessions"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            agent_config = getattr(self.thread_manager, 'agent_config', {})
+            account_id = agent_config.get('account_id')
+            
+            if not account_id:
+                return self.fail_response("No account_id found")
+            
+            client = await self.db.client
+            
+            # Build query
+            query = client.table('memories_chat_sessions').select(
+                'id, session_id, title, last_prompt, platform, last_message_at, created_at'
+            ).eq('account_id', account_id).eq('session_type', 'marketer_chat')
+            
+            if platform:
+                query = query.eq('platform', platform.upper())
+            
+            result = await query.order('last_message_at', desc=True).limit(limit).execute()
+            
+            sessions = result.data or []
+            
+            return self.success_response({
+                "sessions": sessions,
+                "total": len(sessions),
+                "message": f"Found {len(sessions)} recent Video Marketer Chat sessions",
+                "hint": "Use session_id from any session to continue that conversation"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error listing sessions: {str(e)}")
+            return self.fail_response(f"Failed to list sessions: {str(e)}")
+    
     # ============ IMAGE TOOLS ============
     
     @openapi_schema({
         "name": "upload_image",
-        "description": "Upload image(s) to your personal library for similarity search and analysis. Supports multiple images at once.",
+        "description": "Upload image(s) to your personal library for similarity search and analysis. Supports multiple images at once with metadata like camera info, GPS location, and tags for organization.",
         "parameters": {
             "type": "object",
             "properties": {
                 "file_paths": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Paths to image files in the sandbox (e.g., ['/workspace/uploads/image.png'])"
+                    "description": "Paths to image files in the sandbox (e.g., ['/workspace/uploads/image.png', '/uploads/photo.jpg']). Supports JPEG, PNG, WebP formats."
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional list of tags for organizing and searching images (e.g., ['vacation', 'sunset', 'beach']). Up to 20 tags supported."
+                },
+                "datetime_taken": {
+                    "type": "string",
+                    "description": "Optional date/time when image was captured (format: YYYY-MM-DD HH:MM:SS). Useful for chronological organization, especially for phone/camera uploads."
+                },
+                "camera_model": {
+                    "type": "string",
+                    "description": "Optional camera model metadata (e.g., 'iPhone 15 Pro', 'Canon EOS R5'). Useful for tracking image source."
+                },
+                "latitude": {
+                    "type": "string",
+                    "description": "Optional GPS latitude where image was captured (e.g., '39.9042'). Useful for location-based organization."
+                },
+                "longitude": {
+                    "type": "string",
+                    "description": "Optional GPS longitude where image was captured (e.g., '116.4074'). Useful for location-based organization."
                 }
             },
             "required": ["file_paths"]
@@ -1247,9 +1650,14 @@ Provide specific examples with video_no and timestamps."""
     })
     async def upload_image(
         self,
-        file_paths: List[str]
+        file_paths: List[str],
+        tags: Optional[List[str]] = None,
+        datetime_taken: Optional[str] = None,
+        camera_model: Optional[str] = None,
+        latitude: Optional[str] = None,
+        longitude: Optional[str] = None
     ) -> ToolResult:
-        """Upload images for similarity search"""
+        """Upload images with metadata for similarity search"""
         try:
             if not config.MEMORIES_AI_API_KEY:
                 return self.fail_response("Memories.ai API key not configured")
@@ -1274,7 +1682,12 @@ Provide specific examples with video_no and timestamps."""
             
             result = self.memories_client.upload_image_from_file(
                 file_paths=temp_files,
-                unique_id=user_id
+                unique_id=user_id,
+                tags=tags,
+                datetime_taken=datetime_taken,
+                camera_model=camera_model,
+                latitude=latitude,
+                longitude=longitude
             )
             
             # Cleanup temp files
@@ -1614,6 +2027,56 @@ Provide specific examples with video_no and timestamps."""
     # ============ SESSION & CHAT HISTORY TOOLS ============
     
     @openapi_schema({
+        "name": "list_video_chat_sessions",
+        "description": "List your recent Video Chat sessions. Use this to find previous Q&A conversations about specific videos and their session IDs to continue discussions.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Number of recent sessions to return (default: 10)",
+                    "default": 10
+                }
+            }
+        }
+    })
+    async def list_video_chat_sessions(
+        self,
+        limit: int = 10
+    ) -> ToolResult:
+        """List recent Video Chat sessions"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            agent_config = getattr(self.thread_manager, 'agent_config', {})
+            account_id = agent_config.get('account_id')
+            
+            if not account_id:
+                return self.fail_response("No account_id found")
+            
+            client = await self.db.client
+            
+            result = await client.table('memories_chat_sessions').select(
+                'id, session_id, title, last_prompt, video_ids, last_message_at, created_at'
+            ).eq('account_id', account_id).eq('session_type', 'video_chat').order(
+                'last_message_at', desc=True
+            ).limit(limit).execute()
+            
+            sessions = result.data or []
+            
+            return self.success_response({
+                "sessions": sessions,
+                "total": len(sessions),
+                "message": f"Found {len(sessions)} recent Video Chat sessions",
+                "hint": "Use session_id to continue any conversation about those videos"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error listing video chat sessions: {str(e)}")
+            return self.fail_response(f"Failed to list video chat sessions: {str(e)}")
+    
+    @openapi_schema({
         "name": "list_chat_sessions",
         "description": "List all video chat sessions to review past conversations and analyses.",
         "parameters": {
@@ -1694,13 +2157,17 @@ Provide specific examples with video_no and timestamps."""
     
     @openapi_schema({
         "name": "chat_with_media",
-        "description": "Chat with your personal media library (videos + images combined). Ask questions across all your uploaded content.",
+        "description": "Chat with your personal media library (videos + images combined). Ask questions across all your uploaded content with full conversation context. Supports multi-turn conversations - provide session_id to continue previous discussion. Referenced media will be rendered in the UI.",
         "parameters": {
             "type": "object",
             "properties": {
                 "question": {
                     "type": "string",
-                    "description": "Question to ask about your media (e.g., 'When did I go to the beach?', 'Show me all fitness videos')"
+                    "description": "Question about your media library. Examples: 'When did I go to the beach?', 'Show me all fitness videos', 'Tell me more about that sunset photo' (in follow-up with session_id)"
+                },
+                "session_id": {
+                    "type": "string",
+                    "description": "Optional: Session ID from previous chat_with_media call. Provide this to continue the conversation with full context. Example: 'When did I go to the beach?' → 'Show me more photos from that trip' (uses session_id to understand 'that trip')"
                 }
             },
             "required": ["question"]
@@ -1708,28 +2175,95 @@ Provide specific examples with video_no and timestamps."""
     })
     async def chat_with_media(
         self,
-        question: str
+        question: str,
+        session_id: Optional[str] = None
     ) -> ToolResult:
-        """Chat with videos + images combined"""
+        """Chat with your personal media library with conversation context"""
         try:
             if not config.MEMORIES_AI_API_KEY:
                 return self.fail_response("Memories.ai API key not configured")
             
             user_id = await self._get_memories_user_id()
+            agent_config = getattr(self.thread_manager, 'agent_config', {})
+            account_id = agent_config.get('account_id')
             
+            logger.info(f"Chat with media: {question} (session: {session_id})")
+            
+            # Chat with personal media (with session context)
             result = self.memories_client.chat_personal(
                 prompt=question,
-                unique_id=user_id
+                unique_id=user_id,
+                session_id=session_id  # ✅ Pass session for context
             )
             
             content = result.get("content", "")
             refs = result.get("refs", [])
+            returned_session_id = result.get("session_id")
+            
+            # Extract video/image metadata for UI rendering
+            media_items = []
+            video_ids = []
+            
+            for ref in refs:
+                video = ref.get("video", {})
+                if video:
+                    video_no = video.get("video_no")
+                    if video_no:
+                        video_ids.append(video_no)
+                        media_items.append({
+                            "type": "video",
+                            "video_no": video_no,
+                            "title": video.get("video_name", ""),
+                            "duration": video.get("duration"),
+                            "ref_items": ref.get("refItems", [])
+                        })
+            
+            # Save/update session in database
+            if returned_session_id and account_id:
+                try:
+                    client = await self.db.client
+                    
+                    existing = await client.table('memories_chat_sessions').select('id, video_ids').eq(
+                        'session_id', returned_session_id
+                    ).eq('account_id', account_id).execute()
+                    
+                    if existing.data:
+                        # Update existing session
+                        existing_video_ids = existing.data[0].get('video_ids', []) or []
+                        # Add new video IDs
+                        for vid in video_ids:
+                            if vid not in existing_video_ids:
+                                existing_video_ids.append(vid)
+                        
+                        await client.table('memories_chat_sessions').update({
+                            'last_prompt': question,
+                            'last_message_at': 'now()',
+                            'video_ids': existing_video_ids
+                        }).eq('id', existing.data[0]['id']).execute()
+                    else:
+                        # Create new session
+                        await client.table('memories_chat_sessions').insert({
+                            'account_id': account_id,
+                            'session_id': returned_session_id,
+                            'memories_user_id': user_id,
+                            'session_type': 'personal_chat',
+                            'title': question[:100],
+                            'last_prompt': question,
+                            'video_ids': video_ids
+                        }).execute()
+                    
+                    logger.info(f"Saved personal chat session: {returned_session_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to save session: {str(e)}")
             
             return self.success_response({
                 "question": question,
                 "answer": content,
+                "session_id": returned_session_id,
                 "references": refs,
-                "reference_count": len(refs)
+                "media_items": media_items,  # ✅ For UI rendering
+                "reference_count": len(refs),
+                "conversation_hint": "💡 Use this session_id to continue the conversation with context!"
             })
             
         except Exception as e:

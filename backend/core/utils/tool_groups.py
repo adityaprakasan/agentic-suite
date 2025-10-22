@@ -1096,6 +1096,7 @@ TOOL_GROUPS: Dict[str, ToolGroup] = {
         description="Analyze videos, search platforms (YouTube/TikTok/Instagram), and extract insights for marketing",
         tool_class="MemoriesTool",
         methods=[
+            # Video Upload
             ToolMethod(
                 name="upload_video",
                 display_name="Upload Video from URL",
@@ -1108,22 +1109,12 @@ TOOL_GROUPS: Dict[str, ToolGroup] = {
                 description="Upload and analyze video files from local storage",
                 enabled=True
             ),
-            ToolMethod(
-                name="search_platform_videos",
-                display_name="Search Platform Videos",
-                description="Search for videos on YouTube, TikTok, or Instagram",
-                enabled=True
-            ),
+            
+            # Video Analysis
             ToolMethod(
                 name="analyze_video",
                 display_name="Analyze Video",
                 description="Analyze video for hooks, CTAs, visual elements, and engagement prediction",
-                enabled=True
-            ),
-            ToolMethod(
-                name="query_video",
-                display_name="Video Q&A",
-                description="Ask questions about video content and get answers with timestamps",
                 enabled=True
             ),
             ToolMethod(
@@ -1132,6 +1123,60 @@ TOOL_GROUPS: Dict[str, ToolGroup] = {
                 description="Get full video transcript with timestamps",
                 enabled=True
             ),
+            ToolMethod(
+                name="get_video_summary",
+                display_name="Get Video Summary",
+                description="Generate structured summary with chapters or topics",
+                enabled=True
+            ),
+            ToolMethod(
+                name="get_video_details",
+                display_name="Get Video Details",
+                description="Get complete metadata including duration, resolution, fps, file size",
+                enabled=True
+            ),
+            
+            # Video Q&A and Chat
+            ToolMethod(
+                name="query_video",
+                display_name="Video Q&A",
+                description="Ask questions about video content and get answers with timestamps",
+                enabled=True
+            ),
+            ToolMethod(
+                name="chat_with_media",
+                display_name="Personal Media Chat",
+                description="Chat with your personal uploaded videos and images",
+                enabled=True
+            ),
+            
+            # Search and Discovery
+            ToolMethod(
+                name="search_platform_videos",
+                display_name="Search Platform Videos",
+                description="Search for videos on YouTube, TikTok, or Instagram",
+                enabled=True
+            ),
+            ToolMethod(
+                name="search_trending_content",
+                display_name="Video Marketer Chat",
+                description="Search and analyze trending videos from 1M+ indexed public videos",
+                enabled=True
+            ),
+            ToolMethod(
+                name="search_in_video",
+                display_name="Clip Search",
+                description="Find specific moments in a video",
+                enabled=True
+            ),
+            ToolMethod(
+                name="search_audio",
+                display_name="Audio Search",
+                description="Search videos by audio content",
+                enabled=True
+            ),
+            
+            # Comparison and Multi-Video
             ToolMethod(
                 name="compare_videos",
                 display_name="Compare Videos",
@@ -1144,18 +1189,8 @@ TOOL_GROUPS: Dict[str, ToolGroup] = {
                 description="Search across multiple videos simultaneously",
                 enabled=True
             ),
-            ToolMethod(
-                name="search_in_video",
-                display_name="Clip Search",
-                description="Find specific moments in a video",
-                enabled=True
-            ),
-            ToolMethod(
-                name="human_reid",
-                display_name="Person Tracking",
-                description="Track specific people across videos",
-                enabled=True
-            ),
+            
+            # Creator and Trend Analysis
             ToolMethod(
                 name="analyze_creator",
                 display_name="Creator Analysis",
@@ -1172,6 +1207,86 @@ TOOL_GROUPS: Dict[str, ToolGroup] = {
                 name="check_task_status",
                 display_name="Check Task Status",
                 description="Check status of async video scraping operations (creator/trend analysis)",
+                enabled=True
+            ),
+            
+            # Image Tools
+            ToolMethod(
+                name="upload_image",
+                display_name="Upload Image",
+                description="Upload images to personal library for similarity search",
+                enabled=True
+            ),
+            ToolMethod(
+                name="search_similar_images",
+                display_name="Search Similar Images",
+                description="Find visually similar images or videos",
+                enabled=True
+            ),
+            ToolMethod(
+                name="search_clips_by_image",
+                display_name="Search Clips by Image",
+                description="Find video clips containing similar visual content",
+                enabled=True
+            ),
+            ToolMethod(
+                name="list_my_images",
+                display_name="List My Images",
+                description="List all images in personal library",
+                enabled=True
+            ),
+            
+            # Library Management
+            ToolMethod(
+                name="list_my_videos",
+                display_name="List My Videos",
+                description="List all videos in personal library",
+                enabled=True
+            ),
+            ToolMethod(
+                name="delete_videos",
+                display_name="Delete Videos",
+                description="Delete videos from library",
+                enabled=True
+            ),
+            
+            # Session Management
+            ToolMethod(
+                name="list_trending_sessions",
+                display_name="List Trending Sessions",
+                description="List recent Video Marketer Chat sessions",
+                enabled=True
+            ),
+            ToolMethod(
+                name="list_video_chat_sessions",
+                display_name="List Video Chat Sessions",
+                description="List recent Video Q&A sessions",
+                enabled=True
+            ),
+            ToolMethod(
+                name="list_chat_sessions",
+                display_name="List All Chat Sessions",
+                description="List all chat sessions across all types",
+                enabled=True
+            ),
+            ToolMethod(
+                name="get_session_history",
+                display_name="Get Session History",
+                description="Get full conversation history for a session",
+                enabled=True
+            ),
+            
+            # Advanced Features
+            ToolMethod(
+                name="human_reid",
+                display_name="Person Tracking",
+                description="Track specific people across videos",
+                enabled=True
+            ),
+            ToolMethod(
+                name="get_audio_transcript",
+                display_name="Audio Transcript",
+                description="Get transcript from audio files",
                 enabled=True
             ),
         ]

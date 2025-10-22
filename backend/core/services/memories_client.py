@@ -130,11 +130,20 @@ class MemoriesClient:
     
     # ============ SEARCH METHODS ============
     
-    def search_private_library(self, query: str, search_type: str = "BY_VIDEO", unique_id: str = "default", top_k: int = 10, filtering_level: str = "medium") -> List[Dict[str, Any]]:
+    def search_private_library(
+        self, 
+        query: str, 
+        search_type: str = "BY_VIDEO", 
+        unique_id: str = "default", 
+        top_k: int = 10, 
+        filtering_level: str = "medium",
+        video_nos: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
         """
         Search private video library
         Endpoint: POST /serve/api/v1/search
         search_type: BY_VIDEO, BY_AUDIO, BY_IMAGE
+        video_nos: Optional list of specific video IDs to search within (NEW parameter)
         Returns: {code, msg, data: [{videoNo, videoName, startTime, endTime, score}]}
         """
         data = {
@@ -144,6 +153,8 @@ class MemoriesClient:
             "top_k": top_k,
             "filtering_level": filtering_level
         }
+        if video_nos:
+            data["video_nos"] = video_nos  # NEW: Search within specific videos only
         
         response = self._post("/serve/api/v1/search", json_data=data)
         return response.get("data", [])
@@ -377,13 +388,32 @@ class MemoriesClient:
         logger.info("Hashtag scrape initiated (public)", task_id=response.get("data", {}).get("taskId"))
         return response
     
-    def upload_image_from_file(self, file_paths: List[str], unique_id: str = "default", datetime_taken: Optional[str] = None, camera_model: Optional[str] = None, latitude: Optional[str] = None, longitude: Optional[str] = None) -> Dict[str, Any]:
+    def upload_image_from_file(
+        self, 
+        file_paths: List[str], 
+        unique_id: str = "default", 
+        datetime_taken: Optional[str] = None, 
+        camera_model: Optional[str] = None, 
+        latitude: Optional[str] = None, 
+        longitude: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """
         Upload one or multiple images
         Endpoint: POST /serve/api/v1/upload_img
         Returns: {code, msg, data: [{id, ...}]}
+        
+        Args:
+            file_paths: List of paths to image files
+            unique_id: Unique identifier for workspace/namespace
+            datetime_taken: Date and time when image was captured (format: YYYY-MM-DD HH:MM:SS)
+            camera_model: Camera model metadata
+            latitude: GPS latitude where image was captured
+            longitude: GPS longitude where image was captured
+            tags: List of tags for the images (e.g., ["tag1", "tag2"])
         """
         import os
+        import json
         
         files = []
         for file_path in file_paths:
@@ -399,6 +429,8 @@ class MemoriesClient:
             data["latitude"] = latitude
         if longitude:
             data["longitude"] = longitude
+        if tags:
+            data["tags"] = json.dumps(tags)  # Send as JSON array
         
         try:
             response = self._post("/serve/api/v1/upload_img", json_data=data, files=files)

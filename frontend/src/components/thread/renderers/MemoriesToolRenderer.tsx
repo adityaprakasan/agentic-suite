@@ -54,6 +54,13 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
     case 'analyze_creator':
     case 'analyze_trend':
       return <AsyncTaskDisplay data={output} />;
+    case 'search_trending_content':
+      return <TrendingContentDisplay data={output} />;
+    case 'chat_with_media':
+      return <PersonalMediaDisplay data={output} />;
+    case 'list_trending_sessions':
+    case 'list_video_chat_sessions':
+      return <SessionListDisplay data={output} />;
     default:
       return <DefaultDisplay data={output} />;
   }
@@ -142,14 +149,49 @@ function VideoSearchCard({ video }: { video: any }) {
 
 // Video Analysis Display
 function VideoAnalysisDisplay({ data }: { data: any }) {
-  // New format: analysis is a text string from chat_with_video
   const analysis = data.analysis || data.summary || '';
+  const video = data.video;  // ✅ Video metadata for rendering
   const hooks = data.hooks || [];
   const ctas = data.ctas || [];
   const engagementScore = data.engagement_prediction || 0;
 
   return (
     <div className="space-y-4">
+      {/* Video Player */}
+      {video && (
+        <Card className="overflow-hidden">
+          <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+            {video.url ? (
+              <iframe
+                src={video.url}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Play className="w-12 h-12 text-gray-400" />
+              </div>
+            )}
+          </div>
+          <div className="p-3 border-t">
+            <h5 className="text-sm font-medium mb-1">{video.title || video.video_no}</h5>
+            <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+              {video.duration && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatDuration(video.duration)}
+                </span>
+              )}
+              {video.view_count && (
+                <span>{(video.view_count / 1000).toFixed(0)}K views</span>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Analysis Section */}
       <div className="flex items-center justify-between">
         <h4 className="font-semibold">Video Analysis</h4>
         {engagementScore > 0 && (
@@ -213,35 +255,78 @@ function VideoAnalysisDisplay({ data }: { data: any }) {
 function VideoComparisonDisplay({ data }: { data: any }) {
   const comparison = data.comparison || '';
   const videoCount = data.video_count || 0;
+  const videos = data.videos || [];  // ✅ Video metadata for rendering
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold">Video Comparison</h4>
-        <Badge>{videoCount} videos</Badge>
-      </div>
-
-      {data.summary && (
-        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{data.summary}</p>
-      )}
-
-      {/* Render comparison analysis (text format from chat_with_video) */}
-      {comparison && typeof comparison === 'string' && (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
-            {comparison}
+    <div className="space-y-4">
+      {/* Video Grid */}
+      {videos.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold">Compared Videos ({videoCount})</h4>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {videos.map((video: any, idx: number) => (
+              <Card key={idx} className="overflow-hidden">
+                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+                  {video.url ? (
+                    <iframe
+                      src={video.url}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
+                  {video.duration && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {formatDuration(video.duration)}
+                    </p>
+                  )}
+                  {video.view_count && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(video.view_count / 1000).toFixed(0)}K views
+                    </p>
+                  )}
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       )}
-      
-      {/* Fallback for legacy structured format */}
-      {comparison && typeof comparison === 'object' && (
-        <div className="overflow-x-auto">
-          <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded">
-            {JSON.stringify(comparison, null, 2)}
-          </pre>
-        </div>
-      )}
+
+      {/* Comparison Analysis */}
+      <div className="space-y-3">
+        <h4 className="font-semibold">Comparison Analysis</h4>
+
+        {data.summary && (
+          <p className="text-sm text-gray-700 dark:text-gray-300">{data.summary}</p>
+        )}
+
+        {/* Render comparison analysis (text format from chat_with_video) */}
+        {comparison && typeof comparison === 'string' && (
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+              {comparison}
+            </div>
+          </div>
+        )}
+        
+        {/* Fallback for legacy structured format */}
+        {comparison && typeof comparison === 'object' && (
+          <div className="overflow-x-auto">
+            <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded">
+              {JSON.stringify(comparison, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -249,42 +334,123 @@ function VideoComparisonDisplay({ data }: { data: any }) {
 // Video Query Display
 function VideoQueryDisplay({ data }: { data: any }) {
   const answer = data.answer || '';
+  const video = data.video; // Video metadata for rendering
+  const refs = data.refs || [];
   const timestamps = data.timestamps || [];
   const confidence = data.confidence || 0;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold">Video Response</h4>
-        {confidence > 0 && (
-          <Badge variant="secondary">
-            {(confidence * 100).toFixed(0)}% confidence
-          </Badge>
+    <div className="space-y-4">
+      {/* Video Player Section */}
+      {video && (
+        <Card className="overflow-hidden">
+          <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+            {video.url ? (
+              <iframe
+                src={video.url}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : video.thumbnail_url ? (
+              <img
+                src={video.thumbnail_url}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Play className="w-12 h-12 text-gray-400" />
+              </div>
+            )}
+          </div>
+          <div className="p-3 border-t">
+            <h5 className="text-sm font-medium mb-1">{video.title || video.video_no}</h5>
+            <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+              {video.duration && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatDuration(video.duration)}
+                </span>
+              )}
+              {video.view_count && (
+                <span>{(video.view_count / 1000).toFixed(0)}K views</span>
+              )}
+              {video.like_count && (
+                <span>{(video.like_count / 1000).toFixed(0)}K likes</span>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Q&A Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold">Video Q&A</h4>
+          {confidence > 0 && (
+            <Badge variant="secondary">
+              {(confidence * 100).toFixed(0)}% confidence
+            </Badge>
+          )}
+          {data.session_id && (
+            <Badge variant="outline" className="text-xs">
+              <MessageSquare className="w-3 h-3 mr-1" />
+              Session Active
+            </Badge>
+          )}
+        </div>
+
+        {data.question && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              Q: {data.question}
+            </p>
+          </div>
+        )}
+
+        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
+          <p className="text-sm whitespace-pre-wrap">{answer}</p>
+        </div>
+
+        {/* Timestamp References from refs array */}
+        {refs.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+              Referenced Moments:
+            </span>
+            {refs.map((ref: any, idx: number) => {
+              const refItems = ref.refItems || [];
+              return refItems.map((item: any, itemIdx: number) => (
+                <div key={`${idx}-${itemIdx}`} className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
+                  <Badge variant="outline" className="text-xs mb-1">
+                    {item.startTime}s - {item.endTime || item.startTime}s
+                  </Badge>
+                  {item.text && <p className="text-xs mt-1">{item.text}</p>}
+                </div>
+              ));
+            })}
+          </div>
+        )}
+
+        {/* Legacy timestamp format */}
+        {timestamps.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-gray-600 dark:text-gray-400">Relevant moments:</span>
+            {timestamps.map((ts: any, idx: number) => (
+              <Badge key={idx} variant="outline" className="text-xs">
+                {ts.timestamp || ts}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {data.conversation_hint && (
+          <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+            {data.conversation_hint}
+          </p>
         )}
       </div>
-
-      {data.question && (
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-            Q: {data.question}
-          </p>
-        </div>
-      )}
-
-      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-        <p className="text-sm">{answer}</p>
-      </div>
-
-      {timestamps.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs text-gray-600 dark:text-gray-400">Relevant moments:</span>
-          {timestamps.map((ts: any, idx: number) => (
-            <Badge key={idx} variant="outline" className="text-xs">
-              {ts.timestamp || ts}
-            </Badge>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -351,37 +517,76 @@ function TranscriptDisplay({ data }: { data: any }) {
 
 // Multi Video Search Display
 function MultiVideoSearchDisplay({ data }: { data: any }) {
-  // New format: analysis is text from chat_with_video
   const analysis = data.analysis || '';
   const videosSearched = data.videos_searched || 0;
+  const videos = data.videos || [];  // ✅ Video metadata for rendering
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold">Multi-Video Search</h4>
-        <Badge>{videosSearched} videos searched</Badge>
-      </div>
-
-      {data.query && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-          Query: <span className="font-medium">{data.query}</span>
-        </p>
-      )}
-
-      {/* Display analysis text */}
-      {analysis && (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
-            {analysis}
+    <div className="space-y-4">
+      {/* Video Grid */}
+      {videos.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold">Searched Videos ({videosSearched})</h4>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {videos.map((video: any, idx: number) => (
+              <Card key={idx} className="overflow-hidden">
+                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+                  {video.url ? (
+                    <iframe
+                      src={video.url}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
+                  {video.duration && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {formatDuration(video.duration)}
+                    </p>
+                  )}
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       )}
 
-      {data.summary && (
-        <p className="text-xs text-gray-600 dark:text-gray-400 italic mt-2">
-          {data.summary}
-        </p>
-      )}
+      {/* Search Results */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold">Search Results</h4>
+        </div>
+
+        {data.query && (
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Query: <span className="font-medium">{data.query}</span>
+          </p>
+        )}
+
+        {/* Display analysis text */}
+        {analysis && (
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+              {analysis}
+            </div>
+          </div>
+        )}
+
+        {data.summary && (
+          <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+            {data.summary}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -460,6 +665,198 @@ function AsyncTaskDisplay({ data }: { data: any }) {
       )}
 
       <Badge variant="secondary">{status}</Badge>
+    </div>
+  );
+}
+
+// Trending Content Display (search_trending_content)
+function TrendingContentDisplay({ data }: { data: any }) {
+  const analysis = data.analysis || '';
+  const referencedVideos = data.referenced_videos || [];
+  const platform = data.platform || 'TIKTOK';
+
+  return (
+    <div className="space-y-4">
+      {/* Referenced Videos Grid */}
+      {referencedVideos.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold">Trending Videos ({referencedVideos.length})</h4>
+            <Badge variant="secondary">{platform}</Badge>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {referencedVideos.map((video: any, idx: number) => (
+              <Card key={idx} className="overflow-hidden">
+                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+                  {video.url ? (
+                    <iframe
+                      src={video.url}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
+                  {video.duration && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {formatDuration(video.duration)}
+                    </p>
+                  )}
+                  {video.view_count && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(video.view_count / 1000).toFixed(0)}K views
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-mono">
+                    {video.video_no}
+                  </p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Section */}
+      {analysis && (
+        <div>
+          <h4 className="font-semibold mb-2">Trending Analysis</h4>
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+              {analysis}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {data.conversation_hint && (
+        <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+          {data.conversation_hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Personal Media Display (chat_with_media)
+function PersonalMediaDisplay({ data }: { data: any }) {
+  const answer = data.answer || '';
+  const mediaItems = data.media_items || [];
+
+  return (
+    <div className="space-y-4">
+      {/* Media Grid */}
+      {mediaItems.length > 0 && (
+        <div>
+          <h4 className="font-semibold mb-3">Referenced Media ({mediaItems.length})</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {mediaItems.map((item: any, idx: number) => (
+              <Card key={idx} className="overflow-hidden">
+                <div className="aspect-video bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                  {item.type === 'video' ? (
+                    <Play className="w-8 h-8 text-gray-400" />
+                  ) : (
+                    <div className="w-full h-full">
+                      {item.img_url ? (
+                        <img src={item.img_url} alt={item.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Play className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium line-clamp-2">{item.title}</p>
+                  {item.duration && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {formatDuration(item.duration)}
+                    </p>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Answer Section */}
+      {answer && (
+        <div>
+          <h4 className="font-semibold mb-2">Answer</h4>
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
+            <p className="text-sm whitespace-pre-wrap">{answer}</p>
+          </div>
+        </div>
+      )}
+
+      {data.conversation_hint && (
+        <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+          {data.conversation_hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Session List Display
+function SessionListDisplay({ data }: { data: any }) {
+  const sessions = data.sessions || [];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold">Recent Conversations</h4>
+        <Badge>{sessions.length} sessions</Badge>
+      </div>
+
+      {data.message && (
+        <p className="text-sm text-gray-600 dark:text-gray-400">{data.message}</p>
+      )}
+
+      <div className="space-y-2">
+        {sessions.map((session: any, idx: number) => (
+          <Card key={idx} className="p-3">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <p className="text-sm font-medium line-clamp-1">{session.title}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {session.last_prompt}
+                </p>
+              </div>
+              {session.platform && (
+                <Badge variant="secondary" className="ml-2">{session.platform}</Badge>
+              )}
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-500">
+              <span className="font-mono">{session.session_id}</span>
+              <span>
+                {new Date(session.last_message_at).toLocaleDateString()}
+              </span>
+            </div>
+            {session.video_ids && session.video_ids.length > 0 && (
+              <div className="mt-2">
+                <Badge variant="outline" className="text-xs">
+                  {session.video_ids.length} video{session.video_ids.length > 1 ? 's' : ''}
+                </Badge>
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {data.hint && (
+        <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+          {data.hint}
+        </p>
+      )}
     </div>
   );
 }
