@@ -102,15 +102,16 @@ function VideoSearchCard({ video }: { video: any }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div 
-        className="relative aspect-video bg-gray-100 dark:bg-gray-900 cursor-pointer"
-        onClick={() => {
-          if (video.url) {
-            window.open(video.url, '_blank');
-          }
-        }}
-      >
-        {video.thumbnail_url ? (
+      <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+        {video.url ? (
+          <iframe
+            src={video.url}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={video.title}
+          />
+        ) : video.thumbnail_url ? (
           <img
             src={video.thumbnail_url}
             alt={video.title}
@@ -122,7 +123,7 @@ function VideoSearchCard({ video }: { video: any }) {
             }}
           />
         ) : null}
-        <div className={`w-full h-full flex items-center justify-center ${video.thumbnail_url ? 'hidden' : ''}`}>
+        <div className={`w-full h-full flex items-center justify-center ${video.url || video.thumbnail_url ? 'hidden' : ''}`}>
           <Play className="w-8 h-8 text-gray-400" />
         </div>
 
