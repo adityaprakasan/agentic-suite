@@ -1110,9 +1110,9 @@ Provide specific examples with video_no and timestamps."""
                     # Get full video details including thumbnail
                     details = self.memories_client.get_public_video_detail(video_no=video_no)
                     
-                    # Generate thumbnail from platform URL if not available
+                    # Get video URL and thumbnail from details
                     video_url = details.get("video_url") or ""
-                    thumbnail_url = ""
+                    thumbnail_url = details.get("thumbnail_url") or ""
                     
                     # For TikTok, we can use the video_url as thumbnail (TikTok player supports it)
                     # For Instagram, construct thumbnail from post ID
@@ -1143,28 +1143,16 @@ Provide specific examples with video_no and timestamps."""
                     })
                 except Exception as e:
                     logger.warning(f"Failed to get details for video {video_no}: {e}")
-                    # Fallback to basic info with better URL handling
-                    video_url = ""
-                    thumbnail_url = ""
-                    
-                    # Try to construct URLs from video_no if available
-                    if platform == "tiktok" and video_no.startswith("PI-"):
-                        # For TikTok, we can't construct URLs without more info
-                        video_url = ""
-                    elif platform == "instagram" and video_no.startswith("PI-"):
-                        # For Instagram, we can't construct URLs without more info
-                        video_url = ""
-                    elif platform == "youtube" and video_no.startswith("PI-"):
-                        # For YouTube, we can't construct URLs without more info
-                        video_url = ""
-                    
+                    # Fallback to basic info from original search results
                     formatted_results.append({
                         "title": video.get("videoName", "Untitled"),
-                        "url": video.get("video_url", ""),
-                        "thumbnail_url": video.get("thumbnail_url", ""),
+                        "url": video.get("video_url", ""),  # Use any URL from original search
+                        "thumbnail_url": video.get("thumbnail_url", ""),  # Use any thumbnail from original search
                         "duration_seconds": video.get("duration"),
                         "platform": platform,
                         "video_no": video_no,
+                        "views": video.get("view_count"),
+                        "likes": video.get("like_count"),
                         "score": video.get("score")
                     })
             
