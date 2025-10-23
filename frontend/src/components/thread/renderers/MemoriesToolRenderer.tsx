@@ -470,9 +470,19 @@ function VideoUploadDisplay({ data }: { data: any }) {
         </div>
       </div>
 
-      {data.thumbnail_url && (
+      {(data.video_url || data.thumbnail_url) && (
         <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded overflow-hidden">
-          <img src={data.thumbnail_url} alt={data.title} className="w-full h-full object-cover" />
+          {data.video_url ? (
+            <iframe
+              src={data.video_url}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={data.title}
+            />
+          ) : (
+            <img src={data.thumbnail_url} alt={data.title} className="w-full h-full object-cover" />
+          )}
         </div>
       )}
 
@@ -501,16 +511,40 @@ function VideoUploadDisplay({ data }: { data: any }) {
 function TranscriptDisplay({ data }: { data: any }) {
   const transcript = data.transcript || '';
   const wordCount = data.word_count || 0;
+  const video = data.video || {};
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold">Transcript</h4>
-        <Badge variant="secondary">{wordCount} words</Badge>
-      </div>
+    <div className="space-y-4">
+      {/* Video Player */}
+      {video.url && (
+        <Card className="overflow-hidden">
+          <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+            <iframe
+              src={video.url}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={video.title || 'Video'}
+            />
+          </div>
+          {video.title && (
+            <div className="p-3 border-t">
+              <h5 className="text-sm font-medium">{video.title}</h5>
+            </div>
+          )}
+        </Card>
+      )}
 
-      <div className="max-h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800 rounded">
-        <p className="text-sm whitespace-pre-wrap">{transcript}</p>
+      {/* Transcript */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold">Transcript</h4>
+          <Badge variant="secondary">{wordCount} words</Badge>
+        </div>
+
+        <div className="max-h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800 rounded">
+          <p className="text-sm whitespace-pre-wrap">{transcript}</p>
+        </div>
       </div>
     </div>
   );
@@ -641,9 +675,12 @@ function TaskStatusDisplay({ data }: { data: any }) {
 function AsyncTaskDisplay({ data }: { data: any }) {
   const taskId = data.task_id || '';
   const status = data.status || 'processing';
+  const videos = data.videos || [];
+  const analysis = data.analysis || '';
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Task Status */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
           <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
@@ -666,6 +703,52 @@ function AsyncTaskDisplay({ data }: { data: any }) {
       )}
 
       <Badge variant="secondary">{status}</Badge>
+
+      {/* Analysis Results */}
+      {analysis && (
+        <div className="space-y-3">
+          <h4 className="font-semibold">Analysis</h4>
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
+            <p className="text-sm whitespace-pre-wrap">{analysis}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Videos from Creator Analysis */}
+      {videos.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="font-semibold">Creator Videos ({videos.length})</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {videos.map((video: any, idx: number) => (
+              <Card key={idx} className="overflow-hidden">
+                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+                  {video.url ? (
+                    <iframe
+                      src={video.url}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title={video.title}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
+                  {video.duration && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {formatDuration(video.duration)}
+                    </p>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -759,18 +842,20 @@ function PersonalMediaDisplay({ data }: { data: any }) {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {mediaItems.map((item: any, idx: number) => (
               <Card key={idx} className="overflow-hidden">
-                <div className="aspect-video bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                  {item.type === 'video' ? (
-                    <Play className="w-8 h-8 text-gray-400" />
+                <div className="aspect-video bg-gray-100 dark:bg-gray-900">
+                  {item.type === 'video' && item.video_url ? (
+                    <iframe
+                      src={item.video_url}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title={item.title}
+                    />
+                  ) : item.img_url ? (
+                    <img src={item.img_url} alt={item.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full">
-                      {item.img_url ? (
-                        <img src={item.img_url} alt={item.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Play className="w-8 h-8 text-gray-400" />
-                        </div>
-                      )}
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-8 h-8 text-gray-400" />
                     </div>
                   )}
                 </div>

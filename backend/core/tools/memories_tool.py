@@ -290,6 +290,7 @@ class MemoriesTool(Tool):
                 "video_id": video_meta.video_id,
                 "title": title,
                 "url": url,
+                "video_url": url,  # For embedding in frontend
                 "platform": platform,
                 "duration_seconds": video_meta.duration_seconds,
                 "thumbnail_url": video_meta.thumbnail_url,
@@ -433,6 +434,8 @@ class MemoriesTool(Tool):
                 "title": title,
                 "platform": "upload",
                 "video_status": video_meta.video_status,
+                "video_url": video_meta.video_url if hasattr(video_meta, 'video_url') else None,  # For embedding
+                "thumbnail_url": video_meta.thumbnail_url if hasattr(video_meta, 'thumbnail_url') else None,
                 "message": f"Video '{title}' uploaded from file"
             }
             
@@ -609,10 +612,25 @@ Format with clear sections and timestamps where applicable."""
                 for t in transcript_data
             ])
             
+            # Get video details for embedding
+            try:
+                video_details = self.memories_client.get_video_detail(video_no=video_id, unique_id=user_id)
+                video_metadata = {
+                    "video_id": video_id,
+                    "title": video_details.get("video_name", "Video"),
+                    "url": video_details.get("video_url"),
+                    "duration": video_details.get("duration"),
+                    "thumbnail_url": video_details.get("thumbnail_url")
+                }
+            except Exception as e:
+                logger.warning(f"Could not get video details for {video_id}: {e}")
+                video_metadata = {"video_id": video_id, "title": "Video"}
+
             return self.success_response({
                 "video_id": video_id,
                 "transcript": transcript,
-                "word_count": len(transcript.split()) if transcript else 0
+                "word_count": len(transcript.split()) if transcript else 0,
+                "video": video_metadata
             })
             
         except Exception as e:
