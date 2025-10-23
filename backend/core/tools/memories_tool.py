@@ -687,8 +687,7 @@ Format with clear sections and timestamps where applicable."""
                 video_nos=[video_id],
                 prompt=question,
                 unique_id=user_id,
-                session_id=session_id,  # ✅ Pass session for context
-                stream=False
+                session_id=session_id  # ✅ Pass session for context
             )
             
             # Extract response
@@ -885,8 +884,7 @@ Format as a comparative table where possible."""
                 video_nos=video_ids,
                 prompt=compare_prompt,
                 unique_id=user_id,
-                session_id=None,
-                stream=False
+                session_id=None
             )
             
             # Extract from new response format
@@ -985,8 +983,7 @@ Provide specific examples with video_no and timestamps."""
                 video_nos=video_ids,
                 prompt=search_prompt,
                 unique_id=user_id,
-                session_id=None,
-                stream=False
+                session_id=None
             )
             
             # Extract from new response format
