@@ -142,17 +142,6 @@ function VideoSearchCard({ video }: { video: any }) {
       <div className="p-3">
         <h5 className="text-sm font-medium line-clamp-2 mb-2">{video.title}</h5>
         <div className="flex items-center gap-2">
-          {video.url && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 text-xs"
-              onClick={() => window.open(video.url, '_blank')}
-            >
-              <ExternalLink className="w-3 h-3 mr-1" />
-              Open
-            </Button>
-          )}
         </div>
       </div>
     </Card>
