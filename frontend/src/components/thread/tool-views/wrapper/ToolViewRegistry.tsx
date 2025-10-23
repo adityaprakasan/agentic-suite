@@ -205,6 +205,10 @@ const defaultRegistry: ToolViewRegistryType = {
   'analyze_creator': MemoriesToolView,
   'analyze_trend': MemoriesToolView,
   'check_task_status': MemoriesToolView,
+  'search_trending_content': MemoriesToolView,
+  'chat_with_media': MemoriesToolView,
+  'list_trending_sessions': MemoriesToolView,
+  'list_video_chat_sessions': MemoriesToolView,
 
   // Document operations - using specific views for different operations
   'create-document': DocsToolView,

@@ -1125,7 +1125,21 @@ Provide specific examples with video_no and timestamps."""
                     })
                 except Exception as e:
                     logger.warning(f"Failed to get details for video {video_no}: {e}")
-                    # Fallback to basic info
+                    # Fallback to basic info with better URL handling
+                    video_url = ""
+                    thumbnail_url = ""
+                    
+                    # Try to construct URLs from video_no if available
+                    if platform == "tiktok" and video_no.startswith("PI-"):
+                        # For TikTok, we can't construct URLs without more info
+                        video_url = ""
+                    elif platform == "instagram" and video_no.startswith("PI-"):
+                        # For Instagram, we can't construct URLs without more info
+                        video_url = ""
+                    elif platform == "youtube" and video_no.startswith("PI-"):
+                        # For YouTube, we can't construct URLs without more info
+                        video_url = ""
+                    
                     formatted_results.append({
                         "title": video.get("videoName", "Untitled"),
                         "url": video.get("video_url", ""),

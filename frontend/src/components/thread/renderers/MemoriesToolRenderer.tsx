@@ -102,18 +102,29 @@ function VideoSearchCard({ video }: { video: any }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+      <div 
+        className="relative aspect-video bg-gray-100 dark:bg-gray-900 cursor-pointer"
+        onClick={() => {
+          if (video.url) {
+            window.open(video.url, '_blank');
+          }
+        }}
+      >
         {video.thumbnail_url ? (
           <img
             src={video.thumbnail_url}
             alt={video.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to placeholder if image fails to load
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Play className="w-8 h-8 text-gray-400" />
-          </div>
-        )}
+        ) : null}
+        <div className={`w-full h-full flex items-center justify-center ${video.thumbnail_url ? 'hidden' : ''}`}>
+          <Play className="w-8 h-8 text-gray-400" />
+        </div>
 
         <div className={`absolute top-2 left-2 ${platformColor} text-white text-xs px-2 py-1 rounded flex items-center gap-1`}>
           <span>{platformIcon}</span>
