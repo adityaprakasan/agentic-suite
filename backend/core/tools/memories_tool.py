@@ -70,6 +70,23 @@ class MemoriesTool(Tool):
             )
         return None
     
+    def _validate_video_id(self, video_id: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate video ID format
+        Returns: (is_valid, error_message)
+        
+        Valid formats:
+        - VI* = Private video (e.g., VI568102998803353600)
+        - PI-* = Public video (e.g., PI-594886569698136064)
+        """
+        if not video_id:
+            return False, "Video ID cannot be empty"
+        
+        if video_id.startswith("VI") or video_id.startswith("PI"):
+            return True, None
+        
+        return False, f"Invalid video ID format: '{video_id}'. Must start with 'VI' (private) or 'PI' (public). Example: VI568102998803353600 or PI-594886569698136064"
+    
     async def _get_memories_user_id(self) -> str:
         """Get or create memories.ai user_id for current account"""
         try:
@@ -483,6 +500,11 @@ class MemoriesTool(Tool):
             if error := self._check_client_initialized():
                 return error
             
+            # Validate video ID format
+            is_valid, error_msg = self._validate_video_id(video_id)
+            if not is_valid:
+                return self.fail_response(error_msg)
+            
             user_id = await self._get_memories_user_id()
             
             # Use chat_with_video to get analysis
@@ -505,9 +527,9 @@ Format with clear sections and timestamps where applicable."""
                 session_id=None
             )
             
-            # Extract the analysis from chat response
-            analysis_text = result.get("data", {}).get("content", "") if isinstance(result.get("data"), dict) else str(result.get("data", ""))
-            refs = result.get("data", {}).get("refs", []) if isinstance(result.get("data"), dict) else []
+            # Extract the analysis from chat response (result is now the data dict directly)
+            analysis_text = result.get("content", "")
+            refs = result.get("refs", [])
             
             # ✅ Fetch video metadata for UI rendering
             video_metadata = None
@@ -600,11 +622,23 @@ Format with clear sections and timestamps where applicable."""
             
             user_id = await self._get_memories_user_id()
             
-            # Get both video and audio transcription
-            transcript_data = self.memories_client.get_video_transcription(
-                video_no=video_id,
-                unique_id=user_id
-            )
+            # Get transcription based on video type
+            if video_id.startswith("VI"):
+                # Private video
+                transcript_response = self.memories_client.get_video_transcription(
+                    video_no=video_id,
+                    unique_id=user_id
+                )
+            elif video_id.startswith("PI"):
+                # Public video
+                transcript_response = self.memories_client.get_public_video_transcription(
+                    video_no=video_id
+                )
+            else:
+                raise ValueError(f"Invalid video ID format: {video_id}. Must start with 'VI' (private) or 'PI' (public)")
+            
+            # Extract transcriptions array
+            transcript_data = transcript_response.get("transcriptions", [])
             
             # Combine transcripts into text
             transcript = "\n".join([
@@ -614,13 +648,22 @@ Format with clear sections and timestamps where applicable."""
             
             # Get video details for embedding
             try:
-                video_details = self.memories_client.get_video_detail(video_no=video_id, unique_id=user_id)
+                if video_id.startswith("VI"):
+                    video_details = self.memories_client.get_private_video_details(
+                        video_no=video_id, 
+                        unique_id=user_id
+                    )
+                else:
+                    video_details = self.memories_client.get_public_video_detail(
+                        video_no=video_id
+                    )
+                
                 video_metadata = {
                     "video_id": video_id,
                     "title": video_details.get("video_name", "Video"),
                     "url": video_details.get("video_url"),
                     "duration": video_details.get("duration"),
-                    "thumbnail_url": video_details.get("thumbnail_url")
+                    "thumbnail_url": video_details.get("thumbnail_url") if "thumbnail_url" in video_details else None
                 }
             except Exception as e:
                 logger.warning(f"Could not get video details for {video_id}: {e}")
@@ -690,10 +733,9 @@ Format with clear sections and timestamps where applicable."""
                 session_id=session_id  # ✅ Pass session for context
             )
             
-            # Extract response
-            data = result.get("data", {}) if isinstance(result.get("data"), dict) else {}
-            answer = data.get("content", "")
-            refs = data.get("refs", [])
+            # Extract response (result is now the data dict directly)
+            answer = result.get("content", "")
+            refs = result.get("refs", [])
             returned_session_id = result.get("session_id")
             
             # Get video details for UI rendering
@@ -887,10 +929,9 @@ Format as a comparative table where possible."""
                 session_id=None
             )
             
-            # Extract from new response format
-            data = results.get("data", {})
-            comparison_text = data.get("content", "")
-            refs = data.get("refs", [])
+            # Extract from response (results is now the data dict directly)
+            comparison_text = results.get("content", "")
+            refs = results.get("refs", [])
             
             # ✅ Fetch metadata for ALL compared videos for UI rendering
             videos_metadata = []
@@ -965,6 +1006,12 @@ Format as a comparative table where possible."""
             if error := self._check_client_initialized():
                 return error
             
+            # Validate all video IDs
+            for video_id in video_ids:
+                is_valid, error_msg = self._validate_video_id(video_id)
+                if not is_valid:
+                    return self.fail_response(f"Invalid video ID '{video_id}': {error_msg}")
+            
             user_id = await self._get_memories_user_id()
             
             # Use chat_with_video to search patterns across videos
@@ -986,10 +1033,9 @@ Provide specific examples with video_no and timestamps."""
                 session_id=None
             )
             
-            # Extract from new response format
-            data = results.get("data", {})
-            analysis_text = data.get("content", "")
-            refs = data.get("refs", [])
+            # Extract from response (results is now the data dict directly)
+            analysis_text = results.get("content", "")
+            refs = results.get("refs", [])
             
             # ✅ Fetch metadata for ALL searched videos for UI rendering
             videos_metadata = []
@@ -1582,8 +1628,8 @@ Provide specific examples with video_no and timestamps."""
                 "query": query,
                 "platform": platform,
                 "analysis": content,
-                "referenced_videos": referenced_videos,
-                "video_count": len(referenced_videos),
+                "videos": referenced_videos,  # ✅ Frontend expects "videos" not "referenced_videos"
+                "videos_searched": len(referenced_videos),  # ✅ Frontend expects "videos_searched" not "video_count"
                 "session_id": returned_session_id,  # Return for future queries
                 "conversation_hint": "💡 Use this session_id in your next query to continue the conversation with context!"
             })

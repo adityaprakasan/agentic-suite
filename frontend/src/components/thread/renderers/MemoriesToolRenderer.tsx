@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, TrendingUp, Clock, ExternalLink, Save, MessageSquare } from 'lucide-react';
+import { Play, TrendingUp, Clock, ExternalLink, Save, MessageSquare, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Markdown } from '@/components/ui/markdown';
 import { formatDuration, getPlatformColor, getPlatformIcon } from '@/hooks/react-query/knowledge-base/use-videos';
 
 interface MemoriesToolRendererProps {
@@ -756,20 +757,20 @@ function AsyncTaskDisplay({ data }: { data: any }) {
 // Trending Content Display (search_trending_content)
 function TrendingContentDisplay({ data }: { data: any }) {
   const analysis = data.analysis || '';
-  const referencedVideos = data.referenced_videos || [];
+  const videos = data.videos || [];  // ✅ Match backend field name
   const platform = data.platform || 'TIKTOK';
 
   return (
     <div className="space-y-4">
       {/* Referenced Videos Grid */}
-      {referencedVideos.length > 0 && (
+      {videos.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold">Trending Videos ({referencedVideos.length})</h4>
+            <h4 className="font-semibold">Trending Videos ({videos.length})</h4>
             <Badge variant="secondary">{platform}</Badge>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {referencedVideos.map((video: any, idx: number) => (
+            {videos.map((video: any, idx: number) => (
               <Card key={idx} className="overflow-hidden">
                 <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
                   {video.url ? (
@@ -947,13 +948,195 @@ function SessionListDisplay({ data }: { data: any }) {
   );
 }
 
-// Default Display (fallback)
+// Default Display (INTELLIGENT fallback - NO MORE RAW JSON!)
 function DefaultDisplay({ data }: { data: any }) {
+  // Extract ALL possible video fields
+  const videos = data.videos || data.referenced_videos || data.results || data.video || [];
+  const videoArray = Array.isArray(videos) ? videos : (videos ? [videos] : []);
+  
+  // Extract ALL possible text content fields (try markdown first, then plain text)
+  const analysis = data.analysis || data.content || data.answer || data.summary || 
+                   data.message || data.description || data.text || data.result || '';
+  
+  // Extract single video metadata if present
+  const singleVideo = data.video || (data.video_id && data);
+  
+  // Check for metadata
+  const hasVideos = videoArray.length > 0;
+  const hasAnalysis = !!analysis;
+  const hasSingleVideo = singleVideo && (singleVideo.url || singleVideo.video_url);
+  
+  // If we have ANY renderable content, show it beautifully
+  if (hasVideos || hasAnalysis || hasSingleVideo) {
+    return (
+      <div className="space-y-4">
+        {/* Single Video Display (for video-specific operations) */}
+        {hasSingleVideo && !hasVideos && (
+          <Card className="overflow-hidden">
+            <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+              {singleVideo.url || singleVideo.video_url ? (
+                <iframe
+                  src={singleVideo.url || singleVideo.video_url}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={singleVideo.title || 'Video'}
+                />
+              ) : singleVideo.thumbnail_url ? (
+                <img
+                  src={singleVideo.thumbnail_url}
+                  alt={singleVideo.title || 'Video'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Video className="w-12 h-12 text-gray-400" />
+                </div>
+              )}
+            </div>
+            <div className="p-3 border-t">
+              <h5 className="text-sm font-medium">{singleVideo.title || singleVideo.video_no || 'Video'}</h5>
+              {singleVideo.duration && (
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {formatDuration(singleVideo.duration)}
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
+        
+        {/* Video Grid - render multiple videos */}
+        {hasVideos && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Video className="w-4 h-4" />
+              <h4 className="font-semibold">Videos ({videoArray.length})</h4>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {videoArray.map((video: any, idx: number) => (
+                <Card key={idx} className="overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+                    {video.url || video.video_url ? (
+                      <iframe
+                        src={video.url || video.video_url}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={video.title || video.video_name || `Video ${idx + 1}`}
+                      />
+                    ) : video.thumbnail_url ? (
+                      <img
+                        src={video.thumbnail_url}
+                        alt={video.title || 'Video thumbnail'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Play className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-xs font-medium line-clamp-2">
+                      {video.title || video.video_name || video.video_no || `Video ${idx + 1}`}
+                    </p>
+                    {video.duration && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDuration(video.duration)}
+                      </p>
+                    )}
+                    {video.view_count && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {(video.view_count / 1000).toFixed(0)}K views
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Analysis/Content with Markdown support */}
+        {hasAnalysis && (
+          <div>
+            <h4 className="font-semibold mb-2">
+              {data.query ? 'Analysis' : data.question ? 'Answer' : 'Content'}
+            </h4>
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <Markdown className="text-sm [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                  {analysis}
+                </Markdown>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Show query/question context if present */}
+        {data.query && (
+          <div className="text-xs text-gray-600 dark:text-gray-400 italic">
+            <span className="font-semibold">Query:</span> {data.query}
+          </div>
+        )}
+        
+        {/* Show helpful metadata */}
+        <div className="flex flex-wrap gap-2 text-xs">
+          {data.platform && (
+            <Badge variant="secondary">{data.platform}</Badge>
+          )}
+          {data.session_id && (
+            <Badge variant="outline" className="font-mono">
+              Session: {data.session_id.slice(0, 8)}...
+            </Badge>
+          )}
+          {data.videos_searched && (
+            <Badge variant="outline">
+              {data.videos_searched} videos searched
+            </Badge>
+          )}
+          {data.video_count && (
+            <Badge variant="outline">
+              {data.video_count} videos
+            </Badge>
+          )}
+        </div>
+        
+        {/* Show hints if present */}
+        {data.conversation_hint && (
+          <p className="text-xs text-blue-600 dark:text-blue-400 italic p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+            💡 {data.conversation_hint}
+          </p>
+        )}
+      </div>
+    );
+  }
+  
+  // Last resort: if truly no renderable content, show a friendly message
   return (
-    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-      <pre className="text-xs overflow-x-auto">
-        {JSON.stringify(data, null, 2)}
-      </pre>
+    <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+          <Video className="w-5 h-5 text-gray-500" />
+        </div>
+        <div>
+          <h4 className="font-semibold text-sm">Operation Completed</h4>
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            The operation completed successfully but returned no displayable content.
+          </p>
+        </div>
+      </div>
+      {Object.keys(data).length > 0 && (
+        <details className="mt-3">
+          <summary className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-900 dark:hover:text-gray-200">
+            Show technical details
+          </summary>
+          <pre className="text-xs mt-2 p-2 bg-white dark:bg-gray-950 rounded overflow-x-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </details>
+      )}
     </div>
   );
 }

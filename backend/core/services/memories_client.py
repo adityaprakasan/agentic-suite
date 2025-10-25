@@ -179,7 +179,7 @@ class MemoriesClient:
     
     # ============ CHAT METHODS ============
     
-    def chat_with_video(self, video_nos: List[str], prompt: str, session_id: Optional[str] = None, unique_id: str = "default") -> str:
+    def chat_with_video(self, video_nos: List[str], prompt: str, session_id: Optional[str] = None, unique_id: str = "default") -> Dict[str, Any]:
         """
         Chat with videos (non-streaming)
         Endpoint: POST /serve/api/v1/chat
@@ -194,7 +194,12 @@ class MemoriesClient:
             data["session_id"] = session_id
         
         response = self._post("/serve/api/v1/chat", json_data=data)
-        return response.get("data", {}).get("content", "")
+        # Return full response including session_id at top level
+        result = response.get("data", {})
+        # Preserve session_id at top level for backward compatibility
+        if "session_id" in response:
+            result["session_id"] = response["session_id"]
+        return result
     
     def marketer_chat(self, prompt: str, session_id: Optional[str] = None, unique_id: str = "default", platform: str = "TIKTOK") -> Dict[str, Any]:
         """
