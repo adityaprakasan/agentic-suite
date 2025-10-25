@@ -30,7 +30,7 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
   }
 
   // Normalize method name (handle both snake_case and kebab-case)
-  const normalizedMethod = method_name?.replace(/-/g, '_');
+  const normalizedMethod = method_name?.replace(/-/g, '_')?.toLowerCase();
 
   // Route to appropriate renderer based on method
   switch (normalizedMethod) {
@@ -41,6 +41,7 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
     case 'compare_videos':
       return <VideoComparisonDisplay data={output} />;
     case 'query_video':
+    case 'ask_video':
     case 'search_in_video':
       return <VideoQueryDisplay data={output} />;
     case 'upload_video':
@@ -58,6 +59,7 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
     case 'search_trending_content':
       return <TrendingContentDisplay data={output} />;
     case 'chat_with_media':
+    case 'chat_personal':
       return <PersonalMediaDisplay data={output} />;
     case 'list_trending_sessions':
     case 'list_video_chat_sessions':

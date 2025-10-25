@@ -40,7 +40,13 @@ export function MemoriesToolView({
   const extracted = extractToolData(toolContent);
   const toolResult = extracted.toolResult;
   
+  // Debug logging
+  console.log('[MemoriesToolView] Tool name:', name);
+  console.log('[MemoriesToolView] Tool result:', toolResult);
+  console.log('[MemoriesToolView] Extracted method:', toolResult?.toolName || toolResult?.functionName);
+  
   if (!toolResult || typeof toolResult !== 'object') {
+    console.warn('[MemoriesToolView] No valid toolResult, falling back to GenericToolView');
     return (
       <GenericToolView
         name={name}
@@ -55,13 +61,17 @@ export function MemoriesToolView({
   }
 
   // Use MemoriesToolRenderer for rich video display
+  const methodName = toolResult.toolName || toolResult.functionName || name;
+  console.log('[MemoriesToolView] Rendering with method_name:', methodName);
+  console.log('[MemoriesToolView] Tool output:', toolResult.toolOutput);
+  
   return (
     <div className="p-4">
       <MemoriesToolRenderer
         result={{
           success: toolResult.isSuccess,
           output: toolResult.toolOutput || extracted,
-          method_name: toolResult.toolName || toolResult.functionName || name,
+          method_name: methodName,
         }}
       />
     </div>
