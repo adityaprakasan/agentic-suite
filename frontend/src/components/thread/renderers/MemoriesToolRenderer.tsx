@@ -75,12 +75,17 @@ function PlatformSearchResults({ data }: { data: any }) {
   const platform = data.platform || 'Platform';
   const query = data.query || '';
 
-  // Helper to format counts (return null if no data instead of '0')
-  const formatCount = (count: number | undefined | null) => {
-    if (count === null || count === undefined || count === 0) return null;
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
+  // Helper to format counts (handle both strings and numbers from API)
+  const formatCount = (count: number | string | undefined | null) => {
+    if (count === null || count === undefined) return null;
+    
+    // Convert string to number (Memories.ai API returns strings like "1460")
+    const num = typeof count === 'string' ? parseInt(count, 10) : count;
+    
+    if (isNaN(num) || num === 0) return null;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
   };
 
   // Helper to get video link - try multiple fields
@@ -104,16 +109,16 @@ function PlatformSearchResults({ data }: { data: any }) {
   };
 
   return (
-    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-white dark:bg-gray-950 pb-3 border-b">
-        <h4 className="font-semibold text-lg flex items-center gap-2">
-          <Video className="w-5 h-5 text-purple-500" />
-          {platform.charAt(0).toUpperCase() + platform.slice(1)} Results: "{query}"
+    <div className="space-y-4 p-4 max-h-[80vh] overflow-y-auto">
+      <div className="flex items-center justify-between pb-3 border-b sticky top-0 bg-white dark:bg-gray-950 z-10">
+        <h4 className="font-semibold text-base flex items-center gap-2">
+          <Video className="w-4 h-4 text-purple-500" />
+          {platform.charAt(0).toUpperCase() + platform.slice(1)} Results
         </h4>
-        <Badge variant="secondary" className="text-sm px-3 py-1">{videos.length} videos</Badge>
+        <Badge variant="secondary" className="text-xs px-2 py-1">{videos.length} videos</Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {videos.map((video: any, idx: number) => {
           const videoLink = getVideoLink(video);
           const thumbnail = video.thumbnail_url || video.cover_url || video.img_url || video.cover;
@@ -136,48 +141,58 @@ function PlatformSearchResults({ data }: { data: any }) {
               {...cardProps}
               className={`group block ${!videoLink && 'cursor-default'}`}
             >
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
-                <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+              <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg border hover:border-purple-400 dark:hover:border-purple-600 h-full flex flex-col">
+                <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
                   {thumbnail ? (
                     <>
                       <img
                         src={thumbnail}
                         alt={title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+                          // Hide broken image and show fallback
+              e.currentTarget.style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
                       />
-                      {videoLink && (
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                      <div className="hidden w-full h-full flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
+                        <Video className="w-12 h-12 text-gray-400 mb-2" />
+                        <span className="text-xs text-gray-500">Preview unavailable</span>
         </div>
+                      {videoLink && (
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <Play className="w-12 h-12 text-white drop-shadow-lg" />
+                          </div>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
-                      <Video className="w-12 h-12 text-gray-400 mb-2" />
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                      <Video className="w-10 h-10 text-gray-400 mb-1" />
                       <span className="text-xs text-gray-500">No preview</span>
                     </div>
                   )}
 
-                  {/* Platform badge */}
-                  <div className={`absolute top-2 left-2 ${platformColor} text-white text-xs px-2 py-1 rounded font-medium shadow-lg`}>
+                  {/* Platform badge - Better positioning */}
+                  <div className={`absolute top-1.5 left-1.5 ${platformColor} text-white text-[10px] px-1.5 py-0.5 rounded font-medium shadow-md`}>
                     {video.platform || platform}
         </div>
 
                   {/* Duration badge */}
         {video.duration_seconds && (
-                    <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+                    <div className="absolute bottom-1.5 right-1.5 bg-black/80 text-white px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-0.5">
+                      <Clock className="w-2.5 h-2.5" />
                       {formatDuration(video.duration_seconds)}
                     </div>
                   )}
 
-                  {/* External link indicator */}
+                  {/* External link indicator - Only show on hover */}
                   {videoLink && (
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="bg-white dark:bg-gray-900 rounded-full p-1.5 shadow-lg">
-                        <ExternalLink className="w-4 h-4 text-blue-500" />
+                    <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="bg-white/90 dark:bg-gray-900/90 rounded-full p-1 shadow-md">
+                        <ExternalLink className="w-3 h-3 text-blue-500" />
                       </div>
           </div>
         )}
@@ -1112,12 +1127,17 @@ function MultiVideoSearchDisplay({ data }: { data: any }) {
   const videosSearched = data.videos_searched || 0;
   const videos = data.videos || [];  // ✅ Video metadata for rendering
 
-  // Helper functions (same as TrendingContentDisplay)
-  const formatCount = (count: number | undefined) => {
-    if (!count) return '0';
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
+  // Helper to format counts (handle both strings and numbers from API)
+  const formatCount = (count: number | string | undefined | null) => {
+    if (count === null || count === undefined) return null;
+    
+    // Convert string to number (Memories.ai API returns strings like "1460")
+    const num = typeof count === 'string' ? parseInt(count, 10) : count;
+    
+    if (isNaN(num) || num === 0) return null;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
   };
 
   const getVideoLink = (video: any) => {
@@ -1543,12 +1563,17 @@ function TrendingContentDisplay({ data }: { data: any }) {
   const videos = data.videos || [];  // ✅ Match backend field name
   const platform = data.platform || 'TIKTOK';
 
-  // Helper to format large numbers (return null if no data)
-  const formatCount = (count: number | undefined | null) => {
-    if (count === null || count === undefined || count === 0) return null;
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
+  // Helper to format counts (handle both strings and numbers from API)
+  const formatCount = (count: number | string | undefined | null) => {
+    if (count === null || count === undefined) return null;
+    
+    // Convert string to number (Memories.ai API returns strings like "1460")
+    const num = typeof count === 'string' ? parseInt(count, 10) : count;
+    
+    if (isNaN(num) || num === 0) return null;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
   };
 
   // Helper to get video link (try multiple possible fields)
@@ -1572,12 +1597,12 @@ function TrendingContentDisplay({ data }: { data: any }) {
   };
 
   return (
-    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+    <div className="space-y-4 p-4 max-h-[80vh] overflow-y-auto">
       {/* Analysis Section - Show FIRST for better UX */}
       {analysis && (
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 pb-4 border-b">
-          <h4 className="font-semibold mb-3 text-lg flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-blue-500" />
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 pb-3 border-b">
+          <h4 className="font-semibold mb-2 text-base flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-blue-500" />
             Trending Analysis
           </h4>
           <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -1593,17 +1618,17 @@ function TrendingContentDisplay({ data }: { data: any }) {
       {/* Referenced Videos Grid - 2 COLUMNS with rich stats */}
       {videos.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-semibold text-lg flex items-center gap-2">
-              <Video className="w-5 h-5 text-purple-500" />
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-base flex items-center gap-2">
+              <Video className="w-4 h-4 text-purple-500" />
               Trending Videos ({videos.length})
             </h4>
-            <Badge variant="secondary" className="text-sm px-3 py-1">
+            <Badge variant="secondary" className="text-xs px-2 py-1">
               {platform}
             </Badge>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {videos.map((video: any, idx: number) => {
               const videoLink = getVideoLink(video);
               const thumbnail = getThumbnail(video);
@@ -1624,9 +1649,9 @@ function TrendingContentDisplay({ data }: { data: any }) {
                   {...cardProps}
                   className={`group block ${!videoLink && 'cursor-default'}`}
                 >
-                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
+                  <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg border hover:border-purple-400 dark:hover:border-purple-600 h-full flex flex-col">
                     {/* Thumbnail with overlay */}
-                    <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                    <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
                       {thumbnail ? (
                         <>
                           <img

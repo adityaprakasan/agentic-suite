@@ -1146,58 +1146,112 @@ Provide specific examples with video_no and timestamps."""
             
             # Fetch full details for each video to get thumbnails and URLs
             formatted_results = []
-            for video in results[:limit]:  # Limit results
+            for idx, video in enumerate(results[:limit]):  # Limit results
                 video_no = video.get("videoNo") or video.get("video_no")
                 if not video_no:
+                    logger.warning(f"Video {idx} missing video_no: {video}")
                     continue
                 
                 try:
                     # Get full video details including thumbnail
+                    logger.info(f"Fetching details for video {idx + 1}/{min(limit, len(results))}: {video_no}")
                     details = self.memories_client.get_public_video_detail(video_no=video_no)
+                    logger.info(f"Video {video_no} details keys: {details.keys() if details else 'None'}")
                     
-                    # Get video URL and thumbnail from details
-                    video_url = details.get("video_url") or ""
-                    thumbnail_url = details.get("thumbnail_url") or ""
+                    # Get video URL and thumbnail from details (try multiple field names)
+                    video_url = details.get("video_url") or details.get("url") or details.get("web_url") or ""
                     
-                    # For TikTok, we can use the video_url as thumbnail (TikTok player supports it)
-                    # For Instagram, construct thumbnail from post ID
-                    # For YouTube, extract video ID and use YouTube thumbnail API
-                    if platform == "tiktok" and video_url:
-                        thumbnail_url = video_url  # TikTok player URLs work as previews
-                    elif platform == "instagram" and video_url:
-                        # Instagram URL format: https://www.instagram.com/p/{POST_ID}/
-                        thumbnail_url = video_url  # Instagram embed works
-                    elif platform == "youtube" and video_url:
-                        # Extract video ID and use YouTube thumbnail
-                        import re
-                        youtube_match = re.search(r'(?:v=|/)([a-zA-Z0-9_-]{11})', video_url)
-                        if youtube_match:
-                            video_id = youtube_match.group(1)
-                            thumbnail_url = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+                    # CRITICAL: Extract actual thumbnail IMAGE URL, not video player URL
+                    # The API should return cover_url or img_url with actual image URLs
+                    thumbnail_url = details.get("cover_url") or details.get("img_url") or details.get("thumbnail_url") or ""
+                    
+                    # If no thumbnail from API, try to extract from video URL for specific platforms
+                    if not thumbnail_url and video_url:
+                        if platform == "youtube":
+                            # Extract video ID and use YouTube thumbnail API
+                            import re
+                            youtube_match = re.search(r'(?:v=|/)([a-zA-Z0-9_-]{11})', video_url)
+                            if youtube_match:
+                                video_id = youtube_match.group(1)
+                                thumbnail_url = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+                                logger.info(f"Generated YouTube thumbnail: {thumbnail_url}")
+                    
+                    logger.info(f"Video {video_no}: video_url={bool(video_url)}, thumbnail_url={bool(thumbnail_url)}, thumbnail_source={'API' if thumbnail_url else 'None'}")
+                    
+                    # Parse numeric fields (API returns them as strings like "1460")
+                    def parse_count(value):
+                        if value is None:
+                            return None
+                        try:
+                            return int(value) if isinstance(value, str) else value
+                        except (ValueError, TypeError):
+                            return None
                     
                     formatted_results.append({
                         "title": details.get("video_name") or video.get("videoName", "Untitled"),
                         "url": video_url,
-                        "thumbnail_url": thumbnail_url,
-                        "duration_seconds": details.get("duration") or video.get("duration"),
+                        "web_url": details.get("web_url") or video_url,  # Link to open video
+                        "thumbnail_url": thumbnail_url,  # Actual image URL for preview
+                        "cover_url": thumbnail_url,  # Same as thumbnail_url
+                        "img_url": thumbnail_url,  # Same as thumbnail_url (for fallback)
+                        "duration_seconds": parse_count(details.get("duration")) or parse_count(video.get("duration")),
+                        "duration": parse_count(details.get("duration")) or parse_count(video.get("duration")),
                         "platform": platform,
                         "video_no": video_no,
-                        "views": details.get("view_count"),  # API uses "view_count" not "views"
-                        "likes": details.get("like_count"),  # API uses "like_count" not "likes"
+                        # ✅ Parse string counts to integers (API returns "1460" not 1460)
+                        "view_count": parse_count(details.get("view_count") or details.get("views")),
+                        "like_count": parse_count(details.get("like_count") or details.get("likes")),
+                        "comment_count": parse_count(details.get("comment_count") or details.get("comments")),
+                        "share_count": parse_count(details.get("share_count") or details.get("shares")),
+                        "collect_count": parse_count(details.get("collect_count")),
+                        "creator": details.get("blogger_id") or details.get("creator") or details.get("author") or details.get("author_name"),
+                        "description": details.get("description") or details.get("desc") or details.get("video_name"),
+                        "hash_tag": details.get("hash_tag"),
+                        "music_name": details.get("music_name"),
                         "score": video.get("score")
                     })
                 except Exception as e:
-                    logger.warning(f"Failed to get details for video {video_no}: {e}")
+                    logger.error(f"Failed to get details for video {video_no}: {e}", exc_info=True)
+                    logger.info(f"Original search result for {video_no}: {video}")
+                    
                     # Fallback to basic info from original search results
+                    # Try to extract thumbnail from original search result
+                    fallback_thumbnail = (
+                        video.get("thumbnail_url") or 
+                        video.get("cover_url") or 
+                        video.get("img_url") or 
+                        video.get("video_url") or  # Sometimes video URL can be used as thumbnail
+                        ""
+                    )
+                    
+                    logger.warning(f"Using fallback data for {video_no}, thumbnail: {bool(fallback_thumbnail)}")
+                    
+                    # Parse numeric fields for fallback too
+                    def parse_count_fallback(value):
+                        if value is None:
+                            return None
+                        try:
+                            return int(value) if isinstance(value, str) else value
+                        except (ValueError, TypeError):
+                            return None
+                    
                     formatted_results.append({
-                        "title": video.get("videoName", "Untitled"),
-                        "url": video.get("video_url", ""),  # Use any URL from original search
-                        "thumbnail_url": video.get("thumbnail_url", ""),  # Use any thumbnail from original search
-                        "duration_seconds": video.get("duration"),
+                        "title": video.get("videoName") or video.get("video_name", "Untitled"),
+                        "url": video.get("video_url", ""),
+                        "web_url": video.get("web_url") or video.get("video_url", ""),
+                        "thumbnail_url": fallback_thumbnail,
+                        "cover_url": fallback_thumbnail,
+                        "duration_seconds": parse_count_fallback(video.get("duration")),
+                        "duration": parse_count_fallback(video.get("duration")),
                         "platform": platform,
                         "video_no": video_no,
-                        "views": video.get("view_count"),
-                        "likes": video.get("like_count"),
+                        # ✅ Parse string counts to integers
+                        "view_count": parse_count_fallback(video.get("view_count") or video.get("views")),
+                        "like_count": parse_count_fallback(video.get("like_count") or video.get("likes")),
+                        "comment_count": parse_count_fallback(video.get("comment_count") or video.get("comments")),
+                        "share_count": parse_count_fallback(video.get("share_count") or video.get("shares")),
+                        "creator": video.get("blogger_id") or video.get("creator") or video.get("author"),
+                        "description": video.get("description") or video.get("desc"),
                         "score": video.get("score")
                     })
             
@@ -1258,7 +1312,7 @@ Provide specific examples with video_no and timestamps."""
         "type": "function",
         "function": {
             "name": "analyze_creator",
-            "description": "Analyze a creator's account on TikTok, Instagram, or YouTube to generate a comprehensive insight report on their content strategy, stats, posting patterns, and audience engagement. Use this when user asks about a specific creator's strategy, wants to learn from successful creators, or needs competitive intelligence. Simply provide the creator's URL or @handle - the tool will pull and analyze their recent videos automatically. Examples: 'analyze @nike on TikTok', 'get insights on MrBeast YouTube channel', 'what is @nike's content strategy'",
+            "description": "⚠️ ASYNC UPLOAD TOOL (1-2 min wait) - Use ONLY when user wants to upload a creator's videos to their PRIVATE library for later analysis. This tool SCRAPES and INDEXES new videos from a creator's account. ❌ DON'T use for quick analysis! ✅ Use search_trending_content instead for instant insights on already-indexed public creators like @nike, @mrbeast, etc. This tool is for: (1) Adding a creator's content to your personal library, (2) Analyzing small/private creators not in the 1M+ public index. After scraping completes, use check_task_status to get video_ids, then analyze with other tools. Examples of CORRECT usage: 'add @smallcreator's videos to my library', 'scrape videos from my competitor @brand'",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1441,7 +1495,7 @@ Provide specific examples with video_no and timestamps."""
         "type": "function",
         "function": {
             "name": "analyze_trend",
-            "description": "Analyze trending content on TikTok or Instagram by hashtag(s) to identify what's currently viral, common content patterns, and trending formats. Use this when user asks what's trending with a topic, wants to understand hashtag performance, or needs to identify trending content strategies for campaign planning. The tool pulls recent trending videos using the hashtag(s) and analyzes patterns across them. Examples: 'what's trending with #fitness on TikTok', 'analyze #skincare trend', 'show me trending #nike videos'",
+            "description": "⚠️ ASYNC UPLOAD TOOL (1-2 min wait) - Use ONLY when user wants to upload hashtag videos to their PRIVATE library for later analysis. This tool SCRAPES and INDEXES new videos from hashtags. ❌ DON'T use for quick trend analysis! ✅ Use search_trending_content instead for instant insights on trending hashtags like #nike, #fitness, etc. (already indexed in 1M+ video database). This tool is for: (1) Adding niche hashtag content to your personal library, (2) Tracking emerging hashtags not yet in public index. After scraping completes, use check_task_status to get video_ids, then analyze with other tools. Examples of CORRECT usage: 'add #mynichehobby videos to library', 'scrape #emergingtrend for my collection'",
             "parameters": {
                 "type": "object",
                 "properties": {

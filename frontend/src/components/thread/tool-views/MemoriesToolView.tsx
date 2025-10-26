@@ -21,18 +21,28 @@ export function MemoriesToolView({
   isStreaming = false,
 }: ToolViewProps) {
   
-  // If streaming or no toolContent, fallback to generic view
+  // If streaming or no toolContent, show clean loading state
   if (isStreaming || !toolContent) {
     return (
-      <GenericToolView
-        name={name}
-        assistantContent={assistantContent}
-        toolContent={toolContent}
-        assistantTimestamp={assistantTimestamp}
-        toolTimestamp={toolTimestamp}
-        isSuccess={isSuccess}
-        isStreaming={isStreaming}
-      />
+      <div className="max-h-[85vh] overflow-y-auto">
+        <div className="flex flex-col items-center justify-center py-8 px-6">
+          <div className="text-center w-full max-w-xs">
+            <div className="w-16 h-16 rounded-xl mx-auto mb-4 flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-800/40 dark:to-blue-900/60 border border-purple-200 dark:border-purple-700">
+              <div className="w-8 h-8 animate-spin text-purple-500 dark:text-purple-400">
+                <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+              Using Adentic Video Intelligence Engine
+            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Analyzing video content...
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 

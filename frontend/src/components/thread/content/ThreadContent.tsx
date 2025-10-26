@@ -113,6 +113,30 @@ export function renderMarkdownContent(
     project?: Project,
     debugMode?: boolean
 ) {
+    // Clean up verbose function call content for better UX
+    let cleanedContent = content;
+    
+    // Remove verbose function call details that cause overspill
+    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, (match) => {
+        // Extract just the tool name for a cleaner display
+        const toolNameMatch = match.match(/<invoke name="([^"]+)"/);
+        if (toolNameMatch) {
+            const toolName = toolNameMatch[1].replace(/_/g, '-');
+            return `<div class="inline-flex items-center gap-1.5 py-1 px-2 text-xs text-muted-foreground bg-muted rounded-lg border border-neutral-200 dark:border-neutral-700/50">
+                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <span class="font-mono">${toolName}</span>
+            </div>`;
+        }
+        return '';
+    });
+    
+    // Clean up any remaining verbose XML content
+    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?<\/invoke>/gi, '');
+    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?<\/parameter>/gi, '');
+    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '');
+    
+    // Use cleaned content instead of original
+    content = cleanedContent;
     // Preprocess content to convert text-only tools to natural text
     content = preprocessTextOnlyTools(content);
 
