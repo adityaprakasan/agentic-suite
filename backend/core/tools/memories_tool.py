@@ -203,7 +203,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "upload_video",
-            "description": "Upload and process a video from URL (YouTube, TikTok, Instagram, LinkedIn, or direct video URL) for analysis. Use this when user provides a specific video URL to analyze, or when you need to upload a video found from platform search for deeper analysis. The video will be processed to enable transcript extraction, content analysis, and Q&A capabilities.",
+            "description": "Upload video from URL (YouTube, TikTok, Instagram, direct link) for analysis.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -341,7 +341,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "upload_video_file",
-            "description": "Upload and process a video file from local storage (e.g., user attachment or file in sandbox) for analysis. Use this when user has uploaded a video file directly (not a URL) or when you need to analyze a video file from the sandbox filesystem. Supports metadata like camera info, GPS location, and tags for organization. The video will be processed for transcript extraction, content analysis, and Q&A capabilities.",
+            "description": "Upload video file from local storage or sandbox for analysis.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -483,7 +483,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "get_transcript",
-            "description": "Extract the full transcript of a video with timestamps. Use this when user wants to read video content as text, search for specific quotes, create captions/subtitles, or needs the spoken content for documentation, analysis, or repurposing. Returns timestamped transcript segments for easy reference.",
+            "description": "Extract timestamped transcript from a video.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -569,7 +569,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "query_video",
-            "description": "Ask questions about a video with full conversation context. Supports multi-turn Q&A - provide session_id to continue a conversation about the same video(s). The video will be rendered in the UI for user reference.",
+            "description": "Ask questions about a video. Supports multi-turn Q&A with session context.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -711,7 +711,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "search_platform_videos",
-            "description": "Search for videos on TikTok, YouTube, Instagram, or LinkedIn. Use this when user asks to find videos on these platforms, search for trending content, find videos by hashtag, or discover videos by brand/creator name. Examples: 'find Nike videos on TikTok', 'top fitness videos on YouTube', 'trending makeup tutorials on Instagram', 'search #sneakers on TikTok'",
+            "description": "Real-time search on TikTok/YouTube/Instagram/LinkedIn platforms.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -808,6 +808,10 @@ class MemoriesTool(Tool):
                         except (ValueError, TypeError):
                             return None
                     
+                    # Handle hash_tag - convert list to comma-separated string if needed
+                    hash_tag_raw = details.get("hash_tag")
+                    hash_tag_str = ", ".join(hash_tag_raw) if isinstance(hash_tag_raw, list) else hash_tag_raw
+                    
                     formatted_results.append({
                         "title": details.get("video_name") or video.get("videoName", "Untitled"),
                         "url": video_url,
@@ -827,7 +831,7 @@ class MemoriesTool(Tool):
                         "collect_count": parse_count(details.get("collect_count")),
                         "creator": details.get("blogger_id") or details.get("creator") or details.get("author") or details.get("author_name"),
                         "description": details.get("description") or details.get("desc") or details.get("video_name"),
-                        "hash_tag": details.get("hash_tag"),
+                        "hash_tag": hash_tag_str,
                         "music_name": details.get("music_name"),
                         "score": video.get("score")
                     })
@@ -856,6 +860,10 @@ class MemoriesTool(Tool):
                         except (ValueError, TypeError):
                             return None
                     
+                    # Handle hash_tag in fallback - convert list to string if needed
+                    fallback_hash_tag = video.get("hash_tag")
+                    fallback_hash_tag_str = ", ".join(fallback_hash_tag) if isinstance(fallback_hash_tag, list) else fallback_hash_tag
+                    
                     formatted_results.append({
                         "title": video.get("videoName") or video.get("video_name", "Untitled"),
                         "url": video.get("video_url", ""),
@@ -873,6 +881,7 @@ class MemoriesTool(Tool):
                         "share_count": parse_count_fallback(video.get("share_count") or video.get("shares")),
                         "creator": video.get("blogger_id") or video.get("creator") or video.get("author"),
                         "description": video.get("description") or video.get("desc"),
+                        "hash_tag": fallback_hash_tag_str,
                         "score": video.get("score")
                     })
             
@@ -896,7 +905,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_creator",
-            "description": "⚠️ ASYNC UPLOAD TOOL (1-2 min wait) - Use ONLY when user wants to upload a creator's videos to their PRIVATE library for later analysis. This tool SCRAPES and INDEXES new videos from a creator's account. ❌ DON'T use for quick analysis! ✅ Use search_trending_content instead for instant insights on already-indexed public creators like @nike, @mrbeast, etc. This tool is for: (1) Adding a creator's content to your personal library, (2) Analyzing small/private creators not in the 1M+ public index. After scraping completes, use check_task_status to get video_ids, then analyze with other tools. Examples of CORRECT usage: 'add @smallcreator's videos to my library', 'scrape videos from my competitor @brand'",
+            "description": "Scrape creator videos into personal library (1-2 min). Use when explicitly adding to library.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -979,7 +988,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "check_task_status",
-            "description": "Check the status of an async task (video scraping from creator or hashtag). Use this to see if a previous analyze_creator or analyze_trend operation has completed. Returns task status and scraped video IDs if ready.",
+            "description": "Check status of async scraping task.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1079,7 +1088,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_trend",
-            "description": "⚠️ ASYNC UPLOAD TOOL (1-2 min wait) - Use ONLY when user wants to upload hashtag videos to their PRIVATE library for later analysis. This tool SCRAPES and INDEXES new videos from hashtags. ❌ DON'T use for quick trend analysis! ✅ Use search_trending_content instead for instant insights on trending hashtags like #nike, #fitness, etc. (already indexed in 1M+ video database). This tool is for: (1) Adding niche hashtag content to your personal library, (2) Tracking emerging hashtags not yet in public index. After scraping completes, use check_task_status to get video_ids, then analyze with other tools. Examples of CORRECT usage: 'add #mynichehobby videos to library', 'scrape #emergingtrend for my collection'",
+            "description": "Scrape hashtag videos into personal library (1-2 min). Use when explicitly adding to library.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1151,7 +1160,7 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "search_trending_content",
-        "description": "🔥 PREMIUM TOOL: Search and analyze trending videos from 1M+ indexed public videos on TikTok/YouTube/Instagram. Returns rich video data including view counts, engagement metrics, creator info, video URLs, thumbnails, and AI-generated trend analysis. Use this to discover viral content, understand what's working in specific niches, analyze competitor strategies, and identify content opportunities. ALWAYS craft detailed, context-rich queries to get the best results.",
+        "description": "Search 1M+ indexed TikTok/YouTube/Instagram videos with AI-generated insights and engagement data.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1380,7 +1389,7 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "get_video_details",
-        "description": "Get complete metadata for a video including duration, resolution, fps, file size, and processing status.",
+            "description": "Get complete metadata for a video (duration, resolution, fps, file size).",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1472,7 +1481,7 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "list_video_chat_sessions",
-        "description": "List your recent Video Chat sessions. Use this to find previous Q&A conversations about specific videos and their session IDs to continue discussions.",
+            "description": "List recent Video Chat sessions to continue conversations.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1566,7 +1575,7 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "get_session_history",
-        "description": "Get the full conversation history for a chat session, including all questions, answers, and referenced videos.",
+            "description": "Get conversation history for a chat session with questions and answers.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1603,7 +1612,7 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "chat_with_media",
-        "description": "Chat with your personal media library (videos + images combined). Ask questions across all your uploaded content with full conversation context. Supports multi-turn conversations - provide session_id to continue previous discussion. Referenced media will be rendered in the UI.",
+            "description": "Chat with personal media library (videos + images). Supports multi-turn Q&A.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1721,7 +1730,7 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "update_transcription",
-        "description": "Update a video's transcription with a custom prompt. Useful for specialized descriptions (e.g., e-commerce product descriptions).",
+            "description": "Update video transcription with custom prompt for specialized descriptions.",
         "parameters": {
             "type": "object",
             "properties": {

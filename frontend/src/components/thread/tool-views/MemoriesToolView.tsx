@@ -5,6 +5,7 @@ import { ToolViewProps } from './types';
 import { GenericToolView } from './GenericToolView';
 import { MemoriesToolRenderer } from '../renderers/MemoriesToolRenderer';
 import { extractToolData } from './utils';
+import { ToolViewWrapper } from './wrapper/ToolViewWrapper';
 
 /**
  * MemoriesToolView - Displays results from memories.ai video intelligence tool
@@ -21,10 +22,20 @@ export function MemoriesToolView({
   isStreaming = false,
 }: ToolViewProps) {
   
-  // If streaming or no toolContent, show clean loading state
+  // If streaming or no toolContent, show clean loading state with persistent header
   if (isStreaming || !toolContent) {
     return (
-      <div className="max-h-[85vh] overflow-y-auto">
+      <ToolViewWrapper
+        name={name}
+        isSuccess={isSuccess}
+        isStreaming={isStreaming}
+        assistantTimestamp={assistantTimestamp}
+        toolTimestamp={toolTimestamp}
+        showStatus={true}
+        customStatus={{
+          streaming: "Analyzing video content..."
+        }}
+      >
         <div className="flex flex-col items-center justify-center py-8 px-6">
           <div className="text-center w-full max-w-xs">
             <div className="w-16 h-16 rounded-xl mx-auto mb-4 flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-800/40 dark:to-blue-900/60 border border-purple-200 dark:border-purple-700">
@@ -42,7 +53,7 @@ export function MemoriesToolView({
             </p>
           </div>
         </div>
-      </div>
+      </ToolViewWrapper>
     );
   }
 
@@ -70,13 +81,20 @@ export function MemoriesToolView({
     );
   }
 
-  // Use MemoriesToolRenderer for rich video display
+  // Use MemoriesToolRenderer for rich video display with persistent header
   const methodName = toolResult.toolName || toolResult.functionName || name;
   console.log('[MemoriesToolView] Rendering with method_name:', methodName);
   console.log('[MemoriesToolView] Tool output:', toolResult.toolOutput);
   
   return (
-    <div className="max-h-[85vh] overflow-y-auto">
+    <ToolViewWrapper
+      name={name}
+      isSuccess={isSuccess}
+      isStreaming={isStreaming}
+      assistantTimestamp={assistantTimestamp}
+      toolTimestamp={toolTimestamp}
+      showStatus={true}
+    >
       <MemoriesToolRenderer
         result={{
           success: toolResult.isSuccess,
@@ -84,7 +102,7 @@ export function MemoriesToolView({
           method_name: methodName,
         }}
       />
-    </div>
+    </ToolViewWrapper>
   );
 }
 
