@@ -50,6 +50,8 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
     case 'analyze_trend':
       return <AsyncTaskDisplay data={output} />;
     case 'search_trending_content':
+    case 'video_marketer':
+    case 'marketer_chat':
       return <TrendingContentDisplay data={output} />;
     case 'chat_with_media':
     case 'chat_personal':
@@ -137,15 +139,24 @@ function PlatformSearchResults({ data }: { data: any }) {
             >
               <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg border hover:border-purple-400 dark:hover:border-purple-600 h-full flex flex-col">
                 <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
-                  {thumbnail ? (
+                  {video.url && (video.platform?.toLowerCase() === 'youtube' || video.url.includes('youtube.com/embed')) ? (
+                    // YouTube: Show iframe embed directly (best UX)
+                    <iframe
+                      src={video.url}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title={title}
+                    />
+                  ) : thumbnail ? (
                     <>
                       <img
                         src={thumbnail}
                         alt={title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
                           // Hide broken image and show fallback
-              e.currentTarget.style.display = 'none';
+                          e.currentTarget.style.display = 'none';
                           const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                           if (fallback) fallback.style.display = 'flex';
                         }}
@@ -153,7 +164,7 @@ function PlatformSearchResults({ data }: { data: any }) {
                       <div className="hidden w-full h-full flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
                         <Video className="w-12 h-12 text-gray-400 mb-2" />
                         <span className="text-xs text-gray-500">Preview unavailable</span>
-        </div>
+                      </div>
                       {videoLink && (
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -1644,28 +1655,47 @@ function TrendingContentDisplay({ data }: { data: any }) {
                   className={`group block ${!videoLink && 'cursor-default'}`}
                 >
                   <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg border hover:border-purple-400 dark:hover:border-purple-600 h-full flex flex-col">
-                    {/* Thumbnail with overlay */}
+                    {/* Thumbnail with overlay OR iframe embed */}
                     <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
-                      {thumbnail ? (
+                      {video.url && (video.platform?.toLowerCase() === 'youtube' || video.url.includes('youtube.com/embed')) ? (
+                        // YouTube: Show iframe embed directly (best UX)
+                        <iframe
+                          src={video.url}
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          title={title}
+                        />
+                      ) : thumbnail ? (
                         <>
                           <img
                             src={thumbnail}
                             alt={title}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Hide broken image and show fallback
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
                           />
+                          <div className="hidden w-full h-full flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
+                            <Video className="w-12 h-12 text-gray-400 mb-2" />
+                            <span className="text-xs text-gray-500">Preview unavailable</span>
+                          </div>
                           {videoLink && (
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                 <Play className="w-16 h-16 text-white drop-shadow-lg" />
                               </div>
-                    </div>
-                  )}
+                            </div>
+                          )}
                         </>
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
                           <Video className="w-12 h-12 text-gray-400 mb-2" />
                           <span className="text-xs text-gray-500">No preview</span>
-                </div>
+                        </div>
                       )}
                       
                       {/* Duration badge */}

@@ -807,31 +807,70 @@ class MemoriesTool(Tool):
                         except (ValueError, TypeError):
                             return None
                     
-                    # Return clean, standardized format (with frontend-compatible aliases)
-                    video_url = str(details.get("video_url") or "")
-                    thumbnail = str(details.get("cover_url") or details.get("img_url") or "")
+                    # Extract raw fields
+                    api_video_url = details.get("video_url") or ""
                     title = str(details.get("video_name") or "Untitled")
+                    blogger_id = str(details.get("blogger_id") or "")
+                    
+                    # ===== PLATFORM-SPECIFIC URL CONSTRUCTION =====
+                    # Construct web URLs and thumbnails based on platform
+                    web_url = ""
+                    thumbnail_url = ""
+                    embed_url = api_video_url  # For iframe embedding
+                    
+                    if platform.lower() == 'tiktok':
+                        # TikTok: api_video_url is iframe player, construct web URL
+                        # Example: https://www.tiktok.com/player/v1/7543855594466266423
+                        if 'tiktok.com/player/v1/' in api_video_url:
+                            video_id = api_video_url.split('/')[-1]
+                            if blogger_id:
+                                web_url = f"https://www.tiktok.com/@{blogger_id}/video/{video_id}"
+                        # TikTok doesn't provide thumbnails via API - frontend will show fallback
+                        
+                    elif platform.lower() == 'youtube':
+                        # YouTube: api_video_url is watch URL, construct thumbnail
+                        # Example: https://www.youtube.com/watch?v=V8ZgthCwvl8
+                        web_url = api_video_url  # Use as-is for web link
+                        if 'youtube.com/watch?v=' in api_video_url:
+                            video_id = api_video_url.split('v=')[-1].split('&')[0]
+                            thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+                            embed_url = f"https://www.youtube.com/embed/{video_id}"
+                        elif 'youtu.be/' in api_video_url:
+                            video_id = api_video_url.split('youtu.be/')[-1].split('?')[0]
+                            thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+                            embed_url = f"https://www.youtube.com/embed/{video_id}"
+                            web_url = f"https://www.youtube.com/watch?v={video_id}"
+                    
+                    elif platform.lower() == 'instagram':
+                        # Instagram: use api_video_url as web URL
+                        web_url = api_video_url
+                        # Instagram doesn't provide thumbnails via API
                     
                     return {
                         # Primary fields
                         "video_no": video_no,
                         "title": title,
                         "platform": platform,
-                        "url": video_url,
-                        "thumbnail_url": thumbnail,
+                        "url": embed_url or web_url,  # For iframe/embed (YouTube embed, TikTok player, or web fallback)
+                        "web_url": web_url or api_video_url,  # For "open in new tab"
+                        "thumbnail_url": thumbnail_url,
                         "duration": to_int(details.get("duration")),
+                        "duration_seconds": to_int(details.get("duration")),
                         "view_count": to_int(details.get("view_count")),
                         "like_count": to_int(details.get("like_count")),
                         "share_count": to_int(details.get("share_count")),
                         "comment_count": to_int(details.get("comment_count")),
-                        "creator": str(details.get("blogger_id") or ""),
+                        "creator": blogger_id,
                         "description": str(details.get("description") or details.get("video_name") or ""),
                         "score": float(video_item.get("score", 0)),
                         # Frontend-compatible aliases
-                        "video_name": title,  # Fallback for title
-                        "web_url": video_url,  # Fallback for url
-                        "cover_url": thumbnail,  # Fallback for thumbnail_url
-                        "img_url": thumbnail,  # Fallback for thumbnail_url
+                        "video_name": title,
+                        "share_url": web_url,  # Another alias
+                        "video_url": api_video_url,  # Original API URL
+                        "cover_url": thumbnail_url,
+                        "img_url": thumbnail_url,
+                        "blogger_id": blogger_id,
+                        "author": blogger_id,
                     }
                     
                 except Exception as e:
@@ -841,7 +880,7 @@ class MemoriesTool(Tool):
                     return {
                         "video_no": video_no,
                         "title": title,
-                        "video_name": title,  # Frontend fallback
+                        "video_name": title,
                         "platform": platform,
                         "score": float(video_item.get("score", 0))
                     }
