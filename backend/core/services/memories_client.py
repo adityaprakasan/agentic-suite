@@ -137,7 +137,8 @@ class MemoriesClient:
         unique_id: str = "default", 
         top_k: int = 10, 
         filtering_level: str = "medium",
-        video_nos: Optional[List[str]] = None
+        video_nos: Optional[List[str]] = None,
+        **kwargs  # Accept and ignore extra params like 'stream'
     ) -> List[Dict[str, Any]]:
         """
         Search private video library
@@ -159,7 +160,7 @@ class MemoriesClient:
         response = self._post("/serve/api/v1/search", json_data=data)
         return response.get("data", [])
     
-    def search_public_videos(self, query: str, platform: str = "TIKTOK", search_type: str = "BY_VIDEO", top_k: int = 10, filtering_level: str = "medium") -> List[Dict[str, Any]]:
+    def search_public_videos(self, query: str, platform: str = "TIKTOK", search_type: str = "BY_VIDEO", top_k: int = 10, filtering_level: str = "medium", **kwargs) -> List[Dict[str, Any]]:
         """
         Search public video platforms (TikTok, YouTube, Instagram)
         Endpoint: POST /serve/api/v1/search_public
@@ -179,12 +180,15 @@ class MemoriesClient:
     
     # ============ CHAT METHODS ============
     
-    def chat_with_video(self, video_nos: List[str], prompt: str, session_id: Optional[str] = None, unique_id: str = "default") -> Dict[str, Any]:
+    def chat_with_video(self, video_nos: List[str], prompt: str, session_id: Optional[str] = None, unique_id: str = "default", **kwargs) -> Dict[str, Any]:
         """
         Chat with videos (non-streaming)
         Endpoint: POST /serve/api/v1/chat
         Returns: {code, msg, data: {role, content, refs, thinkings, session_id}}
+        
+        Note: Accepts **kwargs for compatibility (e.g., stream parameter) but ignores them
         """
+        # Ignore any extra kwargs like 'stream' that might be passed
         data = {
             "video_nos": video_nos,
             "prompt": prompt,
@@ -201,12 +205,15 @@ class MemoriesClient:
             result["session_id"] = response["session_id"]
         return result
     
-    def marketer_chat(self, prompt: str, session_id: Optional[str] = None, unique_id: str = "default", platform: str = "TIKTOK") -> Dict[str, Any]:
+    def marketer_chat(self, prompt: str, session_id: Optional[str] = None, unique_id: str = "default", platform: str = "TIKTOK", **kwargs) -> Dict[str, Any]:
         """
         Chat with 1M+ indexed public videos (Video Marketer)
         Endpoint: POST /serve/api/v1/marketer_chat
         Returns: {code, msg, data: {role, content, refs, thinkings, session_id}}
+        
+        Note: Accepts **kwargs for compatibility but ignores them
         """
+        # Ignore any extra kwargs like 'stream'
         data = {
             "prompt": prompt,
             "unique_id": unique_id,
@@ -323,7 +330,7 @@ class MemoriesClient:
     
     # ============ CREATOR & HASHTAG UPLOAD METHODS ============
     
-    def upload_from_creator_url(self, creator_url: str, unique_id: str = "default", scraper_cnt: int = 4, callback: Optional[str] = None) -> Dict[str, Any]:
+    def upload_from_creator_url(self, creator_url: str, unique_id: str = "default", scraper_cnt: int = 4, callback: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         """
         Upload videos from creator URL (private library)
         Endpoint: POST /serve/api/v1/scraper
@@ -358,7 +365,7 @@ class MemoriesClient:
         logger.info("Creator scrape initiated (public)", task_id=response.get("data", {}).get("taskId"))
         return response
     
-    def upload_from_hashtag(self, hashtags: List[str], unique_id: str = "default", scraper_cnt: int = 2, callback: Optional[str] = None) -> Dict[str, Any]:
+    def upload_from_hashtag(self, hashtags: List[str], unique_id: str = "default", scraper_cnt: int = 2, callback: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         """
         Upload videos from hashtags (private library)
         Endpoint: POST /serve/api/v1/scraper_tag
@@ -537,7 +544,7 @@ class MemoriesClient:
     
     # ============ ADVANCED CHAT METHODS ============
     
-    def chat_personal(self, prompt: str, session_id: Optional[str] = None, unique_id: str = "default") -> Dict[str, Any]:
+    def chat_personal(self, prompt: str, session_id: Optional[str] = None, unique_id: str = "default", **kwargs) -> Dict[str, Any]:
         """
         Chat with personal media entities (videos + images)
         Endpoint: POST /serve/api/v1/chat_personal
