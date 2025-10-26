@@ -113,30 +113,7 @@ export function renderMarkdownContent(
     project?: Project,
     debugMode?: boolean
 ) {
-    // Clean up verbose function call content for better UX (completely hide during processing)
-    let cleanedContent = content;
-    
-    // AGGRESSIVE CLEANUP: Remove ALL function call XML to prevent overspill
-    // During streaming, these create visual clutter and confuse users
-    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '');
-    
-    // Also handle incomplete/streaming function calls (no closing tag yet)
-    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?$/gi, '');
-    
-    // Remove any stray invoke/parameter/antml: tags
-    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?<\/invoke>/gi, '');
-    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?<\/parameter>/gi, '');
-    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/antml:function_calls>/gi, '');
-    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?<\/antml:invoke>/gi, '');
-    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?<\/antml:parameter>/gi, '');
-    
-    // Remove incomplete invoke/parameter tags (streaming)
-    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?$/gi, '');
-    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?$/gi, '');
-    
-    // Use cleaned content instead of original
-    content = cleanedContent;
-    // Preprocess content to convert text-only tools to natural text
+
     content = preprocessTextOnlyTools(content);
 
     // If in debug mode, just display raw content in a pre tag

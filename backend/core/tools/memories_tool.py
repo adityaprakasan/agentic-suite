@@ -711,7 +711,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "search_platform_videos",
-            "description": "Real-time search on TikTok/YouTube/Instagram/LinkedIn platforms.",
+            "description": "Find and retrieve specific videos from TikTok, YouTube, Instagram, or LinkedIn. Use when user wants VIDEO RESULTS (e.g., 'find videos by MrBeast', 'show me Nike's TikToks', 'get top videos about fitness'). Returns actual videos with thumbnails, titles, stats, and links.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -722,7 +722,7 @@ class MemoriesTool(Tool):
                     },
                     "query": {
                         "type": "string",
-                        "description": "Search query - construct comprehensive search terms from user's request. Include qualifiers like 'top', 'trending', 'best', 'viral', 'popular' when user asks for top/trending content. Examples: 'nike trending' (for 'top Nike videos'), 'fitness viral' (for 'trending fitness'), 'skincare best' (for 'best skincare videos'). Can also search by hashtag (#fitness), brand name (Nike), or topic (workout tutorial)"
+                        "description": "Search query - use creator names, brand names, hashtags, or topics. Examples: 'mrbeast' (for MrBeast's videos), 'nike' (for Nike content), '#fitness' (for fitness hashtag), 'workout tutorial' (for topic search)"
                     },
                     "limit": {
                         "type": "integer",
@@ -905,7 +905,7 @@ class MemoriesTool(Tool):
         "type": "function",
         "function": {
             "name": "analyze_creator",
-            "description": "Scrape creator videos into personal library (1-2 min). Use when explicitly adding to library.",
+            "description": "ASYNC SCRAPE TOOL (1-2 min): Download creator's videos to personal library for deep analysis. Use ONLY when user explicitly wants to SAVE/ARCHIVE a creator's content for future reference. For quick searches, use search_platform_videos instead.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1160,13 +1160,13 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "search_trending_content",
-        "description": "Search 1M+ indexed TikTok/YouTube/Instagram videos with AI-generated insights and engagement data.",
+        "description": "Get AI-powered analysis and insights about trending video content. Use when user wants ANALYSIS/INSIGHTS (e.g., 'analyze Nike's trending strategy', 'what makes viral fitness content work', 'identify patterns in beauty videos'). Returns conversational AI summaries, not raw video lists.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "⚡ IMPORTANT: Write a DETAILED, context-rich query to maximize results quality. Include: (1) What you're looking for, (2) Why/what insights you need, (3) Any specific aspects to focus on. GOOD: 'Find trending Nike-branded content on TikTok. Analyze engagement patterns, identify top-performing creators, highlight what makes their content viral, and show key metrics like views, likes, and shares.' BAD: 'nike trending'. Can use @creator (e.g., '@nike') or #hashtag (e.g., '#fitness') filters."
+                    "description": "Detailed analysis request describing what insights you need. Good: 'Analyze Nike's trending TikTok content - what engagement patterns make their videos viral, who are their top creators, and what formats work best'. Bad: 'nike videos' (use search_platform_videos instead for video lists)."
                 },
                 "platform": {
                     "type": "string",
