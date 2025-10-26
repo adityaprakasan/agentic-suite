@@ -750,30 +750,23 @@ class MemoriesTool(Tool):
         query: str,
         limit: int = 10
     ) -> ToolResult:
-        """Search for videos on social platforms"""
+        """Search for videos on social platforms - SIMPLIFIED VERSION"""
         try:
             # Check client initialization
             if error := self._check_client_initialized():
                 return error
             
-            # DEFENSIVE: Convert parameters to strings if they're lists (shouldn't happen, but handle it)
-            if isinstance(query, list):
-                query = " ".join(str(q) for q in query)
-                logger.warning(f"Query was passed as list, converted to: {query}")
-            
-            if isinstance(platform, list):
-                platform = platform[0] if platform else "tiktok"
-                logger.warning(f"Platform was passed as list, using first item: {platform}")
+            # Defensive: ensure parameters are strings (shouldn't happen, but prevents crashes)
+            query = str(query) if not isinstance(query, str) else query
+            platform = str(platform) if not isinstance(platform, str) else platform
             
             # Map platform names to API format
-            platform_map = {
-                'tiktok': 'TIKTOK',
-                'youtube': 'YOUTUBE',
-                'instagram': 'INSTAGRAM'
-            }
+            platform_map = {'tiktok': 'TIKTOK', 'youtube': 'YOUTUBE', 'instagram': 'INSTAGRAM', 'linkedin': 'LINKEDIN'}
             platform_type = platform_map.get(platform.lower(), 'TIKTOK')
             
-            # Use correct API method: search_public_videos
+            logger.info(f"Searching {platform_type} for: '{query}' (limit: {limit})")
+            
+            # Call Memories.ai search API
             results = self.memories_client.search_public_videos(
                 query=query,
                 platform=platform_type,
@@ -782,138 +775,96 @@ class MemoriesTool(Tool):
                 filtering_level="medium"
             )
             
-            # Fetch full details for each video to get thumbnails and URLs
-            formatted_results = []
-            for idx, video in enumerate(results[:limit]):  # Limit results
-                video_no = video.get("videoNo") or video.get("video_no")
+            if not results:
+                return self.success_response({
+                    "platform": platform,
+                    "query": query,
+                    "results_count": 0,
+                    "videos": [],
+                    "message": f"No {platform} videos found for '{query}'"
+                })
+            
+            # Get details for each video in parallel (faster)
+            import asyncio
+            
+            async def get_video_details(video_item):
+                """Fetch video details with error handling"""
+                video_no = video_item.get("videoNo") or video_item.get("video_no")
                 if not video_no:
-                    logger.warning(f"Video {idx} missing video_no: {video}")
-                    continue
+                    return None
                 
                 try:
-                    # Get full video details including thumbnail
-                    logger.info(f"Fetching details for video {idx + 1}/{min(limit, len(results))}: {video_no}")
-                    details = self.memories_client.get_public_video_detail(video_no=video_no)
-                    logger.info(f"Video {video_no} details keys: {details.keys() if details else 'None'}")
-                    
-                    # Get video URL and thumbnail from details (try multiple field names)
-                    video_url = details.get("video_url") or details.get("url") or details.get("web_url") or ""
-                    
-                    # CRITICAL: Extract actual thumbnail IMAGE URL, not video player URL
-                    # The API should return cover_url or img_url with actual image URLs
-                    thumbnail_url = details.get("cover_url") or details.get("img_url") or details.get("thumbnail_url") or ""
-                    
-                    # If no thumbnail from API, try to extract from video URL for specific platforms
-                    if not thumbnail_url and video_url:
-                        if platform == "youtube":
-                            # Extract video ID and use YouTube thumbnail API
-                            import re
-                            youtube_match = re.search(r'(?:v=|/)([a-zA-Z0-9_-]{11})', video_url)
-                            if youtube_match:
-                                video_id = youtube_match.group(1)
-                                thumbnail_url = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
-                                logger.info(f"Generated YouTube thumbnail: {thumbnail_url}")
-                    
-                    logger.info(f"Video {video_no}: video_url={bool(video_url)}, thumbnail_url={bool(thumbnail_url)}, thumbnail_source={'API' if thumbnail_url else 'None'}")
-                    
-                    # Parse numeric fields (API returns them as strings like "1460")
-                    def parse_count(value):
-                        if value is None:
-                            return None
-                        try:
-                            return int(value) if isinstance(value, str) else value
-                        except (ValueError, TypeError):
-                            return None
-                    
-                    # Handle hash_tag - convert list to comma-separated string if needed
-                    hash_tag_raw = details.get("hash_tag")
-                    hash_tag_str = ", ".join(hash_tag_raw) if isinstance(hash_tag_raw, list) else hash_tag_raw
-                    
-                    formatted_results.append({
-                        "title": details.get("video_name") or video.get("videoName", "Untitled"),
-                        "url": video_url,
-                        "web_url": details.get("web_url") or video_url,  # Link to open video
-                        "thumbnail_url": thumbnail_url,  # Actual image URL for preview
-                        "cover_url": thumbnail_url,  # Same as thumbnail_url
-                        "img_url": thumbnail_url,  # Same as thumbnail_url (for fallback)
-                        "duration_seconds": parse_count(details.get("duration")) or parse_count(video.get("duration")),
-                        "duration": parse_count(details.get("duration")) or parse_count(video.get("duration")),
-                        "platform": platform,
-                        "video_no": video_no,
-                        # ✅ Parse string counts to integers (API returns "1460" not 1460)
-                        "view_count": parse_count(details.get("view_count") or details.get("views")),
-                        "like_count": parse_count(details.get("like_count") or details.get("likes")),
-                        "comment_count": parse_count(details.get("comment_count") or details.get("comments")),
-                        "share_count": parse_count(details.get("share_count") or details.get("shares")),
-                        "collect_count": parse_count(details.get("collect_count")),
-                        "creator": details.get("blogger_id") or details.get("creator") or details.get("author") or details.get("author_name"),
-                        "description": details.get("description") or details.get("desc") or details.get("video_name"),
-                        "hash_tag": hash_tag_str,
-                        "music_name": details.get("music_name"),
-                        "score": video.get("score")
-                    })
-                except Exception as e:
-                    logger.error(f"Failed to get details for video {video_no}: {e}", exc_info=True)
-                    logger.info(f"Original search result for {video_no}: {video}")
-                    
-                    # Fallback to basic info from original search results
-                    # Try to extract thumbnail from original search result
-                    fallback_thumbnail = (
-                        video.get("thumbnail_url") or 
-                        video.get("cover_url") or 
-                        video.get("img_url") or 
-                        video.get("video_url") or  # Sometimes video URL can be used as thumbnail
-                        ""
+                    # Get full metadata from API
+                    details = await asyncio.to_thread(
+                        self.memories_client.get_public_video_detail,
+                        video_no=video_no
                     )
                     
-                    logger.warning(f"Using fallback data for {video_no}, thumbnail: {bool(fallback_thumbnail)}")
-                    
-                    # Parse numeric fields for fallback too
-                    def parse_count_fallback(value):
-                        if value is None:
-                            return None
+                    # Safe int parser
+                    def to_int(val):
                         try:
-                            return int(value) if isinstance(value, str) else value
+                            return int(val) if val else None
                         except (ValueError, TypeError):
                             return None
                     
-                    # Handle hash_tag in fallback - convert list to string if needed
-                    fallback_hash_tag = video.get("hash_tag")
-                    fallback_hash_tag_str = ", ".join(fallback_hash_tag) if isinstance(fallback_hash_tag, list) else fallback_hash_tag
+                    # Return clean, standardized format (with frontend-compatible aliases)
+                    video_url = str(details.get("video_url") or "")
+                    thumbnail = str(details.get("cover_url") or details.get("img_url") or "")
+                    title = str(details.get("video_name") or "Untitled")
                     
-                    formatted_results.append({
-                        "title": video.get("videoName") or video.get("video_name", "Untitled"),
-                        "url": video.get("video_url", ""),
-                        "web_url": video.get("web_url") or video.get("video_url", ""),
-                        "thumbnail_url": fallback_thumbnail,
-                        "cover_url": fallback_thumbnail,
-                        "duration_seconds": parse_count_fallback(video.get("duration")),
-                        "duration": parse_count_fallback(video.get("duration")),
-                        "platform": platform,
+                    return {
+                        # Primary fields
                         "video_no": video_no,
-                        # ✅ Parse string counts to integers
-                        "view_count": parse_count_fallback(video.get("view_count") or video.get("views")),
-                        "like_count": parse_count_fallback(video.get("like_count") or video.get("likes")),
-                        "comment_count": parse_count_fallback(video.get("comment_count") or video.get("comments")),
-                        "share_count": parse_count_fallback(video.get("share_count") or video.get("shares")),
-                        "creator": video.get("blogger_id") or video.get("creator") or video.get("author"),
-                        "description": video.get("description") or video.get("desc"),
-                        "hash_tag": fallback_hash_tag_str,
-                        "score": video.get("score")
-                    })
+                        "title": title,
+                        "platform": platform,
+                        "url": video_url,
+                        "thumbnail_url": thumbnail,
+                        "duration": to_int(details.get("duration")),
+                        "view_count": to_int(details.get("view_count")),
+                        "like_count": to_int(details.get("like_count")),
+                        "share_count": to_int(details.get("share_count")),
+                        "comment_count": to_int(details.get("comment_count")),
+                        "creator": str(details.get("blogger_id") or ""),
+                        "description": str(details.get("description") or details.get("video_name") or ""),
+                        "score": float(video_item.get("score", 0)),
+                        # Frontend-compatible aliases
+                        "video_name": title,  # Fallback for title
+                        "web_url": video_url,  # Fallback for url
+                        "cover_url": thumbnail,  # Fallback for thumbnail_url
+                        "img_url": thumbnail,  # Fallback for thumbnail_url
+                    }
+                    
+                except Exception as e:
+                    logger.warning(f"Couldn't fetch details for {video_no}: {e}")
+                    # Return minimal data from search result (with frontend-compatible aliases)
+                    title = str(video_item.get("videoName") or "Untitled")
+                    return {
+                        "video_no": video_no,
+                        "title": title,
+                        "video_name": title,  # Frontend fallback
+                        "platform": platform,
+                        "score": float(video_item.get("score", 0))
+                    }
+            
+            # Fetch all video details concurrently
+            tasks = [get_video_details(v) for v in results[:limit]]
+            videos = await asyncio.gather(*tasks)
+            
+            # Filter out None results
+            videos = [v for v in videos if v is not None]
             
             return self.success_response({
                 "platform": platform,
                 "query": query,
-                "results_count": len(formatted_results),
-                "videos": formatted_results,
-                "message": f"Found {len(formatted_results)} {platform} videos for '{query}'",
-                "next_action_hint": "You can upload any video by URL using upload_video, or analyze the video directly"
+                "results_count": len(videos),
+                "videos": videos,
+                "message": f"Found {len(videos)} {platform} videos for '{query}'"
             })
             
         except Exception as e:
-            logger.error(f"Error searching platform videos: {str(e)}")
-            return self.fail_response(f"Failed to search {platform}: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"Error in search_platform_videos: {error_msg}", exc_info=True)
+            return self.fail_response(f"Search failed: {error_msg}")
     
     # Human Re-identification
     
