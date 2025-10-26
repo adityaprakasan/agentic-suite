@@ -113,30 +113,14 @@ export function renderMarkdownContent(
     project?: Project,
     debugMode?: boolean
 ) {
-    // Clean up verbose function call content for better UX
-    let cleanedContent = content;
+    // 🚨 EMERGENCY FIX: Remove word-level duplication in streaming text
+    // Pattern: "Word Word" → "Word", "<<tag>>" → "<tag>"
+    content = content.replace(/(\b\w+\b)(\s+)\1/g, '$1$2');  // Deduplicate words
+    content = content.replace(/([<>\/])\1+/g, '$1');  // Deduplicate XML brackets
     
-    // Remove verbose function call details that cause overspill
-    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, (match) => {
-        // Extract just the tool name for a cleaner display
-        const toolNameMatch = match.match(/<invoke name="([^"]+)"/);
-        if (toolNameMatch) {
-            const toolName = toolNameMatch[1].replace(/_/g, '-');
-            return `<div class="inline-flex items-center gap-1.5 py-1 px-2 text-xs text-muted-foreground bg-muted rounded-lg border border-neutral-200 dark:border-neutral-700/50">
-                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <span class="font-mono">${toolName}</span>
-            </div>`;
-        }
-        return '';
-    });
-    
-    // Clean up any remaining verbose XML content
-    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?<\/invoke>/gi, '');
-    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?<\/parameter>/gi, '');
-    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '');
-    
-    // Use cleaned content instead of original
-    content = cleanedContent;
+    // Clean up verbose parameter details but KEEP the function_calls structure for icon rendering
+    // Remove only the verbose parameter content, not the invoke/function_calls tags
+    content = content.replace(/<parameter name="[^"]*">[\s\S]*?<\/parameter>/gi, '');
     // Preprocess content to convert text-only tools to natural text
     content = preprocessTextOnlyTools(content);
 
@@ -278,7 +262,8 @@ export function renderMarkdownContent(
     }
 
     // Fall back to old XML format handling
-    const xmlRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>(?:[\s\S]*?)<\/\1>|<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?\/>/g;
+    // Match tool calls but EXCLUDE common HTML tags (div, span, p, a, etc.)
+    const xmlRegex = /<(?!inform\b|div\b|span\b|p\b|a\b|img\b|br\b|hr\b|h1\b|h2\b|h3\b|h4\b|h5\b|h6\b|ul\b|ol\b|li\b|table\b|tr\b|td\b|th\b|strong\b|em\b|code\b|pre\b|blockquote\b|button\b|input\b|form\b|label\b|select\b|option\b|textarea\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>(?:[\s\S]*?)<\/\2>|<(?!inform\b|div\b|span\b|p\b|a\b|img\b|br\b|hr\b|h1\b|h2\b|h3\b|h4\b|h5\b|h6\b|ul\b|ol\b|li\b|table\b|tr\b|td\b|th\b|strong\b|em\b|code\b|pre\b|blockquote\b|button\b|input\b|form\b|label\b|select\b|option\b|textarea\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?\/>/g;
     let lastIndex = 0;
     const contentParts: React.ReactNode[] = [];
     let match: RegExpExecArray | null = null;
