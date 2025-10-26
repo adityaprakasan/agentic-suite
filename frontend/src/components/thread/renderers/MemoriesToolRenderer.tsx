@@ -75,18 +75,32 @@ function PlatformSearchResults({ data }: { data: any }) {
   const platform = data.platform || 'Platform';
   const query = data.query || '';
 
-  // Helper to format counts
-  const formatCount = (count: number | undefined) => {
-    if (!count) return '0';
+  // Helper to format counts (return null if no data instead of '0')
+  const formatCount = (count: number | undefined | null) => {
+    if (count === null || count === undefined || count === 0) return null;
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
     return count.toString();
   };
 
-  // Helper to get video link
+  // Helper to get video link - try multiple fields
   const getVideoLink = (video: any) => {
-    return video.web_url || video.share_url || video.video_url || video.url || 
-           (video.video_no ? `https://www.tiktok.com/@unknown/video/${video.video_no}` : null);
+    // Try all possible URL fields
+    const url = video.web_url || video.share_url || video.video_url || video.url || video.video_play_url;
+    
+    // If we have a URL, return it
+    if (url) return url;
+    
+    // Fallback: construct platform-specific URLs if we have enough info
+    if (video.video_no || video.aweme_id) {
+      const videoId = video.video_no || video.aweme_id;
+      if (platform?.toLowerCase() === 'tiktok') {
+        const creator = video.creator || video.author || 'video';
+        return `https://www.tiktok.com/@${creator}/video/${videoId}`;
+      }
+    }
+    
+    return null;
   };
 
   return (
@@ -102,17 +116,25 @@ function PlatformSearchResults({ data }: { data: any }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {videos.map((video: any, idx: number) => {
           const videoLink = getVideoLink(video);
-          const thumbnail = video.thumbnail_url || video.cover_url || video.img_url;
-          const hasStats = video.view_count || video.like_count || video.share_count || video.comment_count;
-  const platformColor = getPlatformColor(video.platform);
+          const thumbnail = video.thumbnail_url || video.cover_url || video.img_url || video.cover;
+          const hasStats = !!(video.view_count || video.like_count || video.share_count || video.comment_count);
+          const platformColor = getPlatformColor(video.platform || platform);
+          const creator = video.creator || video.author || video.author_name || video.blogger_id;
+          const title = video.title || video.video_name || video.desc || video.description || `Video ${idx + 1}`;
+
+          // If no link, make it a div instead of anchor
+          const CardWrapper = videoLink ? 'a' : 'div';
+          const cardProps: any = videoLink ? {
+            href: videoLink,
+            target: "_blank",
+            rel: "noopener noreferrer"
+          } : {};
 
   return (
-            <a
+            <CardWrapper
               key={idx}
-              href={videoLink || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`group block ${!videoLink && 'pointer-events-none'}`}
+              {...cardProps}
+              className={`group block ${!videoLink && 'cursor-default'}`}
             >
               <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
                 <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
@@ -120,18 +142,21 @@ function PlatformSearchResults({ data }: { data: any }) {
                     <>
                       <img
                         src={thumbnail}
-            alt={video.title}
+                        alt={title}
             className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                      {videoLink && (
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Play className="w-16 h-16 text-white drop-shadow-lg" />
         </div>
-                      </div>
+                        </div>
+                      )}
                     </>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-12 h-12 text-gray-400" />
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
+                      <Video className="w-12 h-12 text-gray-400 mb-2" />
+                      <span className="text-xs text-gray-500">No preview</span>
                     </div>
                   )}
 
@@ -159,42 +184,44 @@ function PlatformSearchResults({ data }: { data: any }) {
       </div>
 
                 <div className="p-4 space-y-3">
+                  {/* Title */}
                   <h5 className="font-semibold text-sm line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                    {video.title || video.video_no || `Video ${idx + 1}`}
+                    {title}
                   </h5>
 
-                  {video.creator && (
+                  {/* Creator */}
+                  {creator && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      @{video.creator}
+                      @{creator}
                     </p>
                   )}
 
-                  {/* Stats Grid */}
+                  {/* Stats Grid - Show whatever stats we have */}
                   {hasStats && (
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t">
-                      {video.view_count && (
+                      {formatCount(video.view_count) && (
                         <div className="flex items-center gap-1.5 text-xs">
                           <Eye className="w-3.5 h-3.5 text-gray-500" />
                           <span className="font-medium">{formatCount(video.view_count)}</span>
                           <span className="text-gray-500">views</span>
-                        </div>
+        </div>
                       )}
-                      {video.like_count && (
+                      {formatCount(video.like_count) && (
                         <div className="flex items-center gap-1.5 text-xs">
                           <Heart className="w-3.5 h-3.5 text-red-500" />
                           <span className="font-medium">{formatCount(video.like_count)}</span>
                           <span className="text-gray-500">likes</span>
                         </div>
                       )}
-                      {video.comment_count && (
+                      {formatCount(video.comment_count) && (
                         <div className="flex items-center gap-1.5 text-xs">
                           <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
                           <span className="font-medium">{formatCount(video.comment_count)}</span>
                           <span className="text-gray-500">comments</span>
                         </div>
                       )}
-                      {video.share_count && (
+                      {formatCount(video.share_count) && (
                         <div className="flex items-center gap-1.5 text-xs">
                           <Share2 className="w-3.5 h-3.5 text-green-500" />
                           <span className="font-medium">{formatCount(video.share_count)}</span>
@@ -204,15 +231,27 @@ function PlatformSearchResults({ data }: { data: any }) {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                    <span className="font-mono">{video.video_no}</span>
-                    {videoLink && (
-                      <span className="text-blue-500 group-hover:underline">Watch →</span>
+                  {/* Video ID and Action */}
+                  <div className="flex items-center justify-between text-xs pt-2 border-t">
+                    <span className="font-mono text-gray-500">{video.video_no || video.aweme_id || 'Unknown ID'}</span>
+                    {videoLink ? (
+                      <span className="text-blue-500 group-hover:underline flex items-center gap-1">
+                        Watch <ExternalLink className="w-3 h-3" />
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-[10px]">No link available</span>
                     )}
-        </div>
+                  </div>
+
+                  {/* Missing data notice */}
+                  {!hasStats && !videoLink && (
+                    <div className="pt-2 border-t">
+                      <p className="text-[10px] text-gray-400 italic">Limited metadata available</p>
+                    </div>
+                  )}
       </div>
     </Card>
-            </a>
+            </CardWrapper>
           );
         })}
       </div>
@@ -740,12 +779,12 @@ function VideoQueryDisplay({ data }: { data: any }) {
         )}
 
         {data.conversation_hint && (
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
-            <span className="text-base">💡</span>
+          <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-l-4 border-blue-500 rounded-r-lg shadow-sm">
+            <p className="text-xs text-blue-800 dark:text-blue-200 flex items-center gap-2 font-medium">
+              <span className="text-base">💡</span>
             {data.conversation_hint}
           </p>
-        </div>
+          </div>
         )}
     </div>
   );
@@ -1504,9 +1543,9 @@ function TrendingContentDisplay({ data }: { data: any }) {
   const videos = data.videos || [];  // ✅ Match backend field name
   const platform = data.platform || 'TIKTOK';
 
-  // Helper to format large numbers
-  const formatCount = (count: number | undefined) => {
-    if (!count) return '0';
+  // Helper to format large numbers (return null if no data)
+  const formatCount = (count: number | undefined | null) => {
+    if (count === null || count === undefined || count === 0) return null;
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
     return count.toString();
@@ -1514,8 +1553,17 @@ function TrendingContentDisplay({ data }: { data: any }) {
 
   // Helper to get video link (try multiple possible fields)
   const getVideoLink = (video: any) => {
-    return video.web_url || video.share_url || video.video_url || video.url || 
-           (video.video_no ? `https://www.tiktok.com/@unknown/video/${video.video_no}` : null);
+    const url = video.web_url || video.share_url || video.video_url || video.url || video.video_play_url;
+    if (url) return url;
+    
+    // Fallback: construct TikTok URL if we have video_no
+    if (video.video_no || video.aweme_id) {
+      const videoId = video.video_no || video.aweme_id;
+      const creator = video.creator || video.author || 'video';
+      return `https://www.tiktok.com/@${creator}/video/${videoId}`;
+    }
+    
+    return null;
   };
 
   // Helper to get thumbnail (try multiple possible fields)
@@ -1559,15 +1607,22 @@ function TrendingContentDisplay({ data }: { data: any }) {
             {videos.map((video: any, idx: number) => {
               const videoLink = getVideoLink(video);
               const thumbnail = getThumbnail(video);
-              const hasStats = video.view_count || video.like_count || video.share_count || video.comment_count;
+              const hasStats = !!(video.view_count || video.like_count || video.share_count || video.comment_count);
+              const creator = video.creator || video.author || video.author_name || video.blogger_id;
+              const title = video.title || video.video_name || video.desc || video.description || `Video ${idx + 1}`;
+              
+              const CardWrapper = videoLink ? 'a' : 'div';
+              const cardProps: any = videoLink ? {
+                href: videoLink,
+                target: "_blank",
+                rel: "noopener noreferrer"
+              } : {};
               
               return (
-                <a 
-                  key={idx} 
-                  href={videoLink || '#'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={`group block ${!videoLink && 'pointer-events-none'}`}
+                <CardWrapper
+                  key={idx}
+                  {...cardProps}
+                  className={`group block ${!videoLink && 'cursor-default'}`}
                 >
                   <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
                     {/* Thumbnail with overlay */}
@@ -1576,20 +1631,23 @@ function TrendingContentDisplay({ data }: { data: any }) {
                         <>
                           <img
                             src={thumbnail}
-                            alt={video.title || `Video ${idx + 1}`}
+                            alt={title}
                             className="w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                              <Play className="w-16 h-16 text-white drop-shadow-lg" />
-                            </div>
-                          </div>
-                        </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                          <Play className="w-12 h-12 text-gray-400" />
+                          {videoLink && (
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                              </div>
                     </div>
                   )}
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
+                          <Video className="w-12 h-12 text-gray-400 mb-2" />
+                          <span className="text-xs text-gray-500">No preview</span>
+                </div>
+                      )}
                       
                       {/* Duration badge */}
                   {video.duration && (
@@ -1613,42 +1671,42 @@ function TrendingContentDisplay({ data }: { data: any }) {
                     <div className="p-4 space-y-3">
                       {/* Title */}
                       <h5 className="font-semibold text-sm line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                        {video.title || video.video_name || video.video_no || `Video ${idx + 1}`}
+                        {title}
                       </h5>
                       
                       {/* Creator */}
-                      {video.creator && (
+                      {creator && (
                         <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                           <User className="w-3 h-3" />
-                          @{video.creator}
-                    </p>
-                  )}
+                          @{creator}
+                        </p>
+                      )}
                       
                       {/* Stats Grid */}
                       {hasStats && (
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t">
-                  {video.view_count && (
+                          {formatCount(video.view_count) && (
                             <div className="flex items-center gap-1.5 text-xs">
                               <Eye className="w-3.5 h-3.5 text-gray-500" />
                               <span className="font-medium">{formatCount(video.view_count)}</span>
                               <span className="text-gray-500">views</span>
-                            </div>
+                </div>
                           )}
-                          {video.like_count && (
+                          {formatCount(video.like_count) && (
                             <div className="flex items-center gap-1.5 text-xs">
                               <Heart className="w-3.5 h-3.5 text-red-500" />
                               <span className="font-medium">{formatCount(video.like_count)}</span>
                               <span className="text-gray-500">likes</span>
-                </div>
+          </div>
                           )}
-                          {video.comment_count && (
+                          {formatCount(video.comment_count) && (
                             <div className="flex items-center gap-1.5 text-xs">
                               <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
                               <span className="font-medium">{formatCount(video.comment_count)}</span>
                               <span className="text-gray-500">comments</span>
-          </div>
+                            </div>
                           )}
-                          {video.share_count && (
+                          {formatCount(video.share_count) && (
                             <div className="flex items-center gap-1.5 text-xs">
                               <Share2 className="w-3.5 h-3.5 text-green-500" />
                               <span className="font-medium">{formatCount(video.share_count)}</span>
@@ -1659,15 +1717,25 @@ function TrendingContentDisplay({ data }: { data: any }) {
       )}
 
                       {/* Additional metadata */}
-                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                        <span className="font-mono">{video.video_no}</span>
-                        {videoLink && (
-                          <span className="text-blue-500 group-hover:underline">Watch →</span>
+                      <div className="flex items-center justify-between text-xs pt-2 border-t">
+                        <span className="font-mono text-gray-500">{video.video_no || video.aweme_id || 'Unknown ID'}</span>
+                        {videoLink ? (
+                          <span className="text-blue-500 group-hover:underline flex items-center gap-1">
+                            Watch <ExternalLink className="w-3 h-3" />
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-[10px]">No link available</span>
                         )}
             </div>
+
+                      {!hasStats && !videoLink && (
+                        <div className="pt-2 border-t">
+                          <p className="text-[10px] text-gray-400 italic">Limited metadata available</p>
+                        </div>
+                      )}
                     </div>
                   </Card>
-                </a>
+                </CardWrapper>
               );
             })}
           </div>
@@ -1675,8 +1743,8 @@ function TrendingContentDisplay({ data }: { data: any }) {
       )}
 
       {data.conversation_hint && (
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+        <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-l-4 border-blue-500 rounded-r-lg shadow-sm">
+          <p className="text-xs text-blue-800 dark:text-blue-200 flex items-center gap-2 font-medium">
             <span className="text-base">💡</span>
           {data.conversation_hint}
         </p>
@@ -1742,9 +1810,12 @@ function PersonalMediaDisplay({ data }: { data: any }) {
       )}
 
       {data.conversation_hint && (
-        <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+        <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-l-4 border-blue-500 rounded-r-lg shadow-sm">
+          <p className="text-xs text-blue-800 dark:text-blue-200 flex items-center gap-2 font-medium">
+            <span className="text-base">💡</span>
           {data.conversation_hint}
         </p>
+        </div>
       )}
     </div>
   );
@@ -1962,9 +2033,12 @@ function DefaultDisplay({ data }: { data: any }) {
         
         {/* Show hints if present */}
         {data.conversation_hint && (
-          <p className="text-xs text-blue-600 dark:text-blue-400 italic p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-            💡 {data.conversation_hint}
-          </p>
+          <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-l-4 border-blue-500 rounded-r-lg shadow-sm">
+            <p className="text-xs text-blue-800 dark:text-blue-200 flex items-center gap-2 font-medium">
+              <span className="text-base">💡</span>
+              {data.conversation_hint}
+            </p>
+          </div>
         )}
       </div>
     );

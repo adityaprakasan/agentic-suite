@@ -414,9 +414,11 @@ class MemoriesTool(Tool):
             
             user_id = await self._get_memories_user_id()
             
-            # Get sandbox instance
-            from core.utils.sandbox_utils import get_sandbox
-            sandbox = get_sandbox(self.thread_manager)
+            # Get sandbox instance from thread_manager
+            if not hasattr(self.thread_manager, 'sandbox') or not self.thread_manager.sandbox:
+                return self.fail_response("Sandbox not available. Cannot access uploaded files.")
+            
+            sandbox = self.thread_manager.sandbox
             
             # Download file from sandbox to temp location
             import tempfile
