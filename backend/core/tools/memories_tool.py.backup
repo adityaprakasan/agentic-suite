@@ -478,6 +478,125 @@ class MemoriesTool(Tool):
     
     # Video Analysis
     
+    @openapi_schema({
+        "type": "function",
+        "function": {
+            "name": "analyze_video",
+            "description": "Analyze a video's content for marketing insights including hooks (attention-grabbing moments), CTAs (calls-to-action), visual elements, pacing, and engagement prediction. Use this when user wants to understand what makes a video effective, identify best practices, or get actionable feedback on video content. Best for marketing/campaign analysis and content strategy optimization.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "description": "Video identifier from previous upload or search operation. Format: 'VI-...' (uploaded) or 'PI-...' (platform search). Get this from upload_video, upload_video_file, or search_platform_videos results."
+                    }
+                },
+                "required": ["video_id"]
+            }
+        }
+    })
+    async def analyze_video(self, video_id: str) -> ToolResult:
+        """Analyze video for marketing insights"""
+        try:
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
+            
+            # Validate video ID format
+            is_valid, error_msg = self._validate_video_id(video_id)
+            if not is_valid:
+                return self.fail_response(error_msg)
+            
+            user_id = await self._get_memories_user_id()
+            
+            # Use chat_with_video to get analysis
+            # memories.ai doesn't have a dedicated analyze endpoint - we use chat with analysis prompt
+            analysis_prompt = """Analyze this video for marketing insights. Provide:
+
+1. HOOKS: Identify attention-grabbing moments in the first 3-5 seconds with timestamps
+2. CTAs (Calls-to-Action): Note any prompts for engagement (like, share, comment, link clicks) with timestamps
+3. VISUAL ELEMENTS: Key visual patterns, text overlays, transitions
+4. PACING: How the video flows (fast cuts vs slow transitions)
+5. ENGAGEMENT PREDICTION: Rate 1-10 how engaging this content is
+6. SUMMARY: Overall marketing effectiveness
+
+Format with clear sections and timestamps where applicable."""
+
+            result = self.memories_client.chat_with_video(
+                video_nos=[video_id],
+                prompt=analysis_prompt,
+                unique_id=user_id,
+                session_id=None
+            )
+            
+            # Extract the analysis from chat response (result is now the data dict directly)
+            analysis_text = result.get("content", "")
+            refs = result.get("refs", [])
+            
+            # ✅ Fetch video metadata for UI rendering
+            video_metadata = None
+            try:
+                if video_id.startswith("VI"):
+                    # Private video
+                    video_details = self.memories_client.get_private_video_details(
+                        video_no=video_id,
+                        unique_id=user_id
+                    )
+                    video_metadata = {
+                        "video_id": video_id,
+                        "video_no": video_id,
+                        "title": video_details.get("video_name", ""),
+                        "duration": video_details.get("duration"),
+                        "url": video_details.get("video_url"),
+                        "type": "private"
+                    }
+                elif video_id.startswith("PI"):
+                    # Public platform video
+                    video_details = self.memories_client.get_public_video_detail(video_no=video_id)
+                    video_metadata = {
+                        "video_id": video_id,
+                        "video_no": video_id,
+                        "title": video_details.get("video_name", ""),
+                        "duration": video_details.get("duration"),
+                        "url": video_details.get("video_url"),
+                        "type": "public",
+                        "platform": "tiktok" if "tiktok" in (video_details.get("video_url") or "").lower() else "youtube" if "youtube" in (video_details.get("video_url") or "").lower() else "instagram",
+                        "view_count": video_details.get("view_count"),
+                        "like_count": video_details.get("like_count")
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to fetch video metadata for rendering: {str(e)}")
+            
+            # Return analysis result with video metadata for frontend rendering
+            result_data = {
+                "video_id": video_id,
+                "video": video_metadata,  # ✅ For UI rendering (video player)
+                "analysis": analysis_text,  # Full markdown-formatted analysis
+                "refs": refs,  # Timestamp references from memories.ai
+                "session_id": result.get("session_id"),
+                "summary": analysis_text[:200] + "..." if len(analysis_text) > 200 else analysis_text,
+                # Compatibility fields for frontend (will be empty, frontend shows analysis text)
+                "hooks": [],
+                "ctas": [],
+                "visual_elements": [],
+                "pacing": "",
+                "engagement_prediction": 0
+            }
+            
+            # Update KB if video exists there
+            try:
+                client = await self.db.client
+                await client.table('knowledge_base_videos').update({
+                    'analysis_data': {"analysis": analysis_text, "analyzed_at": "now"}
+                }).eq('video_id', video_id).execute()
+            except:
+                pass  # Not in KB yet
+            
+            return self.success_response(result_data)
+            
+        except Exception as e:
+            logger.error(f"Error analyzing video: {str(e)}")
+            return self.fail_response(f"Failed to analyze video: {str(e)}")
     
     @openapi_schema({
         "type": "function",
@@ -706,6 +825,266 @@ class MemoriesTool(Tool):
             logger.error(f"Error querying video: {str(e)}")
             return self.fail_response(f"Failed to query video: {str(e)}")
     
+    @openapi_schema({
+        "type": "function",
+        "function": {
+            "name": "search_in_video",
+            "description": "Search for specific moments or clips within a video based on visual or audio content. Use this to find when particular products appear, when specific topics are discussed, or when certain scenes occur. Returns timestamp ranges (start/end) for each matching moment. Also called 'clip search'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "description": "Video ID from memories.ai"
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "What to search for in the video. Be specific about visual or audio elements. Examples: 'scenes with the product', 'when pricing is mentioned', 'moments with text overlays', 'scenes with people smiling', 'segments about features'"
+                    }
+                },
+                "required": ["video_id", "query"]
+            }
+        }
+    })
+    async def search_in_video(self, video_id: str, query: str) -> ToolResult:
+        """Search for specific moments in a video"""
+        try:
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
+            
+            user_id = await self._get_memories_user_id()
+            
+            # Use video_nos parameter to search ONLY within this specific video (more efficient!)
+            results = self.memories_client.search_private_library(
+                query=query,
+                search_type="BY_VIDEO",
+                unique_id=user_id,
+                top_k=20,
+                filtering_level="high",
+                video_nos=[video_id]  # ✅ NEW: Search only in this video
+            )
+            
+            # Results are already filtered by API, no manual filtering needed
+            
+            return self.success_response({
+                "video_id": video_id,
+                "query": query,
+                "results": results,
+                "matches_found": len(results)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error searching in video: {str(e)}")
+            return self.fail_response(f"Failed to search in video: {str(e)}")
+    
+    # Multi-Video Operations
+    
+    @openapi_schema({
+        "type": "function",
+        "function": {
+            "name": "compare_videos",
+            "description": "Compare multiple videos side-by-side to identify patterns, differences, and which performs best. Use this when user wants to understand what makes certain videos more effective, identify winning strategies across campaigns, or decide which video approach to use. Returns comparative analysis with scores and recommendations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "video_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Array of video IDs to compare (2-10 videos recommended for meaningful comparison). Use videos from same category/campaign for best insights. Get IDs from previous upload or search operations."
+                    }
+                },
+                "required": ["video_ids"]
+            }
+        }
+    })
+    async def compare_videos(self, video_ids: List[str]) -> ToolResult:
+        """Compare multiple videos"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            if len(video_ids) < 2:
+                return self.fail_response("Need at least 2 videos to compare")
+            
+            if len(video_ids) > 10:
+                return self.fail_response("Cannot compare more than 10 videos at once")
+            
+            user_id = await self._get_memories_user_id()
+            
+            # Use chat_with_video to compare multiple videos
+            compare_prompt = """Compare these videos and provide:
+
+1. COMMON THEMES: What topics/patterns appear across all videos?
+2. DIFFERENCES: How do these videos differ in style, approach, pacing?
+3. HOOK COMPARISON: Which video has the strongest hook and why?
+4. CTA COMPARISON: Which video has the clearest call-to-action?
+5. ENGAGEMENT PREDICTION: Rate each video 1-10 for predicted engagement
+6. WINNER: Which video performs best overall and why?
+
+Format as a comparative table where possible."""
+
+            results = self.memories_client.chat_with_video(
+                video_nos=video_ids,
+                prompt=compare_prompt,
+                unique_id=user_id,
+                session_id=None
+            )
+            
+            # Extract from response (results is now the data dict directly)
+            comparison_text = results.get("content", "")
+            refs = results.get("refs", [])
+            
+            # ✅ Fetch metadata for ALL compared videos for UI rendering
+            videos_metadata = []
+            for vid_id in video_ids:
+                try:
+                    if vid_id.startswith("VI"):
+                        details = self.memories_client.get_private_video_details(
+                            video_no=vid_id,
+                            unique_id=user_id
+                        )
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "private"
+                        })
+                    elif vid_id.startswith("PI"):
+                        details = self.memories_client.get_public_video_detail(video_no=vid_id)
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "public",
+                            "view_count": details.get("view_count"),
+                            "like_count": details.get("like_count")
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to fetch metadata for {vid_id}: {str(e)}")
+            
+            return self.success_response({
+                "video_ids": video_ids,
+                "video_count": len(video_ids),
+                "videos": videos_metadata,  # ✅ For UI rendering (show all videos side-by-side)
+                "comparison": comparison_text,
+                "refs": refs,
+                "session_id": results.get("session_id"),
+                "summary": f"Compared {len(video_ids)} videos across multiple dimensions"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error comparing videos: {str(e)}")
+            return self.fail_response(f"Failed to compare videos: {str(e)}")
+    
+    @openapi_schema({
+        "type": "function",
+        "function": {
+            "name": "multi_video_search",
+            "description": "Search across multiple videos simultaneously for patterns, themes, or specific content. Use this to identify common elements across a campaign, find trend patterns, or analyze content strategies across multiple creators/videos. More powerful than individual searches when analyzing content at scale.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "video_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Array of video IDs to search across (can handle 5-50 videos). Use when you have a collection of related videos (campaign series, competitor videos, trending content)."
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "What to search for across all videos. Focus on patterns or themes. Examples: 'common hook strategies', 'how products are presented', 'trending audio patterns', 'CTA placement strategies', 'visual style elements'."
+                    }
+                },
+                "required": ["video_ids", "query"]
+            }
+        }
+    })
+    async def multi_video_search(self, video_ids: List[str], query: str) -> ToolResult:
+        """Search across multiple videos"""
+        try:
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
+            
+            # Validate all video IDs
+            for video_id in video_ids:
+                is_valid, error_msg = self._validate_video_id(video_id)
+                if not is_valid:
+                    return self.fail_response(f"Invalid video ID '{video_id}': {error_msg}")
+            
+            user_id = await self._get_memories_user_id()
+            
+            # Use chat_with_video to search patterns across videos
+            search_prompt = f"""Analyze these {len(video_ids)} videos for: {query}
+
+Identify:
+1. Common patterns or themes related to "{query}"
+2. Examples with timestamps
+3. Frequency and variations
+4. Best practices observed
+5. Summary of findings
+
+Provide specific examples with video_no and timestamps."""
+
+            results = self.memories_client.chat_with_video(
+                video_nos=video_ids,
+                prompt=search_prompt,
+                unique_id=user_id,
+                session_id=None
+            )
+            
+            # Extract from response (results is now the data dict directly)
+            analysis_text = results.get("content", "")
+            refs = results.get("refs", [])
+            
+            # ✅ Fetch metadata for ALL searched videos for UI rendering
+            videos_metadata = []
+            for vid_id in video_ids:
+                try:
+                    if vid_id.startswith("VI"):
+                        details = self.memories_client.get_private_video_details(
+                            video_no=vid_id,
+                            unique_id=user_id
+                        )
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "private"
+                        })
+                    elif vid_id.startswith("PI"):
+                        details = self.memories_client.get_public_video_detail(video_no=vid_id)
+                        videos_metadata.append({
+                            "video_id": vid_id,
+                            "title": details.get("video_name", ""),
+                            "duration": details.get("duration"),
+                            "url": details.get("video_url"),
+                            "type": "public",
+                            "view_count": details.get("view_count"),
+                            "like_count": details.get("like_count")
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to fetch metadata for {vid_id}: {str(e)}")
+            
+            return self.success_response({
+                "video_ids": video_ids,
+                "query": query,
+                "videos": videos_metadata,  # ✅ For UI rendering (show all videos)
+                "analysis": analysis_text,
+                "refs": refs,
+                "session_id": results.get("session_id"),
+                "videos_searched": len(video_ids),
+                "summary": f"Searched {len(video_ids)} videos for '{query}'"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error in multi-video search: {str(e)}")
+            return self.fail_response(f"Failed to search videos: {str(e)}")
+    
+    # Platform Video Search
     
     @openapi_schema({
         "type": "function",
@@ -891,6 +1270,43 @@ class MemoriesTool(Tool):
     
     # Human Re-identification
     
+    @openapi_schema({
+        "type": "function",
+        "function": {
+            "name": "human_reid",
+            "description": "Track a specific person across multiple videos using re-identification technology. Use this when user wants to find all appearances of a person (influencer, spokesperson, competitor personality), analyze their presence across content, or track product placements involving specific people. Can work from image reference or video frame.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "video_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of video IDs to search for the person"
+                    },
+                    "person_reference": {
+                        "type": "string",
+                        "description": "Reference image URL of the person to track"
+                    }
+                },
+                "required": ["video_ids", "person_reference"]
+            }
+        }
+    })
+    async def human_reid(
+        self,
+        video_ids: List[str],
+        person_reference: str
+    ) -> ToolResult:
+        """Track a person across multiple videos"""
+        # Human ReID requires special API key and uses security.memories.ai endpoint
+        # This is not available with standard API keys
+        return self.fail_response(
+            "Human Re-identification feature requires a special API key. "
+            "This feature uses security.memories.ai endpoint and is not included in standard API access. "
+            "Contact techsupport@memories.ai to enable this feature for your account."
+        )
+    
+    # Creator Analysis
     
     @openapi_schema({
         "type": "function",
@@ -1278,6 +1694,244 @@ class MemoriesTool(Tool):
             logger.error(f"Error searching trending content: {str(e)}")
             return self.fail_response(f"Failed to search trending content: {str(e)}")
     
+    @openapi_schema({
+        "name": "list_trending_sessions",
+        "description": "List your recent Video Marketer Chat sessions. Use this to find previous conversations and their session IDs to continue discussions.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Number of recent sessions to return (default: 10)",
+                    "default": 10
+                },
+                "platform": {
+                    "type": "string",
+                    "description": "Filter by platform (optional)",
+                    "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"]
+                }
+            }
+        }
+    })
+    async def list_trending_sessions(
+        self,
+        limit: int = 10,
+        platform: Optional[str] = None
+    ) -> ToolResult:
+        """List recent Video Marketer Chat sessions"""
+        try:
+            if not config.MEMORIES_AI_API_KEY:
+                return self.fail_response("Memories.ai API key not configured")
+            
+            agent_config = getattr(self.thread_manager, 'agent_config', {})
+            account_id = agent_config.get('account_id')
+            
+            if not account_id:
+                return self.fail_response("No account_id found")
+            
+            client = await self.db.client
+            
+            # Build query
+            query = client.table('memories_chat_sessions').select(
+                'id, session_id, title, last_prompt, platform, last_message_at, created_at'
+            ).eq('account_id', account_id).eq('session_type', 'marketer_chat')
+            
+            if platform:
+                query = query.eq('platform', platform.upper())
+            
+            result = await query.order('last_message_at', desc=True).limit(limit).execute()
+            
+            sessions = result.data or []
+            
+            return self.success_response({
+                "sessions": sessions,
+                "total": len(sessions),
+                "message": f"Found {len(sessions)} recent Video Marketer Chat sessions",
+                "hint": "Use session_id from any session to continue that conversation"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error listing sessions: {str(e)}")
+            return self.fail_response(f"Failed to list sessions: {str(e)}")
+    
+    # ============ IMAGE TOOLS ============
+    
+    @openapi_schema({
+        "name": "upload_image",
+        "description": "Upload image(s) to your personal library for similarity search and analysis. Supports multiple images at once with metadata like camera info, GPS location, and tags for organization.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_paths": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Paths to image files in the sandbox (e.g., ['/workspace/uploads/image.png', '/uploads/photo.jpg']). Supports JPEG, PNG, WebP formats."
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional list of tags for organizing and searching images (e.g., ['vacation', 'sunset', 'beach']). Up to 20 tags supported."
+                },
+                "datetime_taken": {
+                    "type": "string",
+                    "description": "Optional date/time when image was captured (format: YYYY-MM-DD HH:MM:SS). Useful for chronological organization, especially for phone/camera uploads."
+                },
+                "camera_model": {
+                    "type": "string",
+                    "description": "Optional camera model metadata (e.g., 'iPhone 15 Pro', 'Canon EOS R5'). Useful for tracking image source."
+                },
+                "latitude": {
+                    "type": "string",
+                    "description": "Optional GPS latitude where image was captured (e.g., '39.9042'). Useful for location-based organization."
+                },
+                "longitude": {
+                    "type": "string",
+                    "description": "Optional GPS longitude where image was captured (e.g., '116.4074'). Useful for location-based organization."
+                }
+            },
+            "required": ["file_paths"]
+        }
+    })
+    async def upload_image(
+        self,
+        file_paths: List[str],
+        tags: Optional[List[str]] = None,
+        datetime_taken: Optional[str] = None,
+        camera_model: Optional[str] = None,
+        latitude: Optional[str] = None,
+        longitude: Optional[str] = None
+    ) -> ToolResult:
+        """Upload images with metadata for similarity search"""
+        try:
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
+            
+            user_id = await self._get_memories_user_id()
+            sandbox = self.thread_manager.agent_run.sandbox
+            
+            # Download images from sandbox to temp files
+            temp_files = []
+            for file_path in file_paths:
+                try:
+                    content = sandbox.fs.download_file(file_path)
+                    temp_path = f"/tmp/memories_img_{os.path.basename(file_path)}"
+                    with open(temp_path, 'wb') as f:
+                        f.write(content)
+                    temp_files.append(temp_path)
+                except Exception as e:
+                    logger.warning(f"Failed to download {file_path}: {str(e)}")
+            
+            if not temp_files:
+                return self.fail_response("No valid image files found")
+            
+            result = self.memories_client.upload_image_from_file(
+                file_paths=temp_files,
+                unique_id=user_id,
+                tags=tags,
+                datetime_taken=datetime_taken,
+                camera_model=camera_model,
+                latitude=latitude,
+                longitude=longitude
+            )
+            
+            # Cleanup temp files
+            for temp_path in temp_files:
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+            
+            uploaded_count = len(result.get("data", []))
+            
+            return self.success_response({
+                "message": f"Successfully uploaded {uploaded_count} image(s)",
+                "count": uploaded_count,
+                "note": "Images can now be used for similarity search to find matching content"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error uploading images: {str(e)}")
+            return self.fail_response(f"Failed to upload images: {str(e)}")
+    
+    @openapi_schema({
+        "name": "search_similar_images",
+        "description": "Find visually similar images or videos in your library or public platforms. Upload a reference image and find matching content.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image_path": {
+                    "type": "string",
+                    "description": "Path to reference image in sandbox"
+                },
+                "search_type": {
+                    "type": "string",
+                    "description": "Where to search",
+                    "enum": ["private", "public_tiktok", "public_youtube", "public_instagram"],
+                    "default": "private"
+                },
+                "similarity_threshold": {
+                    "type": "number",
+                    "description": "Minimum similarity score (0.0-1.0, default: 0.8)",
+                    "default": 0.8
+                }
+            },
+            "required": ["image_path"]
+        }
+    })
+    async def search_similar_images(
+        self,
+        image_path: str,
+        search_type: str = "private",
+        similarity_threshold: float = 0.8
+    ) -> ToolResult:
+        """Search for visually similar content"""
+        try:
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
+            
+            user_id = await self._get_memories_user_id()
+            sandbox = self.thread_manager.agent_run.sandbox
+            
+            # Download image from sandbox
+            content = sandbox.fs.download_file(image_path)
+            temp_path = f"/tmp/memories_search_{os.path.basename(image_path)}"
+            with open(temp_path, 'wb') as f:
+                f.write(content)
+            
+            try:
+                if search_type == "private":
+                    result = self.memories_client.search_similar_images(
+                        file_path=temp_path,
+                        unique_id=user_id,
+                        similarity=similarity_threshold
+                    )
+                else:
+                    platform = search_type.replace("public_", "").upper()
+                    result = self.memories_client.search_public_similar_images(
+                        file_path=temp_path,
+                        platform=platform,
+                        similarity=similarity_threshold
+                    )
+                
+                results = result.get("results", [])
+                
+                return self.success_response({
+                    "search_type": search_type,
+                    "similarity_threshold": similarity_threshold,
+                    "matches_found": len(results),
+                    "results": results[:20]  # Limit to top 20
+                })
+                
+            finally:
+                os.remove(temp_path)
+            
+        except Exception as e:
+            logger.error(f"Error searching similar images: {str(e)}")
+            return self.fail_response(f"Failed to search similar images: {str(e)}")
+    
+    # ============ VIDEO MANAGEMENT TOOLS ============
     
     @openapi_schema({
         "name": "list_my_videos",
@@ -1377,6 +2031,59 @@ class MemoriesTool(Tool):
             logger.error(f"Error deleting videos: {str(e)}")
             return self.fail_response(f"Failed to delete videos: {str(e)}")
     
+    @openapi_schema({
+        "name": "get_video_summary",
+        "description": "Generate a structured summary of a video with chapters or topics. Useful for long-form content analysis.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to summarize"
+                },
+                "summary_type": {
+                    "type": "string",
+                    "description": "Type of summary",
+                    "enum": ["CHAPTER", "TOPIC"],
+                    "default": "CHAPTER"
+                }
+            },
+            "required": ["video_id"]
+        }
+    })
+    async def get_video_summary(
+        self,
+        video_id: str,
+        summary_type: str = "CHAPTER"
+    ) -> ToolResult:
+        """Generate video summary with chapters or topics"""
+        try:
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
+            
+            user_id = await self._get_memories_user_id()
+            
+            result = self.memories_client.generate_summary(
+                video_no=video_id,
+                summary_type=summary_type.upper(),
+                unique_id=user_id
+            )
+            
+            summary = result.get("summary", "")
+            items = result.get("items", [])
+            
+            return self.success_response({
+                "video_id": video_id,
+                "summary_type": summary_type,
+                "summary": summary,
+                "items": items,
+                "chapter_count": len(items)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error generating summary: {str(e)}")
+            return self.fail_response(f"Failed to generate summary: {str(e)}")
     
     @openapi_schema({
         "name": "get_video_details",
@@ -1929,4 +2636,69 @@ class MemoriesTool(Tool):
             logger.error(f"Error searching audio: {str(e)}")
             return self.fail_response(f"Failed to search audio: {str(e)}")
     
-    
+    @openapi_schema({
+        "name": "search_clips_by_image",
+        "description": "Find specific moments in a video that match a reference image. Useful for finding when a person, object, or scene appears.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "video_id": {
+                    "type": "string",
+                    "description": "Video ID to search in"
+                },
+                "image_path": {
+                    "type": "string",
+                    "description": "Path to reference image in sandbox"
+                },
+                "search_prompt": {
+                    "type": "string",
+                    "description": "What to look for (e.g., 'Find scenes with this person', 'Find when this product appears')"
+                }
+            },
+            "required": ["video_id", "image_path", "search_prompt"]
+        }
+    })
+    async def search_clips_by_image(
+        self,
+        video_id: str,
+        image_path: str,
+        search_prompt: str
+    ) -> ToolResult:
+        """Find video clips matching an image"""
+        try:
+            # Check client initialization
+            if error := self._check_client_initialized():
+                return error
+            
+            user_id = await self._get_memories_user_id()
+            sandbox = self.thread_manager.agent_run.sandbox
+            
+            # Download image from sandbox
+            content = sandbox.fs.download_file(image_path)
+            temp_path = f"/tmp/memories_clip_search_{os.path.basename(image_path)}"
+            with open(temp_path, 'wb') as f:
+                f.write(content)
+            
+            try:
+                clips = self.memories_client.search_clips_by_image(
+                    file_path=temp_path,
+                    video_no=video_id,
+                    prompt=search_prompt,
+                    unique_id=user_id
+                )
+                
+                return self.success_response({
+                    "video_id": video_id,
+                    "search_prompt": search_prompt,
+                    "clips_found": len(clips),
+                    "clips": clips
+                })
+                
+            finally:
+                os.remove(temp_path)
+            
+        except Exception as e:
+            logger.error(f"Error searching clips by image: {str(e)}")
+            return self.fail_response(f"Failed to search clips by image: {str(e)}")
+
+

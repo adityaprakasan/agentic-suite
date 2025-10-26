@@ -113,10 +113,29 @@ export function renderMarkdownContent(
     project?: Project,
     debugMode?: boolean
 ) {
-    // 🚨 EMERGENCY FIX: Remove word-level duplication in streaming text
-    // Pattern: "Word Word" → "Word", "<<tag>>" → "<tag>"
-    content = content.replace(/(\b\w+\b)(\s+)\1/g, '$1$2');  // Deduplicate words
-    content = content.replace(/([<>\/])\1+/g, '$1');  // Deduplicate XML brackets
+    // Clean up verbose function call content for better UX (completely hide during processing)
+    let cleanedContent = content;
+    
+    // AGGRESSIVE CLEANUP: Remove ALL function call XML to prevent overspill
+    // During streaming, these create visual clutter and confuse users
+    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '');
+    
+    // Also handle incomplete/streaming function calls (no closing tag yet)
+    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?$/gi, '');
+    
+    // Remove any stray invoke/parameter/antml: tags
+    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?<\/invoke>/gi, '');
+    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?<\/parameter>/gi, '');
+    cleanedContent = cleanedContent.replace(/<function_calls>[\s\S]*?<\/antml:function_calls>/gi, '');
+    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?<\/antml:invoke>/gi, '');
+    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?<\/antml:parameter>/gi, '');
+    
+    // Remove incomplete invoke/parameter tags (streaming)
+    cleanedContent = cleanedContent.replace(/<invoke[\s\S]*?$/gi, '');
+    cleanedContent = cleanedContent.replace(/<parameter[\s\S]*?$/gi, '');
+    
+    // Use cleaned content instead of original
+    content = cleanedContent;
     // Preprocess content to convert text-only tools to natural text
     content = preprocessTextOnlyTools(content);
 
@@ -258,8 +277,7 @@ export function renderMarkdownContent(
     }
 
     // Fall back to old XML format handling
-    // Match tool calls but EXCLUDE common HTML tags (div, span, p, a, etc.)
-    const xmlRegex = /<(?!inform\b|div\b|span\b|p\b|a\b|img\b|br\b|hr\b|h1\b|h2\b|h3\b|h4\b|h5\b|h6\b|ul\b|ol\b|li\b|table\b|tr\b|td\b|th\b|strong\b|em\b|code\b|pre\b|blockquote\b|button\b|input\b|form\b|label\b|select\b|option\b|textarea\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>(?:[\s\S]*?)<\/\2>|<(?!inform\b|div\b|span\b|p\b|a\b|img\b|br\b|hr\b|h1\b|h2\b|h3\b|h4\b|h5\b|h6\b|ul\b|ol\b|li\b|table\b|tr\b|td\b|th\b|strong\b|em\b|code\b|pre\b|blockquote\b|button\b|input\b|form\b|label\b|select\b|option\b|textarea\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?\/>/g;
+    const xmlRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>(?:[\s\S]*?)<\/\1>|<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?\/>/g;
     let lastIndex = 0;
     const contentParts: React.ReactNode[] = [];
     let match: RegExpExecArray | null = null;

@@ -36,21 +36,14 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
   switch (normalizedMethod) {
     case 'search_platform_videos':
       return <PlatformSearchResults data={output} />;
-    case 'analyze_video':
-      return <VideoAnalysisDisplay data={output} />;
-    case 'compare_videos':
-      return <VideoComparisonDisplay data={output} />;
     case 'query_video':
     case 'ask_video':
-    case 'search_in_video':
       return <VideoQueryDisplay data={output} />;
     case 'upload_video':
     case 'upload_video_file':
       return <VideoUploadDisplay data={output} />;
     case 'get_transcript':
       return <TranscriptDisplay data={output} />;
-    case 'multi_video_search':
-      return <MultiVideoSearchDisplay data={output} />;
     case 'check_task_status':
       return <TaskStatusDisplay data={output} />;
     case 'analyze_creator':
@@ -61,7 +54,8 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
     case 'chat_with_media':
     case 'chat_personal':
       return <PersonalMediaDisplay data={output} />;
-    case 'list_trending_sessions':
+    case 'list_my_videos':
+    case 'delete_videos':
     case 'list_video_chat_sessions':
       return <SessionListDisplay data={output} />;
     default:
