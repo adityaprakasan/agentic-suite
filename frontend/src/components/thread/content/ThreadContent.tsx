@@ -117,10 +117,6 @@ export function renderMarkdownContent(
     // Pattern: "Word Word" → "Word", "<<tag>>" → "<tag>"
     content = content.replace(/(\b\w+\b)(\s+)\1/g, '$1$2');  // Deduplicate words
     content = content.replace(/([<>\/])\1+/g, '$1');  // Deduplicate XML brackets
-    
-    // Clean up verbose parameter details but KEEP the function_calls structure for icon rendering
-    // Remove only the verbose parameter content, not the invoke/function_calls tags
-    content = content.replace(/<parameter name="[^"]*">[\s\S]*?<\/parameter>/gi, '');
     // Preprocess content to convert text-only tools to natural text
     content = preprocessTextOnlyTools(content);
 

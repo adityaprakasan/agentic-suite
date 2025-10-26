@@ -1567,13 +1567,65 @@ Provide specific examples with video_no and timestamps."""
     
     @openapi_schema({
         "name": "search_trending_content",
-        "description": "🔥 PREMIUM TOOL: Search and analyze trending videos from 1M+ indexed public videos on TikTok/YouTube/Instagram. Returns rich video data including view counts, engagement metrics, creator info, video URLs, thumbnails, and AI-generated trend analysis. Use this to discover viral content, understand what's working in specific niches, analyze competitor strategies, and identify content opportunities. ALWAYS craft detailed, context-rich queries to get the best results.",
+        "description": """🔥 PREMIUM INSTANT SEARCH: Search 1M+ indexed TikTok/YouTube/Instagram videos and get IMMEDIATE results with full stats + analysis. 
+
+🎯 WHEN TO USE THIS TOOL:
+✅ User wants to SEE/FIND videos: "show me nike videos", "find trending content", "what videos are popular"
+✅ User wants QUICK analysis: "analyze [brand] on tiktok" (use @brand filter in query)
+✅ User wants INSTANT insights: "what's trending", "viral videos about [topic]"
+
+❌ DON'T USE analyze_creator or analyze_trend (those SCRAPE new videos, take 1-2 min)
+
+📊 WHAT THIS RETURNS:
+- AI-generated analysis of trends/patterns
+- Array of videos with: title, views, likes, shares, comments, creator, thumbnails
+- Session ID for follow-up questions
+
+⚡ COMPULSORY INSTRUCTIONS:
+1. ALWAYS use @creator or #hashtag filters for targeted results (e.g., "@nike trending videos")
+2. CREATE RICH QUERIES: Include context like "high engagement", "viral", "product showcases"
+3. USER WANTS TO SEE VIDEOS: This tool shows actual video cards in UI, not just text!
+
+💡 EXAMPLES:
+- "show me nike videos" → query: "@nike official content high engagement viral campaigns product reveals"
+- "trending fitness videos" → query: "#fitness trending workouts viral transformations high engagement"
+- "analyze mrbeast tiktok" → query: "@mrbeast top videos viral challenges high engagement content strategy"
+
+🎨 QUERY QUALITY (CRITICAL):
+❌ BAD: "nike videos" (too vague)
+✅ GOOD: "@nike trending videos with high engagement, viral Nike campaigns, popular Nike athlete content, Nike shoe reveals, best performing Nike motivationals"
+
+The richer your query, the better the video results and analysis!""",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "⚡ IMPORTANT: Write a DETAILED, context-rich query to maximize results quality. Include: (1) What you're looking for, (2) Why/what insights you need, (3) Any specific aspects to focus on. GOOD: 'Find trending Nike-branded content on TikTok. Analyze engagement patterns, identify top-performing creators, highlight what makes their content viral, and show key metrics like views, likes, and shares.' BAD: 'nike trending'. Can use @creator (e.g., '@nike') or #hashtag (e.g., '#fitness') filters."
+                    "description": """⚡ COMPULSORY QUERY GUIDELINES:
+
+**ALWAYS use @creator or #hashtag filters for targeted searches!**
+
+🎯 FORMAT YOUR QUERY:
+1. START with @creator or #hashtag: "@nike" or "#fitness" or "@mrbeast"
+2. ADD context: "trending videos", "high engagement", "viral content"
+3. INCLUDE specifics: "product showcases", "athlete content", "motivational clips"
+
+💡 EXAMPLES (COPY THESE PATTERNS):
+- User: "show me nike videos" → query: "@nike official content high engagement viral campaigns product reveals athlete spotlights"
+- User: "trending fitness videos" → query: "#fitness trending workouts viral transformations high engagement motivational content"
+- User: "analyze mrbeast tiktok" → query: "@mrbeast top videos viral challenges high engagement content strategy patterns"
+- User: "what's popular on tiktok" → query: "trending tiktok viral content high engagement popular videos top creators"
+
+❌ BAD (TOO VAGUE):
+- "nike" ← Missing @ filter and context!
+- "trending" ← No specifics!
+- "fitness videos" ← Missing # and engagement signals!
+
+✅ GOOD (RICH & DETAILED):
+- "@nike trending videos with high engagement, viral Nike campaigns, popular Nike athlete content, Nike shoe reveals, best performing Nike motivationals"
+- "#fitness trending workouts, viral fitness transformations, high engagement fitness influencers, popular fitness challenges"
+
+**The richer the query, the better the video results!**"""
                 },
                 "platform": {
                     "type": "string",
@@ -1620,31 +1672,73 @@ Provide specific examples with video_no and timestamps."""
             returned_session_id = result.get("session_id")
             
             # Extract referenced videos and fetch full details for UI rendering
+            logger.info(f"Processing {len(refs)} video references from marketer_chat")
             referenced_videos = []
-            for ref in refs:
+            
+            for idx, ref in enumerate(refs):
                 video = ref.get("video", {})
-                if video:
-                    video_no = video.get("video_no")
-                    if video_no:
+                if not video:
+                    logger.warning(f"Ref {idx} has no video data: {ref}")
+                    continue
+                    
+                video_no = video.get("video_no")
+                if not video_no:
+                    logger.warning(f"Ref {idx} video has no video_no: {video}")
+                    continue
+                
+                try:
+                    # Fetch full video details to get URL and stats
+                    logger.info(f"Fetching details for trending video {idx + 1}/{len(refs)}: {video_no}")
+                    details = self.memories_client.get_public_video_detail(video_no=video_no)
+                    
+                    # Parse numeric fields (API returns strings)
+                    def parse_count(value):
+                        if value is None:
+                            return None
                         try:
-                            # Fetch full video details to get URL for embedding
-                            details = self.memories_client.get_public_video_detail(video_no=video_no)
-                            referenced_videos.append({
-                                "video_no": video_no,
-                                "title": video.get("video_name") or details.get("video_name"),
-                                "duration": video.get("duration") or details.get("duration"),
-                                "url": details.get("video_url"),  # ✅ For video player embedding
-                                "view_count": details.get("view_count"),
-                                "like_count": details.get("like_count")
-                            })
-                        except Exception as e:
-                            # Fallback to basic info if details fetch fails
-                            logger.warning(f"Failed to fetch details for {video_no}: {str(e)}")
-                            referenced_videos.append({
-                                "video_no": video_no,
-                                "title": video.get("video_name"),
-                                "duration": video.get("duration")
-                            })
+                            return int(value) if isinstance(value, str) else value
+                        except (ValueError, TypeError):
+                            return None
+                    
+                    # Extract all available metadata from refs
+                    ref_items = ref.get("refItems", [])
+                    ref_meta = ref_items[0] if ref_items else {}
+                    
+                    video_data = {
+                        "video_no": video_no,
+                        "title": video.get("video_name") or details.get("video_name") or ref_meta.get("title") or "Untitled",
+                        "description": ref_meta.get("summary") or details.get("description"),
+                        "duration": parse_count(video.get("duration") or details.get("duration")),
+                        "url": details.get("video_url"),  # For embedding
+                        "web_url": details.get("web_url") or details.get("video_url"),  # For linking
+                        "thumbnail_url": details.get("cover_url") or details.get("img_url"),
+                        "cover_url": details.get("cover_url") or details.get("img_url"),
+                        # Parse stats from API (all returned as strings!)
+                        "view_count": parse_count(details.get("view_count") or ref_meta.get("view_count")),
+                        "like_count": parse_count(details.get("like_count") or ref_meta.get("like_count")),
+                        "comment_count": parse_count(details.get("comment_count") or ref_meta.get("comment_count")),
+                        "share_count": parse_count(details.get("share_count") or ref_meta.get("share_count")),
+                        "collect_count": parse_count(details.get("collect_count")),
+                        "creator": details.get("blogger_id") or details.get("creator"),
+                        "hash_tag": details.get("hash_tag"),
+                        "music_name": details.get("music_name"),
+                        "platform": platform
+                    }
+                    
+                    logger.info(f"Video {video_no}: title={video_data['title'][:50]}, views={video_data['view_count']}, thumbnail={bool(video_data['thumbnail_url'])}")
+                    referenced_videos.append(video_data)
+                    
+                except Exception as e:
+                    # Fallback to basic info if details fetch fails
+                    logger.error(f"Failed to fetch details for {video_no}: {str(e)}", exc_info=True)
+                    referenced_videos.append({
+                        "video_no": video_no,
+                        "title": video.get("video_name") or "Untitled",
+                        "duration": parse_count(video.get("duration")) if 'parse_count' in locals() else video.get("duration"),
+                        "platform": platform
+                    })
+            
+            logger.info(f"Extracted {len(referenced_videos)} videos for UI rendering")
             
             # Save/update session in database for future reference
             if returned_session_id and account_id:
