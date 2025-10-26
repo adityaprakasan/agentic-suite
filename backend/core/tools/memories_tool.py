@@ -1511,23 +1511,23 @@ Provide specific examples with video_no and timestamps."""
     
     @openapi_schema({
         "name": "search_trending_content",
-        "description": "Search and analyze trending videos from 1M+ indexed public videos on TikTok/YouTube/Instagram. This accesses memories.ai's massive database of trending content to find viral videos, understand what's working in your niche, and identify content opportunities. Supports multi-turn conversations - provide session_id to continue a previous conversation. Perfect for competitive research, trend analysis, and content ideation.",
+        "description": "🔥 PREMIUM TOOL: Search and analyze trending videos from 1M+ indexed public videos on TikTok/YouTube/Instagram. Returns rich video data including view counts, engagement metrics, creator info, video URLs, thumbnails, and AI-generated trend analysis. Use this to discover viral content, understand what's working in specific niches, analyze competitor strategies, and identify content opportunities. ALWAYS craft detailed, context-rich queries to get the best results.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Natural language search query (e.g., 'What are the trending fitness videos on TikTok?', 'Show me viral Nike campaigns', 'What's working for skincare brands on Instagram?'). Can also use @creator or #hashtag filters (e.g., 'What does @nike post?', 'Show me #fitness trends')"
+                    "description": "⚡ IMPORTANT: Write a DETAILED, context-rich query to maximize results quality. Include: (1) What you're looking for, (2) Why/what insights you need, (3) Any specific aspects to focus on. GOOD: 'Find trending Nike-branded content on TikTok. Analyze engagement patterns, identify top-performing creators, highlight what makes their content viral, and show key metrics like views, likes, and shares.' BAD: 'nike trending'. Can use @creator (e.g., '@nike') or #hashtag (e.g., '#fitness') filters."
                 },
                 "platform": {
                     "type": "string",
-                    "description": "Platform to search (default: TIKTOK)",
+                    "description": "Platform to search: TIKTOK (default), YOUTUBE, or INSTAGRAM",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK"
                 },
                 "session_id": {
                     "type": "string",
-                    "description": "Optional: Session ID from a previous search_trending_content call. Provide this to continue a multi-turn conversation with context. Example: 'Tell me more about the collaboration you mentioned' or 'Compare that to their competitor'"
+                    "description": "Optional: Session ID from a previous search_trending_content call to continue the conversation with context. Use this to ask follow-up questions like 'Tell me more about the top video' or 'Compare this to their competitor'"
                 }
             },
             "required": ["query"]

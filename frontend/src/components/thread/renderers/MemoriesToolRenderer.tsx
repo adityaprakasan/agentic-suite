@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, TrendingUp, Clock, ExternalLink, Save, MessageSquare, Video } from 'lucide-react';
+import { Play, TrendingUp, Clock, ExternalLink, Save, MessageSquare, Video, User, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -69,102 +69,191 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
   }
 }
 
-// Platform Search Results
+// Platform Search Results - UPGRADED TO PREMIUM QUALITY
 function PlatformSearchResults({ data }: { data: any }) {
   const videos = data.videos || [];
   const platform = data.platform || 'Platform';
   const query = data.query || '';
 
+  // Helper to format counts
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  // Helper to get video link
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url || 
+           (video.video_no ? `https://www.tiktok.com/@unknown/video/${video.video_no}` : null);
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold">
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-white dark:bg-gray-950 pb-3 border-b">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <Video className="w-5 h-5 text-purple-500" />
           {platform.charAt(0).toUpperCase() + platform.slice(1)} Results: "{query}"
         </h4>
-        <Badge>{videos.length} videos</Badge>
+        <Badge variant="secondary" className="text-sm px-3 py-1">{videos.length} videos</Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {videos.slice(0, 12).map((video: any, idx: number) => (
-          <VideoSearchCard key={idx} video={video} />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {videos.map((video: any, idx: number) => {
+          const videoLink = getVideoLink(video);
+          const thumbnail = video.thumbnail_url || video.cover_url || video.img_url;
+          const hasStats = video.view_count || video.like_count || video.share_count || video.comment_count;
+  const platformColor = getPlatformColor(video.platform);
+
+  return (
+            <a
+              key={idx}
+              href={videoLink || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group block ${!videoLink && 'pointer-events-none'}`}
+            >
+              <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
+                <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                  {thumbnail ? (
+                    <>
+                      <img
+                        src={thumbnail}
+            alt={video.title}
+            className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Play className="w-16 h-16 text-white drop-shadow-lg" />
+        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+
+                  {/* Platform badge */}
+                  <div className={`absolute top-2 left-2 ${platformColor} text-white text-xs px-2 py-1 rounded font-medium shadow-lg`}>
+                    {video.platform || platform}
+        </div>
+
+                  {/* Duration badge */}
+        {video.duration_seconds && (
+                    <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+                      {formatDuration(video.duration_seconds)}
+                    </div>
+                  )}
+
+                  {/* External link indicator */}
+                  {videoLink && (
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="bg-white dark:bg-gray-900 rounded-full p-1.5 shadow-lg">
+                        <ExternalLink className="w-4 h-4 text-blue-500" />
+                      </div>
+          </div>
+        )}
+      </div>
+
+                <div className="p-4 space-y-3">
+                  <h5 className="font-semibold text-sm line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                    {video.title || video.video_no || `Video ${idx + 1}`}
+                  </h5>
+
+                  {video.creator && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      @{video.creator}
+                    </p>
+                  )}
+
+                  {/* Stats Grid */}
+                  {hasStats && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                      {video.view_count && (
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Eye className="w-3.5 h-3.5 text-gray-500" />
+                          <span className="font-medium">{formatCount(video.view_count)}</span>
+                          <span className="text-gray-500">views</span>
+                        </div>
+                      )}
+                      {video.like_count && (
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Heart className="w-3.5 h-3.5 text-red-500" />
+                          <span className="font-medium">{formatCount(video.like_count)}</span>
+                          <span className="text-gray-500">likes</span>
+                        </div>
+                      )}
+                      {video.comment_count && (
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
+                          <span className="font-medium">{formatCount(video.comment_count)}</span>
+                          <span className="text-gray-500">comments</span>
+                        </div>
+                      )}
+                      {video.share_count && (
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Share2 className="w-3.5 h-3.5 text-green-500" />
+                          <span className="font-medium">{formatCount(video.share_count)}</span>
+                          <span className="text-gray-500">shares</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                    <span className="font-mono">{video.video_no}</span>
+                    {videoLink && (
+                      <span className="text-blue-500 group-hover:underline">Watch →</span>
+                    )}
+        </div>
+      </div>
+    </Card>
+            </a>
+          );
+        })}
       </div>
 
       {data.next_action_hint && (
-        <p className="text-xs text-gray-600 dark:text-gray-400 italic">
-          {data.next_action_hint}
-        </p>
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+            <span className="text-base">💡</span>
+            {data.next_action_hint}
+          </p>
+        </div>
       )}
     </div>
   );
 }
 
-function VideoSearchCard({ video }: { video: any }) {
-  const platformColor = getPlatformColor(video.platform);
-  const platformIcon = getPlatformIcon(video.platform);
-
-  return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
-        {video.url ? (
-          <iframe
-            src={video.url}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={video.title}
-          />
-        ) : video.thumbnail_url ? (
-          <img
-            src={video.thumbnail_url}
-            alt={video.title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              // Fallback to placeholder if image fails to load
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-            }}
-          />
-        ) : null}
-        <div className={`w-full h-full flex items-center justify-center ${video.url || video.thumbnail_url ? 'hidden' : ''}`}>
-          <Play className="w-8 h-8 text-gray-400" />
-        </div>
-
-        <div className={`absolute top-2 left-2 ${platformColor} text-white text-xs px-2 py-1 rounded flex items-center gap-1`}>
-          <span>{platformIcon}</span>
-        </div>
-
-        {video.duration_seconds && (
-          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            <span>{formatDuration(video.duration_seconds)}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="p-3">
-        <h5 className="text-sm font-medium line-clamp-2 mb-2">{video.title}</h5>
-        <div className="flex items-center gap-2">
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// Video Analysis Display
+// Video Analysis Display - UPGRADED TO PREMIUM QUALITY 🔥
 function VideoAnalysisDisplay({ data }: { data: any }) {
   const analysis = data.analysis || data.summary || '';
-  const video = data.video;  // ✅ Video metadata for rendering
+  const video = data.video;
   const hooks = data.hooks || [];
   const ctas = data.ctas || [];
   const engagementScore = data.engagement_prediction || 0;
 
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url;
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Video Player */}
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Video Player Card - Enhanced */}
       {video && (
-        <Card className="overflow-hidden">
-          <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+        <Card className="overflow-hidden border-2 border-purple-200 dark:border-purple-800">
+          <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
             {video.url ? (
               <iframe
                 src={video.url}
@@ -172,80 +261,149 @@ function VideoAnalysisDisplay({ data }: { data: any }) {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
+            ) : video.thumbnail_url || video.cover_url ? (
+              <img
+                src={video.thumbnail_url || video.cover_url}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Play className="w-12 h-12 text-gray-400" />
+                <Play className="w-16 h-16 text-gray-400" />
+              </div>
+            )}
+              {video.duration && (
+              <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatDuration(video.duration)}
               </div>
             )}
           </div>
-          <div className="p-3 border-t">
-            <h5 className="text-sm font-medium mb-1">{video.title || video.video_no}</h5>
-            <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-              {video.duration && (
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatDuration(video.duration)}
-                </span>
-              )}
+          
+          <div className="p-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-t-2 border-purple-200 dark:border-purple-800">
+            <h5 className="text-base font-semibold mb-3">{video.title || video.video_no}</h5>
+            
+            {/* Stats Grid */}
+            {(video.view_count || video.like_count || video.comment_count || video.share_count) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
               {video.view_count && (
-                <span>{(video.view_count / 1000).toFixed(0)}K views</span>
-              )}
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Eye className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Views</p>
+                      <p className="text-sm font-bold">{formatCount(video.view_count)}</p>
+                    </div>
+                  </div>
+                )}
+                {video.like_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Heart className="w-4 h-4 text-red-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Likes</p>
+                      <p className="text-sm font-bold">{formatCount(video.like_count)}</p>
             </div>
+                  </div>
+                )}
+                {video.comment_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <MessageCircle className="w-4 h-4 text-blue-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Comments</p>
+                      <p className="text-sm font-bold">{formatCount(video.comment_count)}</p>
+                    </div>
+                  </div>
+                )}
+                {video.share_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Share2 className="w-4 h-4 text-green-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Shares</p>
+                      <p className="text-sm font-bold">{formatCount(video.share_count)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {getVideoLink(video) && (
+              <a
+                href={getVideoLink(video)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Watch on platform →
+              </a>
+            )}
           </div>
         </Card>
       )}
 
-      {/* Analysis Section */}
+      {/* Analysis Header with Engagement Score */}
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold">Video Analysis</h4>
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-purple-500" />
+          Video Analysis
+        </h4>
         {engagementScore > 0 && (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" />
-            {engagementScore.toFixed(1)}/10
+          <Badge variant="secondary" className="text-base px-3 py-1.5 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            {engagementScore.toFixed(1)}/10 Score
           </Badge>
         )}
       </div>
 
-      {/* Full Analysis Text (primary display) */}
+      {/* AI Analysis with Markdown Support */}
       {analysis && (
         <div className="prose prose-sm dark:prose-invert max-w-none">
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+          <div className="p-5 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+            <Markdown className="text-sm leading-relaxed [&>:first-child]:mt-0 [&>:last-child]:mb-0">
             {analysis}
+            </Markdown>
           </div>
         </div>
       )}
 
-      {/* Hooks (legacy format - only if structured data available) */}
+      {/* Hooks Section - Enhanced Design */}
       {hooks.length > 0 && (
         <div>
-          <h5 className="text-sm font-medium mb-2">Hooks ({hooks.length})</h5>
-          <div className="space-y-2">
+          <h5 className="text-base font-semibold mb-3 flex items-center gap-2">
+            🎣 Hooks ({hooks.length})
+          </h5>
+          <div className="space-y-3">
             {hooks.map((hook: any, idx: number) => (
-              <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <Badge variant="outline" className="text-xs">
+              <div key={idx} className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-lg border-l-4 border-yellow-500">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline" className="text-xs font-mono">
                     {hook.timestamp}
                   </Badge>
-                  <Badge className="text-xs capitalize">{hook.strength}</Badge>
+                  <Badge className="text-xs capitalize bg-yellow-500 text-white">
+                    {hook.strength}
+                  </Badge>
                 </div>
-                <p className="text-xs">{hook.description}</p>
+                <p className="text-sm">{hook.description}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* CTAs (legacy format - only if structured data available) */}
+      {/* CTAs Section - Enhanced Design */}
       {ctas.length > 0 && (
         <div>
-          <h5 className="text-sm font-medium mb-2">CTAs ({ctas.length})</h5>
-          <div className="space-y-2">
+          <h5 className="text-base font-semibold mb-3 flex items-center gap-2">
+            📣 Calls-to-Action ({ctas.length})
+          </h5>
+          <div className="space-y-3">
             {ctas.map((cta: any, idx: number) => (
-              <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <Badge variant="outline" className="text-xs">{cta.timestamp}</Badge>
+              <div key={idx} className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 rounded-lg border-l-4 border-green-500">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline" className="text-xs font-mono">
+                    {cta.timestamp}
+                  </Badge>
                 </div>
-                <p className="text-xs font-medium">{cta.text}</p>
+                <p className="text-sm font-medium">{cta.text}</p>
               </div>
             ))}
           </div>
@@ -255,24 +413,51 @@ function VideoAnalysisDisplay({ data }: { data: any }) {
   );
 }
 
-// Video Comparison Display
+// Video Comparison Display - UPGRADED TO PREMIUM QUALITY 🔥
 function VideoComparisonDisplay({ data }: { data: any }) {
   const comparison = data.comparison || '';
   const videoCount = data.video_count || 0;
-  const videos = data.videos || [];  // ✅ Video metadata for rendering
+  const videos = data.videos || [];
+
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url;
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Video Grid */}
-      {videos.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold">Compared Videos ({videoCount})</h4>
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 pb-3 border-b">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <Video className="w-5 h-5 text-purple-500" />
+          Video Comparison ({videoCount || videos.length})
+        </h4>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {videos.map((video: any, idx: number) => (
-              <Card key={idx} className="overflow-hidden">
-                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+
+      {/* Video Grid - 2 COLUMNS with rich stats */}
+      {videos.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {videos.map((video: any, idx: number) => {
+            const videoLink = getVideoLink(video);
+            const thumbnail = video.thumbnail_url || video.cover_url || video.img_url;
+            const hasStats = video.view_count || video.like_count || video.share_count || video.comment_count;
+            
+            return (
+              <a
+                key={idx}
+                href={videoLink || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group block ${!videoLink && 'pointer-events-none'}`}
+              >
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
+                  <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
                   {video.url ? (
                     <iframe
                       src={video.url}
@@ -280,52 +465,126 @@ function VideoComparisonDisplay({ data }: { data: any }) {
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
+                    ) : thumbnail ? (
+                      <>
+                        <img
+                          src={thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                          </div>
+                        </div>
+                      </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-8 h-8 text-gray-400" />
+                        <Play className="w-12 h-12 text-gray-400" />
                     </div>
                   )}
-                </div>
-                <div className="p-2">
-                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
+
                   {video.duration && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
                       {formatDuration(video.duration)}
+                      </div>
+                    )}
+
+                    {videoLink && (
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="bg-white dark:bg-gray-900 rounded-full p-1.5 shadow-lg">
+                          <ExternalLink className="w-4 h-4 text-blue-500" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 space-y-3">
+                    <h5 className="font-semibold text-sm line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                      {video.title || video.video_no || `Video ${idx + 1}`}
+                    </h5>
+
+                    {video.creator && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        @{video.creator}
                     </p>
                   )}
+
+                    {hasStats && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t">
                   {video.view_count && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {(video.view_count / 1000).toFixed(0)}K views
-                    </p>
-                  )}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <Eye className="w-3.5 h-3.5 text-gray-500" />
+                            <span className="font-medium">{formatCount(video.view_count)}</span>
+                            <span className="text-gray-500">views</span>
+                          </div>
+                        )}
+                        {video.like_count && (
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <Heart className="w-3.5 h-3.5 text-red-500" />
+                            <span className="font-medium">{formatCount(video.like_count)}</span>
+                            <span className="text-gray-500">likes</span>
                 </div>
-              </Card>
-            ))}
+                        )}
+                        {video.comment_count && (
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
+                            <span className="font-medium">{formatCount(video.comment_count)}</span>
+                            <span className="text-gray-500">comments</span>
           </div>
+                        )}
+                        {video.share_count && (
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <Share2 className="w-3.5 h-3.5 text-green-500" />
+                            <span className="font-medium">{formatCount(video.share_count)}</span>
+                            <span className="text-gray-500">shares</span>
+                          </div>
+                        )}
         </div>
       )}
 
-      {/* Comparison Analysis */}
+                    <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                      <span className="font-mono">{video.video_no}</span>
+                      {videoLink && (
+                        <span className="text-blue-500 group-hover:underline">Watch →</span>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </a>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Comparison Analysis Section */}
       <div className="space-y-3">
-        <h4 className="font-semibold">Comparison Analysis</h4>
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-blue-500" />
+          Comparison Analysis
+        </h4>
 
         {data.summary && (
-          <p className="text-sm text-gray-700 dark:text-gray-300">{data.summary}</p>
+          <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-lg border-l-4 border-yellow-500">
+            <p className="text-sm font-medium">{data.summary}</p>
+          </div>
         )}
 
-        {/* Render comparison analysis (text format from chat_with_video) */}
         {comparison && typeof comparison === 'string' && (
           <div className="prose prose-sm dark:prose-invert max-w-none">
-            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
+            <div className="p-5 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+              <Markdown className="text-sm leading-relaxed [&>:first-child]:mt-0 [&>:last-child]:mb-0">
               {comparison}
+              </Markdown>
             </div>
           </div>
         )}
         
-        {/* Fallback for legacy structured format */}
         {comparison && typeof comparison === 'object' && (
-          <div className="overflow-x-auto">
-            <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded">
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <pre className="text-xs overflow-x-auto">
               {JSON.stringify(comparison, null, 2)}
             </pre>
           </div>
@@ -335,20 +594,24 @@ function VideoComparisonDisplay({ data }: { data: any }) {
   );
 }
 
-// Video Query Display
+// Video Query Display - UPGRADED TO PREMIUM QUALITY 🔥
 function VideoQueryDisplay({ data }: { data: any }) {
   const answer = data.answer || '';
-  const video = data.video; // Video metadata for rendering
+  const video = data.video;
   const refs = data.refs || [];
   const timestamps = data.timestamps || [];
   const confidence = data.confidence || 0;
 
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url;
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Video Player Section */}
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Video Player Section - Enhanced */}
       {video && (
-        <Card className="overflow-hidden">
-          <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+        <Card className="overflow-hidden border-2 border-blue-200 dark:border-blue-800">
+          <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
             {video.url ? (
               <iframe
                 src={video.url}
@@ -356,172 +619,341 @@ function VideoQueryDisplay({ data }: { data: any }) {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
-            ) : video.thumbnail_url ? (
+            ) : video.thumbnail_url || video.cover_url ? (
               <img
-                src={video.thumbnail_url}
+                src={video.thumbnail_url || video.cover_url}
                 alt={video.title}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Play className="w-12 h-12 text-gray-400" />
+                <Play className="w-16 h-16 text-gray-400" />
+              </div>
+            )}
+              {video.duration && (
+              <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatDuration(video.duration)}
               </div>
             )}
           </div>
-          <div className="p-3 border-t">
-            <h5 className="text-sm font-medium mb-1">{video.title || video.video_no}</h5>
-            <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-              {video.duration && (
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatDuration(video.duration)}
-                </span>
-              )}
-              {video.view_count && (
-                <span>{(video.view_count / 1000).toFixed(0)}K views</span>
-              )}
-              {video.like_count && (
-                <span>{(video.like_count / 1000).toFixed(0)}K likes</span>
-              )}
-            </div>
+          <div className="p-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-t-2 border-blue-200 dark:border-blue-800">
+            <h5 className="text-base font-semibold mb-2">{video.title || video.video_no}</h5>
+            {getVideoLink(video) && (
+              <a
+                href={getVideoLink(video)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Watch on platform →
+              </a>
+            )}
           </div>
         </Card>
       )}
 
-      {/* Q&A Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold">Video Q&A</h4>
+      {/* Q&A Header with Badges */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-blue-500" />
+          Video Q&A
+        </h4>
+        <div className="flex items-center gap-2">
           {confidence > 0 && (
-            <Badge variant="secondary">
+            <Badge variant="secondary" className="text-sm px-3 py-1">
               {(confidence * 100).toFixed(0)}% confidence
             </Badge>
           )}
           {data.session_id && (
-            <Badge variant="outline" className="text-xs">
-              <MessageSquare className="w-3 h-3 mr-1" />
-              Session Active
+            <Badge variant="outline" className="text-sm px-3 py-1 flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" />
+              Conversation Mode
             </Badge>
           )}
         </div>
+        </div>
 
+      {/* Question Box */}
         {data.question && (
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              Q: {data.question}
+        <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-xl border-l-4 border-blue-500 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-sm">Q</span>
+            </div>
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100 pt-1">
+              {data.question}
             </p>
+          </div>
           </div>
         )}
 
-        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-          <p className="text-sm whitespace-pre-wrap">{answer}</p>
+      {/* Answer Box with Markdown */}
+      {answer && (
+        <div className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl border-l-4 border-green-500 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-sm">A</span>
         </div>
+            <div className="prose prose-sm dark:prose-invert max-w-none flex-1 pt-1">
+              <Markdown className="text-sm [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                {answer}
+              </Markdown>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* Timestamp References from refs array */}
+      {/* Timestamp References - Enhanced */}
         {refs.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-              Referenced Moments:
-            </span>
+        <div className="space-y-3">
+          <h5 className="text-base font-semibold flex items-center gap-2">
+            🎬 Referenced Moments ({refs.length})
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {refs.map((ref: any, idx: number) => {
               const refItems = ref.refItems || [];
               return refItems.map((item: any, itemIdx: number) => (
-                <div key={`${idx}-${itemIdx}`} className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
-                  <Badge variant="outline" className="text-xs mb-1">
-                    {item.startTime}s - {item.endTime || item.startTime}s
+                <div key={`${idx}-${itemIdx}`} className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border-l-2 border-purple-400">
+                  <Badge variant="outline" className="text-xs mb-1 font-mono">
+                    ⏱️ {item.startTime}s - {item.endTime || item.startTime}s
                   </Badge>
-                  {item.text && <p className="text-xs mt-1">{item.text}</p>}
+                  {item.text && <p className="text-sm mt-2">{item.text}</p>}
                 </div>
               ));
             })}
+          </div>
           </div>
         )}
 
         {/* Legacy timestamp format */}
         {timestamps.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            <span className="text-xs text-gray-600 dark:text-gray-400">Relevant moments:</span>
+          <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">Relevant moments:</span>
             {timestamps.map((ts: any, idx: number) => (
-              <Badge key={idx} variant="outline" className="text-xs">
-                {ts.timestamp || ts}
+            <Badge key={idx} variant="outline" className="text-xs font-mono">
+              ⏱️ {ts.timestamp || ts}
               </Badge>
             ))}
           </div>
         )}
 
         {data.conversation_hint && (
-          <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+            <span className="text-base">💡</span>
             {data.conversation_hint}
           </p>
+        </div>
         )}
-      </div>
     </div>
   );
 }
 
-// Video Upload Display
+// Video Upload Display - UPGRADED TO PREMIUM QUALITY 🔥
 function VideoUploadDisplay({ data }: { data: any }) {
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url;
+  };
+
+  const video = data.video || data;
+  const videoLink = getVideoLink(video);
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-          <Play className="w-4 h-4 text-green-600 dark:text-green-400" />
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Success Message */}
+      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl border-2 border-green-200 dark:border-green-800 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+            <Video className="w-5 h-5 text-white" />
         </div>
-        <div>
-          <h4 className="font-semibold">{data.title}</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{data.message}</p>
+          <div className="flex-1">
+            <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+              {data.title || 'Video Uploaded Successfully!'}
+            </h4>
+            <p className="text-sm text-green-800 dark:text-green-200">
+              {data.message || 'Your video has been uploaded and is ready for analysis'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {(data.video_url || data.thumbnail_url) && (
-        <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded overflow-hidden">
-          {data.video_url ? (
+      {/* Video Preview Card */}
+      {(data.video_url || data.thumbnail_url || video.url) && (
+        <Card className="overflow-hidden border-2 border-green-200 dark:border-green-800">
+          <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+            {data.video_url || video.url ? (
             <iframe
-              src={data.video_url}
+                src={data.video_url || video.url}
               className="w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              title={data.title}
+                title={data.title || 'Uploaded Video'}
             />
           ) : (
-            <img src={data.thumbnail_url} alt={data.title} className="w-full h-full object-cover" />
-          )}
+              <img 
+                src={data.thumbnail_url || video.thumbnail_url} 
+                alt={data.title || 'Video thumbnail'} 
+                className="w-full h-full object-cover" 
+              />
+            )}
+
+            {(data.duration_seconds || video.duration) && (
+              <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDuration(data.duration_seconds || video.duration)}
         </div>
       )}
+          </div>
 
-      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+          <div className="p-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-t-2 border-green-200 dark:border-green-800">
+            <h5 className="text-base font-semibold mb-3">
+              {video.title || data.video_name || data.video_no || 'Uploaded Video'}
+            </h5>
+
+            {/* Metadata Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
         {data.platform && (
-          <Badge variant="secondary">{data.platform}</Badge>
-        )}
-        {data.duration_seconds && (
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {formatDuration(data.duration_seconds)}
-          </span>
-        )}
+                <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                  <Video className="w-4 h-4 text-purple-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Platform</p>
+                    <p className="text-sm font-bold">{data.platform}</p>
+                  </div>
+                </div>
+              )}
+              
+              {data.video_no && (
+                <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                  <span className="text-xs text-gray-500">Video ID</span>
+                  <p className="text-xs font-mono font-bold">{data.video_no}</p>
+                </div>
+              )}
+
         {data.saved_to_kb && (
-          <Badge variant="outline" className="text-green-600 dark:text-green-400">
-            <Save className="w-3 h-3 mr-1" />
+                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <Save className="w-4 h-4 text-green-600" />
+                  <div>
+                    <p className="text-xs text-green-600 dark:text-green-400 font-medium">
             Saved to KB
-          </Badge>
+                    </p>
+                  </div>
+                </div>
         )}
       </div>
+
+            {/* Stats if available */}
+            {(video.view_count || video.like_count || video.comment_count || video.share_count) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 pt-3 border-t">
+                {video.view_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Eye className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Views</p>
+                      <p className="text-sm font-bold">{formatCount(video.view_count)}</p>
+                    </div>
+                  </div>
+                )}
+                {video.like_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Heart className="w-4 h-4 text-red-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Likes</p>
+                      <p className="text-sm font-bold">{formatCount(video.like_count)}</p>
+                    </div>
+                  </div>
+                )}
+                {video.comment_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <MessageCircle className="w-4 h-4 text-blue-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Comments</p>
+                      <p className="text-sm font-bold">{formatCount(video.comment_count)}</p>
+                    </div>
+                  </div>
+                )}
+                {video.share_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Share2 className="w-4 h-4 text-green-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Shares</p>
+                      <p className="text-sm font-bold">{formatCount(video.share_count)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {videoLink && (
+              <a
+                href={videoLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Watch on platform →
+              </a>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Next Steps */}
+      {data.action_hint && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+            <span className="text-base">💡</span>
+            {data.action_hint}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-// Transcript Display
+// Transcript Display - UPGRADED TO PREMIUM QUALITY 🔥
 function TranscriptDisplay({ data }: { data: any }) {
   const transcript = data.transcript || '';
   const wordCount = data.word_count || 0;
   const video = data.video || {};
 
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url;
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Video Player */}
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-white dark:bg-gray-950 pb-3 border-b">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-purple-500" />
+          Video Transcript
+        </h4>
+        <Badge variant="secondary" className="text-sm px-3 py-1">
+          {wordCount.toLocaleString()} words
+        </Badge>
+      </div>
+
+      {/* Video Player Card */}
       {video.url && (
-        <Card className="overflow-hidden">
-          <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+        <Card className="overflow-hidden border-2 border-purple-200 dark:border-purple-800">
+          <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
             <iframe
               src={video.url}
               className="w-full h-full"
@@ -529,102 +961,279 @@ function TranscriptDisplay({ data }: { data: any }) {
               allowFullScreen
               title={video.title || 'Video'}
             />
+            {video.duration && (
+              <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDuration(video.duration)}
           </div>
-          {video.title && (
-            <div className="p-3 border-t">
-              <h5 className="text-sm font-medium">{video.title}</h5>
+            )}
+          </div>
+          
+          <div className="p-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-t-2 border-purple-200 dark:border-purple-800">
+            <h5 className="text-base font-semibold mb-3">{video.title || video.video_no || 'Video'}</h5>
+            
+            {/* Stats Grid */}
+            {(video.view_count || video.like_count || video.comment_count || video.share_count) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                {video.view_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Eye className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Views</p>
+                      <p className="text-sm font-bold">{formatCount(video.view_count)}</p>
+                    </div>
             </div>
           )}
+                {video.like_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Heart className="w-4 h-4 text-red-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Likes</p>
+                      <p className="text-sm font-bold">{formatCount(video.like_count)}</p>
+                    </div>
+                  </div>
+                )}
+                {video.comment_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <MessageCircle className="w-4 h-4 text-blue-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Comments</p>
+                      <p className="text-sm font-bold">{formatCount(video.comment_count)}</p>
+                    </div>
+                  </div>
+                )}
+                {video.share_count && (
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                    <Share2 className="w-4 h-4 text-green-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Shares</p>
+                      <p className="text-sm font-bold">{formatCount(video.share_count)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {getVideoLink(video) && (
+              <a
+                href={getVideoLink(video)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Watch on platform →
+              </a>
+            )}
+          </div>
         </Card>
       )}
 
-      {/* Transcript */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold">Transcript</h4>
-          <Badge variant="secondary">{wordCount} words</Badge>
+      {/* Transcript Content */}
+      {transcript && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h5 className="text-base font-semibold">Full Transcript</h5>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(transcript);
+              }}
+              className="text-xs"
+            >
+              📋 Copy
+            </Button>
         </div>
 
-        <div className="max-h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800 rounded">
-          <p className="text-sm whitespace-pre-wrap">{transcript}</p>
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl border-2 border-gray-200 dark:border-gray-700 max-h-[400px] overflow-y-auto">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800 dark:text-gray-200 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                {transcript}
+              </p>
         </div>
       </div>
+        </div>
+      )}
+
+      {!transcript && (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            No transcript available for this video.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-// Multi Video Search Display
+// Multi Video Search Display - UPGRADED TO PREMIUM QUALITY
 function MultiVideoSearchDisplay({ data }: { data: any }) {
   const analysis = data.analysis || '';
   const videosSearched = data.videos_searched || 0;
   const videos = data.videos || [];  // ✅ Video metadata for rendering
 
+  // Helper functions (same as TrendingContentDisplay)
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url || 
+           (video.video_no ? `https://www.tiktok.com/@unknown/video/${video.video_no}` : null);
+  };
+
+  const getThumbnail = (video: any) => {
+    return video.cover_url || video.thumbnail_url || video.img_url || video.cover;
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Video Grid */}
-      {videos.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold">Searched Videos ({videosSearched})</h4>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {videos.map((video: any, idx: number) => (
-              <Card key={idx} className="overflow-hidden">
-                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
-                  {video.url ? (
-                    <iframe
-                      src={video.url}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div className="p-2">
-                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
-                  {video.duration && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {formatDuration(video.duration)}
-                    </p>
-                  )}
-                </div>
-              </Card>
-            ))}
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Analysis Section - Show FIRST */}
+      {analysis && (
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 pb-4 border-b">
+          <h4 className="font-semibold mb-3 text-lg flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-blue-500" />
+            Multi-Video Search Results
+          </h4>
+          {data.query && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              <span className="font-medium">Query:</span> {data.query}
+            </p>
+          )}
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Markdown className="text-sm [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                {analysis}
+              </Markdown>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Search Results */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold">Search Results</h4>
+      {/* Video Grid - 2 COLUMNS with rich stats */}
+      {videos.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-semibold text-lg flex items-center gap-2">
+              <Video className="w-5 h-5 text-purple-500" />
+              Analyzed Videos ({videosSearched || videos.length})
+            </h4>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {videos.map((video: any, idx: number) => {
+              const videoLink = getVideoLink(video);
+              const thumbnail = getThumbnail(video);
+              const hasStats = video.view_count || video.like_count || video.share_count || video.comment_count;
+              
+              return (
+                <a 
+                  key={idx} 
+                  href={videoLink || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`group block ${!videoLink && 'pointer-events-none'}`}
+                >
+                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
+                    <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                      {thumbnail ? (
+                        <>
+                          <img
+                            src={thumbnail}
+                            alt={video.title || `Video ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                            </div>
+                          </div>
+                        </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                          <Play className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                      
+                  {video.duration && (
+                        <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                      {formatDuration(video.duration)}
+                        </div>
+                      )}
+                      
+                      {videoLink && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="bg-white dark:bg-gray-900 rounded-full p-1.5 shadow-lg">
+                            <ExternalLink className="w-4 h-4 text-blue-500" />
+          </div>
+        </div>
+      )}
         </div>
 
-        {data.query && (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Query: <span className="font-medium">{data.query}</span>
+                    <div className="p-4 space-y-3">
+                      <h5 className="font-semibold text-sm line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        {video.title || video.video_name || video.video_no || `Video ${idx + 1}`}
+                      </h5>
+                      
+                      {video.creator && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          @{video.creator}
           </p>
         )}
 
-        {/* Display analysis text */}
-        {analysis && (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
-              {analysis}
+                      {hasStats && (
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                          {video.view_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Eye className="w-3.5 h-3.5 text-gray-500" />
+                              <span className="font-medium">{formatCount(video.view_count)}</span>
+                              <span className="text-gray-500">views</span>
             </div>
+                          )}
+                          {video.like_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Heart className="w-3.5 h-3.5 text-red-500" />
+                              <span className="font-medium">{formatCount(video.like_count)}</span>
+                              <span className="text-gray-500">likes</span>
+                            </div>
+                          )}
+                          {video.comment_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
+                              <span className="font-medium">{formatCount(video.comment_count)}</span>
+                              <span className="text-gray-500">comments</span>
+                            </div>
+                          )}
+                          {video.share_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Share2 className="w-3.5 h-3.5 text-green-500" />
+                              <span className="font-medium">{formatCount(video.share_count)}</span>
+                              <span className="text-gray-500">shares</span>
+                            </div>
+                          )}
           </div>
         )}
 
-        {data.summary && (
-          <p className="text-xs text-gray-600 dark:text-gray-400 italic">
-            {data.summary}
-          </p>
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                        <span className="font-mono">{video.video_no}</span>
+                        {videoLink && (
+                          <span className="text-blue-500 group-hover:underline">Watch →</span>
         )}
       </div>
+                    </div>
+                  </Card>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -674,57 +1283,115 @@ function TaskStatusDisplay({ data }: { data: any }) {
   );
 }
 
-// Async Task Display (for analyze_creator, analyze_trend)
+// Async Task Display (for analyze_creator, analyze_trend) - UPGRADED TO PREMIUM QUALITY 🔥
 function AsyncTaskDisplay({ data }: { data: any }) {
   const taskId = data.task_id || '';
   const status = data.status || 'processing';
   const videos = data.videos || [];
   const analysis = data.analysis || '';
 
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url;
+  };
+
+  const getThumbnail = (video: any) => {
+    return video.cover_url || video.thumbnail_url || video.img_url || video.cover;
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Task Status */}
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Task Status Card */}
+      <div className="p-5 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-6 h-6 text-white animate-pulse" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-lg text-blue-900 dark:text-blue-100 mb-1">
+              {status === 'processing' ? 'Task In Progress...' : 'Task Started'}
+            </h4>
+            <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+              {data.message || 'Processing your request in the background'}
+            </p>
+            
+            {taskId && (
+              <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-          <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                  <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">Task ID:</span>
+                  <code className="text-xs bg-blue-100 dark:bg-blue-900/40 px-2 py-1 rounded font-mono">
+                    {taskId}
+                  </code>
         </div>
-        <div>
-          <h4 className="font-semibold">Task Started</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{data.message}</p>
+                <Badge 
+                  variant={status === 'completed' ? 'default' : 'secondary'}
+                  className={status === 'processing' ? 'animate-pulse' : ''}
+                >
+                  {status}
+                </Badge>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {taskId && (
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-          <p className="text-xs text-blue-900 dark:text-blue-100 mb-1">
-            Task ID: <span className="font-mono">{taskId}</span>
-          </p>
-          <p className="text-xs text-blue-800 dark:text-blue-200">
-            {data.action_hint || 'Use check_task_status with this task_id to monitor progress'}
+      {/* Action Hint */}
+      {data.action_hint && (
+        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <p className="text-xs text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+            <span className="text-base">💡</span>
+            {data.action_hint}
           </p>
         </div>
       )}
 
-      <Badge variant="secondary">{status}</Badge>
-
       {/* Analysis Results */}
       {analysis && (
-        <div className="space-y-3">
-          <h4 className="font-semibold">Analysis</h4>
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-            <p className="text-sm whitespace-pre-wrap">{analysis}</p>
+        <div>
+          <h4 className="font-semibold text-lg flex items-center gap-2 mb-3">
+            <TrendingUp className="w-5 h-5 text-purple-500" />
+            Analysis Results
+          </h4>
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="p-5 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl border-2 border-purple-200 dark:border-purple-800 shadow-sm">
+              <Markdown className="text-sm leading-relaxed [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                {analysis}
+              </Markdown>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Videos from Creator Analysis */}
+      {/* Videos Grid - 2 COLUMNS with rich stats */}
       {videos.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="font-semibold">Creator Videos ({videos.length})</h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {videos.map((video: any, idx: number) => (
-              <Card key={idx} className="overflow-hidden">
-                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
+        <div>
+          <h4 className="font-semibold text-lg flex items-center gap-2 mb-4">
+            <Video className="w-5 h-5 text-purple-500" />
+            Creator Videos ({videos.length})
+          </h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {videos.map((video: any, idx: number) => {
+              const videoLink = getVideoLink(video);
+              const thumbnail = getThumbnail(video);
+              const hasStats = video.view_count || video.like_count || video.share_count || video.comment_count;
+              
+              return (
+                <a
+                  key={idx}
+                  href={videoLink || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group block ${!videoLink && 'pointer-events-none'}`}
+                >
+                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
+                    <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
                   {video.url ? (
                     <iframe
                       src={video.url}
@@ -733,22 +1400,97 @@ function AsyncTaskDisplay({ data }: { data: any }) {
                       allowFullScreen
                       title={video.title}
                     />
+                      ) : thumbnail ? (
+                        <>
+                          <img
+                            src={thumbnail}
+                            alt={video.title}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                            </div>
+                          </div>
+                        </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-8 h-8 text-gray-400" />
+                          <Play className="w-12 h-12 text-gray-400" />
                     </div>
                   )}
-                </div>
-                <div className="p-2">
-                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
+
                   {video.duration && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
                       {formatDuration(video.duration)}
+                        </div>
+                      )}
+
+                      {videoLink && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="bg-white dark:bg-gray-900 rounded-full p-1.5 shadow-lg">
+                            <ExternalLink className="w-4 h-4 text-blue-500" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      <h5 className="font-semibold text-sm line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        {video.title || video.video_no || `Video ${idx + 1}`}
+                      </h5>
+
+                      {video.creator && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          @{video.creator}
                     </p>
                   )}
+
+                      {hasStats && (
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                          {video.view_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Eye className="w-3.5 h-3.5 text-gray-500" />
+                              <span className="font-medium">{formatCount(video.view_count)}</span>
+                              <span className="text-gray-500">views</span>
+                            </div>
+                          )}
+                          {video.like_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Heart className="w-3.5 h-3.5 text-red-500" />
+                              <span className="font-medium">{formatCount(video.like_count)}</span>
+                              <span className="text-gray-500">likes</span>
+                            </div>
+                          )}
+                          {video.comment_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
+                              <span className="font-medium">{formatCount(video.comment_count)}</span>
+                              <span className="text-gray-500">comments</span>
+                            </div>
+                          )}
+                          {video.share_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Share2 className="w-3.5 h-3.5 text-green-500" />
+                              <span className="font-medium">{formatCount(video.share_count)}</span>
+                              <span className="text-gray-500">shares</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                        <span className="font-mono">{video.video_no}</span>
+                        {videoLink && (
+                          <span className="text-blue-500 group-hover:underline">Watch →</span>
+                        )}
+                      </div>
                 </div>
               </Card>
-            ))}
+                </a>
+              );
+            })}
           </div>
         </div>
       )}
@@ -762,70 +1504,183 @@ function TrendingContentDisplay({ data }: { data: any }) {
   const videos = data.videos || [];  // ✅ Match backend field name
   const platform = data.platform || 'TIKTOK';
 
-  return (
-    <div className="space-y-4">
-      {/* Referenced Videos Grid */}
-      {videos.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold">Trending Videos ({videos.length})</h4>
-            <Badge variant="secondary">{platform}</Badge>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {videos.map((video: any, idx: number) => (
-              <Card key={idx} className="overflow-hidden">
-                <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
-                  {video.url ? (
-                    <iframe
-                      src={video.url}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div className="p-2">
-                  <p className="text-xs font-medium line-clamp-2">{video.title}</p>
-                  {video.duration && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {formatDuration(video.duration)}
-                    </p>
-                  )}
-                  {video.view_count && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {(video.view_count / 1000).toFixed(0)}K views
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-mono">
-                    {video.video_no}
-                  </p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+  // Helper to format large numbers
+  const formatCount = (count: number | undefined) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
 
-      {/* Analysis Section */}
+  // Helper to get video link (try multiple possible fields)
+  const getVideoLink = (video: any) => {
+    return video.web_url || video.share_url || video.video_url || video.url || 
+           (video.video_no ? `https://www.tiktok.com/@unknown/video/${video.video_no}` : null);
+  };
+
+  // Helper to get thumbnail (try multiple possible fields)
+  const getThumbnail = (video: any) => {
+    return video.cover_url || video.thumbnail_url || video.img_url || video.cover;
+  };
+
+  return (
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+      {/* Analysis Section - Show FIRST for better UX */}
       {analysis && (
-        <div>
-          <h4 className="font-semibold mb-2">Trending Analysis</h4>
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 pb-4 border-b">
+          <h4 className="font-semibold mb-3 text-lg flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-blue-500" />
+            Trending Analysis
+          </h4>
           <div className="prose prose-sm dark:prose-invert max-w-none">
-            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm whitespace-pre-wrap">
-              {analysis}
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Markdown className="text-sm [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                {analysis}
+              </Markdown>
             </div>
           </div>
         </div>
       )}
 
+      {/* Referenced Videos Grid - 2 COLUMNS with rich stats */}
+      {videos.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-semibold text-lg flex items-center gap-2">
+              <Video className="w-5 h-5 text-purple-500" />
+              Trending Videos ({videos.length})
+            </h4>
+            <Badge variant="secondary" className="text-sm px-3 py-1">
+              {platform}
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {videos.map((video: any, idx: number) => {
+              const videoLink = getVideoLink(video);
+              const thumbnail = getThumbnail(video);
+              const hasStats = video.view_count || video.like_count || video.share_count || video.comment_count;
+              
+              return (
+                <a 
+                  key={idx} 
+                  href={videoLink || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`group block ${!videoLink && 'pointer-events-none'}`}
+                >
+                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 hover:border-purple-400 dark:hover:border-purple-600">
+                    {/* Thumbnail with overlay */}
+                    <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                      {thumbnail ? (
+                        <>
+                          <img
+                            src={thumbnail}
+                            alt={video.title || `Video ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Play className="w-16 h-16 text-white drop-shadow-lg" />
+                            </div>
+                          </div>
+                        </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                          <Play className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                      
+                      {/* Duration badge */}
+                  {video.duration && (
+                        <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                      {formatDuration(video.duration)}
+                        </div>
+                      )}
+                      
+                      {/* External link indicator */}
+                      {videoLink && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="bg-white dark:bg-gray-900 rounded-full p-1.5 shadow-lg">
+                            <ExternalLink className="w-4 h-4 text-blue-500" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Video info */}
+                    <div className="p-4 space-y-3">
+                      {/* Title */}
+                      <h5 className="font-semibold text-sm line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        {video.title || video.video_name || video.video_no || `Video ${idx + 1}`}
+                      </h5>
+                      
+                      {/* Creator */}
+                      {video.creator && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          @{video.creator}
+                    </p>
+                  )}
+                      
+                      {/* Stats Grid */}
+                      {hasStats && (
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                  {video.view_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Eye className="w-3.5 h-3.5 text-gray-500" />
+                              <span className="font-medium">{formatCount(video.view_count)}</span>
+                              <span className="text-gray-500">views</span>
+                            </div>
+                          )}
+                          {video.like_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Heart className="w-3.5 h-3.5 text-red-500" />
+                              <span className="font-medium">{formatCount(video.like_count)}</span>
+                              <span className="text-gray-500">likes</span>
+                </div>
+                          )}
+                          {video.comment_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
+                              <span className="font-medium">{formatCount(video.comment_count)}</span>
+                              <span className="text-gray-500">comments</span>
+          </div>
+                          )}
+                          {video.share_count && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Share2 className="w-3.5 h-3.5 text-green-500" />
+                              <span className="font-medium">{formatCount(video.share_count)}</span>
+                              <span className="text-gray-500">shares</span>
+                            </div>
+                          )}
+        </div>
+      )}
+
+                      {/* Additional metadata */}
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                        <span className="font-mono">{video.video_no}</span>
+                        {videoLink && (
+                          <span className="text-blue-500 group-hover:underline">Watch →</span>
+                        )}
+            </div>
+                    </div>
+                  </Card>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {data.conversation_hint && (
-        <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+            <span className="text-base">💡</span>
           {data.conversation_hint}
         </p>
+        </div>
       )}
     </div>
   );
@@ -970,7 +1825,7 @@ function DefaultDisplay({ data }: { data: any }) {
   
   // If we have ANY renderable content, show it beautifully
   if (hasVideos || hasAnalysis || hasSingleVideo) {
-    return (
+  return (
       <div className="space-y-4">
         {/* Single Video Display (for video-specific operations) */}
         {hasSingleVideo && !hasVideos && (
@@ -1135,12 +1990,13 @@ function DefaultDisplay({ data }: { data: any }) {
             Show technical details
           </summary>
           <pre className="text-xs mt-2 p-2 bg-white dark:bg-gray-950 rounded overflow-x-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        {JSON.stringify(data, null, 2)}
+      </pre>
         </details>
       )}
     </div>
   );
 }
+
 
 

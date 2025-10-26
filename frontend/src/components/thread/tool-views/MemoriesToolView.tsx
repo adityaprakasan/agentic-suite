@@ -66,7 +66,7 @@ export function MemoriesToolView({
   console.log('[MemoriesToolView] Tool output:', toolResult.toolOutput);
   
   return (
-    <div className="p-4">
+    <div className="p-4 max-h-[85vh] overflow-y-auto">
       <MemoriesToolRenderer
         result={{
           success: toolResult.isSuccess,
