@@ -261,6 +261,14 @@ class MemoriesTool(Tool):
             if error := self._check_client_initialized():
                 return error
             
+            # DEFENSIVE: Convert parameters to strings if they're lists
+            if isinstance(url, list):
+                url = url[0] if url else ""
+                logger.warning(f"URL was passed as list, using first item: {url}")
+            if isinstance(title, list):
+                title = " ".join(str(t) for t in title)
+                logger.warning(f"Title was passed as list, converted to: {title}")
+            
             user_id = await self._get_memories_user_id()
             
             # Determine platform from URL
@@ -748,6 +756,15 @@ class MemoriesTool(Tool):
             if error := self._check_client_initialized():
                 return error
             
+            # DEFENSIVE: Convert parameters to strings if they're lists (shouldn't happen, but handle it)
+            if isinstance(query, list):
+                query = " ".join(str(q) for q in query)
+                logger.warning(f"Query was passed as list, converted to: {query}")
+            
+            if isinstance(platform, list):
+                platform = platform[0] if platform else "tiktok"
+                logger.warning(f"Platform was passed as list, using first item: {platform}")
+            
             # Map platform names to API format
             platform_map = {
                 'tiktok': 'TIKTOK',
@@ -933,6 +950,14 @@ class MemoriesTool(Tool):
             # Check client initialization
             if error := self._check_client_initialized():
                 return error
+            
+            # DEFENSIVE: Convert parameters to strings if they're lists
+            if isinstance(creator_url, list):
+                creator_url = creator_url[0] if creator_url else ""
+                logger.warning(f"creator_url was passed as list, using first item: {creator_url}")
+            if isinstance(video_count, list):
+                video_count = int(video_count[0]) if video_count else 10
+                logger.warning(f"video_count was passed as list, using first item: {video_count}")
             
             user_id = await self._get_memories_user_id()
             
@@ -1193,6 +1218,14 @@ class MemoriesTool(Tool):
             # Check client initialization
             if error := self._check_client_initialized():
                 return error
+            
+            # DEFENSIVE: Convert parameters to strings if they're lists
+            if isinstance(query, list):
+                query = " ".join(str(q) for q in query)
+                logger.warning(f"Query was passed as list, converted to: {query}")
+            if isinstance(platform, list):
+                platform = platform[0] if platform else "TIKTOK"
+                logger.warning(f"Platform was passed as list, using first item: {platform}")
             
             user_id = await self._get_memories_user_id()
             agent_config = getattr(self.thread_manager, 'agent_config', {})
