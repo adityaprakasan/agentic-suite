@@ -201,8 +201,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-                return error
-            
+            return error
+        
         try:
             # Defensive type handling
             if isinstance(query, list):
@@ -255,7 +255,7 @@ class MemoriesTool(Tool):
                 }
             )
             
-            except Exception as e:
+        except Exception as e:
             logger.error(f"Error searching {platform}: {str(e)}")
             return ToolResult(
                 success=False,
