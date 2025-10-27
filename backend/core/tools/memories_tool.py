@@ -365,7 +365,7 @@ class MemoriesTool(Tool):
                 # Still processing, wait and retry
                 await asyncio.sleep(poll_interval)
                 
-                except Exception as e:
+            except Exception as e:
                 logger.error(f"Error polling task {task_id}: {str(e)}")
                 await asyncio.sleep(poll_interval)
         
