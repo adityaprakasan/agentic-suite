@@ -81,6 +81,20 @@ export function MemoriesToolView({
     );
   }
 
+  // Retrieve agent explanation from sessionStorage
+  // Use timestamp + name as composite key since we don't have messageId
+  const storageKeys = Object.keys(sessionStorage).filter(key => key.startsWith('memories-explanation-'));
+  let agentExplanation: string | undefined;
+  
+  // Try to find the most recent explanation (last one stored)
+  if (storageKeys.length > 0) {
+    const lastKey = storageKeys[storageKeys.length - 1];
+    agentExplanation = sessionStorage.getItem(lastKey) || undefined;
+    // Clean up to prevent memory leaks
+    sessionStorage.removeItem(lastKey);
+    console.log('[MemoriesToolView] Retrieved agent explanation:', agentExplanation?.substring(0, 100));
+  }
+
   // Use MemoriesToolRenderer for rich video display with persistent header
   const methodName = toolResult.toolName || toolResult.functionName || name;
   console.log('[MemoriesToolView] Rendering with method_name:', methodName);
@@ -101,6 +115,7 @@ export function MemoriesToolView({
           output: toolResult.toolOutput || extracted,
           method_name: methodName,
         }}
+        agentExplanation={agentExplanation}
       />
     </ToolViewWrapper>
   );

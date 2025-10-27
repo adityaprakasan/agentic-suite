@@ -23,6 +23,7 @@ interface MemoriesToolRendererProps {
     output: any;
     method_name?: string;
   };
+  agentExplanation?: string;
 }
 
 // Helper function to format large numbers
@@ -323,7 +324,7 @@ function CreatorUploadResults({ data }: { data: any }) {
 }
 
 // Main Renderer
-export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
+export function MemoriesToolRenderer({ result, agentExplanation }: MemoriesToolRendererProps) {
   const { output, method_name } = result;
 
   if (!result.success) {
@@ -339,38 +340,78 @@ export function MemoriesToolRenderer({ result }: MemoriesToolRendererProps) {
   // Normalize method name
   const normalizedMethod = method_name?.replace(/-/g, '_')?.toLowerCase();
 
+  // Render agent explanation if provided
+  const explanationSection = agentExplanation && (
+    <div className="mb-4 text-sm text-zinc-700 dark:text-zinc-300 prose prose-sm dark:prose-invert max-w-none">
+      <Markdown>{agentExplanation}</Markdown>
+    </div>
+  );
+
   // Route to appropriate renderer
   switch (normalizedMethod) {
     case 'search_platform_videos':
-      return <PlatformSearchResults data={output} />;
+      return (
+        <>
+          {explanationSection}
+          <PlatformSearchResults data={output} />
+        </>
+      );
     
     case 'video_marketer_chat':
     case 'chat_with_videos':
-      return <VideoMarketerDisplay data={output} />;
+      return (
+        <>
+          {explanationSection}
+          <VideoMarketerDisplay data={output} />
+        </>
+      );
     
     case 'upload_creator_videos':
     case 'upload_hashtag_videos':
-      return <CreatorUploadResults data={output} />;
+      return (
+        <>
+          {explanationSection}
+          <CreatorUploadResults data={output} />
+        </>
+      );
     
     default:
       // Fallback: try to auto-detect based on output structure
       if (output?.thinkings || output?.refs) {
-        return <VideoMarketerDisplay data={output} />;
+        return (
+          <>
+            {explanationSection}
+            <VideoMarketerDisplay data={output} />
+          </>
+        );
       }
       if (output?.videos && Array.isArray(output.videos)) {
         if (output.creator || output.hashtags) {
-          return <CreatorUploadResults data={output} />;
+          return (
+            <>
+              {explanationSection}
+              <CreatorUploadResults data={output} />
+            </>
+          );
         }
-        return <PlatformSearchResults data={output} />;
+        return (
+          <>
+            {explanationSection}
+            <PlatformSearchResults data={output} />
+          </>
+        );
       }
       
       // Generic fallback
-  return (
-        <div className="p-4 rounded-lg bg-muted">
-          <pre className="text-xs overflow-auto">
-            {JSON.stringify(output, null, 2)}
-      </pre>
-    </div>
-  );
-}
+      return (
+        <>
+          {explanationSection}
+          <div className="p-4 rounded-lg bg-muted">
+            <pre className="text-xs overflow-auto">
+              {JSON.stringify(output, null, 2)}
+            </pre>
+          </div>
+        </>
+      );
+  }
 }

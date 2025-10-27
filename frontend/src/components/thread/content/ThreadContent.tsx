@@ -981,6 +981,13 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
                                                                             if (functionCallsIndex !== -1) {
                                                                                 detectedTag = 'function_calls';
                                                                                 tagStartIndex = functionCallsIndex;
+                                                                                
+                                                                                // Store agent explanation text for Memories.ai tool renderer
+                                                                                const agentExplanation = textToRender.substring(0, functionCallsIndex).trim();
+                                                                                if (agentExplanation) {
+                                                                                    const messageId = visibleMessages && visibleMessages.length > 0 ? visibleMessages[visibleMessages.length - 1].message_id : 'streaming';
+                                                                                    sessionStorage.setItem(`memories-explanation-${messageId}`, agentExplanation);
+                                                                                }
                                                                             } else {
                                                                                 // Check for partial XML tags at the end (e.g., "<function", "<antml", "<", etc.)
                                                                                 // This prevents showing incomplete XML during streaming
@@ -1024,12 +1031,8 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
 
                                                                         return (
                                                                             <>
-                                                                                <StreamingText
-                                                                                    content={textBeforeTag}
-                                                                                    className="text-sm prose prose-sm dark:prose-invert chat-markdown max-w-none [&>:first-child]:mt-0 prose-headings:mt-3 break-words overflow-wrap-anywhere"
-                                                                                />
-
-                                                                                {detectedTag && detectedTag !== 'partial' && (
+                                                                                {detectedTag === 'function_calls' ? (
+                                                                                    // Just show tool stream, hide explanatory text to prevent duplication
                                                                                     <ShowToolStream
                                                                                         content={textToRender.substring(tagStartIndex)}
                                                                                         messageId={visibleMessages && visibleMessages.length > 0 ? visibleMessages[visibleMessages.length - 1].message_id : "playback-streaming"}
@@ -1037,6 +1040,24 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
                                                                                         showExpanded={true}
                                                                                         startTime={Date.now()}
                                                                                     />
+                                                                                ) : (
+                                                                                    // Normal streaming text (no tool call yet)
+                                                                                    <>
+                                                                                        <StreamingText
+                                                                                            content={textBeforeTag}
+                                                                                            className="text-sm prose prose-sm dark:prose-invert chat-markdown max-w-none [&>:first-child]:mt-0 prose-headings:mt-3 break-words overflow-wrap-anywhere"
+                                                                                        />
+
+                                                                                        {detectedTag && detectedTag !== 'partial' && (
+                                                                                            <ShowToolStream
+                                                                                                content={textToRender.substring(tagStartIndex)}
+                                                                                                messageId={visibleMessages && visibleMessages.length > 0 ? visibleMessages[visibleMessages.length - 1].message_id : "playback-streaming"}
+                                                                                                onToolClick={handleToolClick}
+                                                                                                showExpanded={true}
+                                                                                                startTime={Date.now()}
+                                                                                            />
+                                                                                        )}
+                                                                                    </>
                                                                                 )}
                                                                             </>
                                                                         );
