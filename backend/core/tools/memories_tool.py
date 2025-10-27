@@ -144,8 +144,8 @@ class MemoriesTool(Tool):
                 # get_public_video_detail is not listed in rate limits docs, so it's severely limited
                 if i < len(video_nos) - 1:
                     await asyncio.sleep(2.0)  # 2 second delay - API rate limits are very strict
-            
-        except Exception as e:
+                    
+            except Exception as e:
                 logger.error(f"Error fetching video {video_no}: {str(e)}")
                 continue
     
