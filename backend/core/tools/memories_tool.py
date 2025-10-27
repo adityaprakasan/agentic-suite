@@ -57,32 +57,18 @@ class MemoriesTool(Tool):
             )
         return None
     
-    async def _fetch_video_detail(self, video_no: str, retry_count: int = 0) -> Optional[Dict[str, Any]]:
-        """Fetch full metadata for a single video with retry logic"""
-        max_retries = 3
+    async def _fetch_video_detail(self, video_no: str) -> Optional[Dict[str, Any]]:
+        """Fetch full metadata for a single video"""
         try:
             response = await asyncio.to_thread(
                 self.memories_client.get_public_video_detail,
                 video_no
             )
-            
-            # Check for rate limit error
-            if response.get('code') == '0429':
-                if retry_count < max_retries:
-                    # Exponential backoff: 2s, 4s, 8s
-                    wait_time = 2 ** (retry_count + 1)
-                    logger.warning(f"Rate limited on {video_no}, retrying in {wait_time}s (attempt {retry_count + 1}/{max_retries})")
-                    await asyncio.sleep(wait_time)
-                    return await self._fetch_video_detail(video_no, retry_count + 1)
-                else:
-                    logger.error(f"Rate limit exceeded for {video_no} after {max_retries} retries")
-                    return None
-            
             if response.get('code') == '0000' and response.get('data'):
                 data = response['data']
                 
                 # Build standardized video object
-                return {
+            return {
                     'video_no': data.get('video_no', ''),
                     'title': data.get('video_name', 'Untitled'),
                     'creator': data.get('blogger_id', 'Unknown'),
@@ -155,11 +141,11 @@ class MemoriesTool(Tool):
                     videos.append(result)
                 
                 # Add delay between requests to avoid rate limiting (except for last video)
-                # Rate limit: Search API = 10 QPS, so 2 second delay is safe
+                # get_public_video_detail is not listed in rate limits docs, so it's severely limited
                 if i < len(video_nos) - 1:
-                    await asyncio.sleep(2.0)  # 2 second delay to respect rate limits (Search: 10 QPS)
-            
-        except Exception as e:
+                    await asyncio.sleep(2.0)  # 2 second delay - API rate limits are very strict
+                    
+            except Exception as e:
                 logger.error(f"Error fetching video {video_no}: {str(e)}")
                 continue
     
@@ -182,10 +168,10 @@ class MemoriesTool(Tool):
                     "description": "Platform to search (default: TIKTOK)"
                 },
                 "top_k": {
-                        "type": "integer",
+                    "type": "integer",
                     "default": 5,
-                    "description": "Number of results to return (default: 5, max: 10)"
-                    }
+                    "description": "Number of results to return (default: 5, max recommended: 5 due to API rate limits)"
+                }
                 },
             "required": ["query"]
         }
@@ -313,7 +299,7 @@ class MemoriesTool(Tool):
                 platform=platform
             )
             
-            # Extract data (response IS already the data object from client)
+            # Extract data (response IS already the data from marketer_chat)
             role = response.get('role', 'ASSISTANT')
             content = response.get('content', '')
             thinkings = response.get('thinkings', [])
@@ -378,7 +364,7 @@ class MemoriesTool(Tool):
                 # Still processing, wait and retry
                 await asyncio.sleep(poll_interval)
                 
-                except Exception as e:
+            except Exception as e:
                 logger.error(f"Error polling task {task_id}: {str(e)}")
                 await asyncio.sleep(poll_interval)
         
@@ -443,8 +429,8 @@ class MemoriesTool(Tool):
             # Wait for task to complete (blocking)
             videos_data = await self._wait_for_task(task_id, max_wait=180)
             
-            # Fetch full details for all videos (API returns 'video_no' in task status)
-            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if v.get('video_no') or v.get('videoNo')]
+            # Fetch full details for all videos (API returns 'video_no' in some responses, 'videoNo' in others)
+            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if (v.get('video_no') or v.get('videoNo'))]
             videos = await self._fetch_all_video_details(video_nos)
             
             logger.info(f"Creator upload complete: {len(videos)} videos indexed")
@@ -530,8 +516,8 @@ class MemoriesTool(Tool):
             # Wait for task to complete (blocking)
             videos_data = await self._wait_for_task(task_id, max_wait=180)
             
-            # Fetch full details for all videos (API returns 'video_no' in task status)
-            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if v.get('video_no') or v.get('videoNo')]
+            # Fetch full details for all videos (API returns 'video_no' in some responses, 'videoNo' in others)
+            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if (v.get('video_no') or v.get('videoNo'))]
             videos = await self._fetch_all_video_details(video_nos)
             
             logger.info(f"Hashtag upload complete: {len(videos)} videos indexed")
@@ -610,7 +596,7 @@ class MemoriesTool(Tool):
                 prompt=prompt
             )
             
-            # Extract data (response IS already the data object from client)
+            # Extract data (response IS already the data from chat_with_video)
             role = response.get('role', 'ASSISTANT')
             content = response.get('content', '')
             thinkings = response.get('thinkings', [])
