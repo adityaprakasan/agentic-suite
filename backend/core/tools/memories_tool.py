@@ -144,8 +144,8 @@ class MemoriesTool(Tool):
                 # get_public_video_detail is not listed in rate limits docs, so it's severely limited
                 if i < len(video_nos) - 1:
                     await asyncio.sleep(2.0)  # 2 second delay - API rate limits are very strict
-                    
-            except Exception as e:
+            
+        except Exception as e:
                 logger.error(f"Error fetching video {video_no}: {str(e)}")
                 continue
     
@@ -154,25 +154,25 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "search_platform_videos",
         "description": "Search TikTok, YouTube, or Instagram for videos matching a query. Returns videos with full metadata including title, creator, stats, and thumbnail.",
-        "parameters": {
-            "type": "object",
-            "properties": {
+            "parameters": {
+                "type": "object",
+                "properties": {
                 "query": {
-                    "type": "string",
+                        "type": "string",
                     "description": "Specific search query describing the actual video content (e.g., 'red lipstick tutorial', 'nike running shoes review', 'pasta recipe'). Search for what you SEE in videos, not meta-concepts like 'promotions' or 'influencer content'."
-                },
+                    },
                 "platform": {
-                    "type": "string",
+                        "type": "string",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK",
                     "description": "Platform to search (default: TIKTOK)"
                 },
                 "top_k": {
-                    "type": "integer",
-                    "default": 5,
-                    "description": "Number of results to return (default: 5, max recommended: 5 due to API rate limits)"
-                }
-            },
+                        "type": "integer",
+                    "default": 10,
+                    "description": "Number of results to return (default: 10, max: 20. Note: Higher values take longer due to rate limiting - each video detail fetch has a 2-second delay)"
+                    }
+                },
             "required": ["query"]
         }
     })
@@ -180,7 +180,7 @@ class MemoriesTool(Tool):
         self,
         query: str,
         platform: str = "TIKTOK",
-        top_k: int = 5
+        top_k: int = 10
     ) -> ToolResult:
         """Search for videos on public platforms"""
         
@@ -206,7 +206,7 @@ class MemoriesTool(Tool):
             response = await asyncio.to_thread(
                 self.memories_client.search_public_videos,
                 query=query,
-                platform=platform,
+                    platform=platform,
                 top_k=top_k,
                 filtering_level="high"
             )
@@ -365,7 +365,7 @@ class MemoriesTool(Tool):
                 # Still processing, wait and retry
                 await asyncio.sleep(poll_interval)
                 
-            except Exception as e:
+                except Exception as e:
                 logger.error(f"Error polling task {task_id}: {str(e)}")
                 await asyncio.sleep(poll_interval)
         

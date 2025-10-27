@@ -85,12 +85,15 @@ function VideoCard({ video, platform }: VideoCardProps) {
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
           />
-        ) : embedUrl?.includes('youtube.com/embed') ? (
+        ) : embedUrl && (embedUrl.includes('youtube.com/embed') || 
+                          embedUrl.includes('tiktok.com/player') || 
+                          embedUrl.includes('instagram.com/p/')) ? (
           <iframe
             src={embedUrl}
             className="w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            title={title}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20">
@@ -185,7 +188,7 @@ function PlatformSearchResults({ data }: { data: any }) {
 }
 
   return (
-    <div className="space-y-4">
+    <div className="p-6 space-y-4">
       {/* Header */}
         <div className="flex items-center justify-between">
         <div>
@@ -223,7 +226,7 @@ function VideoMarketerDisplay({ data }: { data: any }) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Thinking Process (Collapsible) */}
       {thinkings && thinkings.length > 0 && (
         <Accordion type="single" collapsible className="border rounded-lg">
@@ -296,7 +299,7 @@ function CreatorUploadResults({ data }: { data: any }) {
     : `Indexed ${count} videos from ${hashtags.map((h: string) => `#${h}`).join(', ')}`;
 
   return (
-    <div className="space-y-4">
+    <div className="p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
         <CheckCircle className="h-5 w-5 text-green-600" />
