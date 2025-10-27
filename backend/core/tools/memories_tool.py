@@ -47,7 +47,7 @@ class MemoriesTool(Tool):
         except Exception as e:
             logger.error(f"Failed to initialize Memories.ai client: {str(e)}")
             self.memories_client = None
-    
+        
     def _check_client(self) -> Optional[ToolResult]:
         """Check if client is initialized"""
         if not self.memories_client:
@@ -57,13 +57,27 @@ class MemoriesTool(Tool):
             )
         return None
     
-    async def _fetch_video_detail(self, video_no: str) -> Optional[Dict[str, Any]]:
-        """Fetch full metadata for a single video"""
+    async def _fetch_video_detail(self, video_no: str, retry_count: int = 0) -> Optional[Dict[str, Any]]:
+        """Fetch full metadata for a single video with retry logic"""
+        max_retries = 3
         try:
             response = await asyncio.to_thread(
                 self.memories_client.get_public_video_detail,
                 video_no
             )
+            
+            # Check for rate limit error
+            if response.get('code') == '0429':
+                if retry_count < max_retries:
+                    # Exponential backoff: 2s, 4s, 8s
+                    wait_time = 2 ** (retry_count + 1)
+                    logger.warning(f"Rate limited on {video_no}, retrying in {wait_time}s (attempt {retry_count + 1}/{max_retries})")
+                    await asyncio.sleep(wait_time)
+                    return await self._fetch_video_detail(video_no, retry_count + 1)
+                else:
+                    logger.error(f"Rate limit exceeded for {video_no} after {max_retries} retries")
+                    return None
+            
             if response.get('code') == '0000' and response.get('data'):
                 data = response['data']
                 
@@ -128,40 +142,49 @@ class MemoriesTool(Tool):
         return video_url
     
     async def _fetch_all_video_details(self, video_nos: List[str]) -> List[Dict[str, Any]]:
-        """Fetch full metadata for multiple videos in parallel"""
-        tasks = [self._fetch_video_detail(vno) for vno in video_nos]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # Filter out None and exceptions
+        """
+        Fetch full metadata for multiple videos SEQUENTIALLY with delays
+        Note: API rate limits parallel requests, so we fetch one at a time
+        """
         videos = []
-        for result in results:
-            if isinstance(result, dict):
-                videos.append(result)
-            elif isinstance(result, Exception):
-                logger.error(f"Error fetching video: {str(result)}")
+        
+        for i, video_no in enumerate(video_nos):
+            try:
+                result = await self._fetch_video_detail(video_no)
+                if result:
+                    videos.append(result)
+                
+                        # Add delay between requests to avoid rate limiting (except for last video)
+                        # Rate limit: Search API = 10 QPS, so 3 second delay is very conservative
+                        if i < len(video_nos) - 1:
+                            await asyncio.sleep(3.0)  # 3 second delay to respect rate limits (Search: 10 QPS)
+                    
+            except Exception as e:
+                logger.error(f"Error fetching video {video_no}: {str(e)}")
+                continue
         
         return videos
     
     @openapi_schema({
         "name": "search_platform_videos",
         "description": "Search TikTok, YouTube, or Instagram for videos matching a query. Returns videos with full metadata including title, creator, stats, and thumbnail.",
-        "parameters": {
-            "type": "object",
-            "properties": {
+            "parameters": {
+                "type": "object",
+                "properties": {
                 "query": {
-                    "type": "string",
+                        "type": "string",
                     "description": "Search query (e.g., 'MrBeast challenges', 'Nike fitness ads', 'cooking tutorials')"
-                },
+                    },
                 "platform": {
-                    "type": "string",
+                        "type": "string",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK",
                     "description": "Platform to search (default: TIKTOK)"
                 },
                 "top_k": {
                     "type": "integer",
-                    "default": 10,
-                    "description": "Number of results to return (default: 10)"
+                    "default": 15,
+                    "description": "Number of results to return (default: 15, max: 20)"
                 }
             },
             "required": ["query"]
@@ -171,15 +194,15 @@ class MemoriesTool(Tool):
         self,
         query: str,
         platform: str = "TIKTOK",
-        top_k: int = 10
+        top_k: int = 15
     ) -> ToolResult:
         """Search for videos on public platforms"""
         
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(query, list):
@@ -201,9 +224,9 @@ class MemoriesTool(Tool):
                 top_k=top_k
             )
             
-            # Extract video numbers
+            # Extract video numbers and deduplicate
             video_data = response if isinstance(response, list) else []
-            video_nos = [v.get('videoNo') for v in video_data if v.get('videoNo')]
+            video_nos = list(dict.fromkeys([v.get('videoNo') for v in video_data if v.get('videoNo')]))  # Deduplicate while preserving order
             
             if not video_nos:
                 return ToolResult(
@@ -232,7 +255,7 @@ class MemoriesTool(Tool):
                 }
             )
             
-        except Exception as e:
+            except Exception as e:
             logger.error(f"Error searching {platform}: {str(e)}")
             return ToolResult(
                 success=False,
@@ -242,15 +265,15 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "video_marketer_chat",
         "description": "Get AI-powered analysis and insights from 1M+ indexed videos. Use for trend analysis, creator strategies, content patterns, and marketing insights.",
-        "parameters": {
-            "type": "object",
-            "properties": {
+            "parameters": {
+                "type": "object",
+                "properties": {
                 "prompt": {
-                    "type": "string",
+                        "type": "string",
                     "description": "Analysis question (e.g., 'What does Nike post on TikTok?', 'Analyze MrBeast viral strategies', 'Find trending fitness content patterns')"
-                },
+                    },
                 "platform": {
-                    "type": "string",
+                        "type": "string",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK",
                     "description": "Platform to analyze (default: TIKTOK)"
@@ -260,7 +283,7 @@ class MemoriesTool(Tool):
         }
     })
     async def video_marketer_chat(
-        self,
+        self, 
         prompt: str,
         platform: str = "TIKTOK"
     ) -> ToolResult:
@@ -269,8 +292,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(prompt, list):
@@ -290,13 +313,12 @@ class MemoriesTool(Tool):
                 platform=platform
             )
             
-            # Extract data
-            data = response.get('data', {})
-            role = data.get('role', 'ASSISTANT')
-            content = data.get('content', '')
-            thinkings = data.get('thinkings', [])
-            refs = data.get('refs', [])
-            session_id = data.get('session_id', '')
+            # Extract data (response IS already the data object from client)
+            role = response.get('role', 'ASSISTANT')
+            content = response.get('content', '')
+            thinkings = response.get('thinkings', [])
+            refs = response.get('refs', [])
+            session_id = response.get('session_id', '')
             
             # Enrich refs with full video metadata
             if refs:
@@ -319,7 +341,7 @@ class MemoriesTool(Tool):
                     "role": role,
                     "content": content,
                     "thinkings": thinkings,
-                    "refs": refs,
+                "refs": refs,
                     "session_id": session_id,
                     "platform": platform
                 }
@@ -365,34 +387,34 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "upload_creator_videos",
         "description": "SLOW (1-2 min): Scrape and index videos from a creator's profile. Use for archiving a creator's content to the public library for deep analysis.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "creator_url": {
-                    "type": "string",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "creator_url": {
+                        "type": "string",
                     "description": "Creator URL or handle (e.g., 'https://www.tiktok.com/@nike', '@mrbeast', 'https://www.instagram.com/nike/')"
+                    },
+                    "video_count": {
+                        "type": "integer",
+                    "default": 20,
+                    "description": "Number of recent videos to scrape (default: 20)"
+                    }
                 },
-                "video_count": {
-                    "type": "integer",
-                    "default": 10,
-                    "description": "Number of recent videos to scrape (default: 10)"
-                }
-            },
-            "required": ["creator_url"]
+                "required": ["creator_url"]
         }
     })
     async def upload_creator_videos(
         self,
         creator_url: str,
-        video_count: int = 10
+        video_count: int = 20
     ) -> ToolResult:
         """Scrape and index videos from a creator's profile"""
         
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(creator_url, list):
@@ -421,8 +443,8 @@ class MemoriesTool(Tool):
             # Wait for task to complete (blocking)
             videos_data = await self._wait_for_task(task_id, max_wait=180)
             
-            # Fetch full details for all videos
-            video_nos = [v.get('video_no') for v in videos_data if v.get('video_no')]
+            # Fetch full details for all videos (API returns 'video_no' in task status)
+            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if v.get('video_no') or v.get('videoNo')]
             videos = await self._fetch_all_video_details(video_nos)
             
             logger.info(f"Creator upload complete: {len(videos)} videos indexed")
@@ -431,7 +453,7 @@ class MemoriesTool(Tool):
                 success=True,
                 output={
                     "videos": videos,
-                    "task_id": task_id,
+                        "task_id": task_id,
                     "creator": creator_url,
                     "status": "completed",
                     "count": len(videos)
@@ -454,35 +476,35 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "upload_hashtag_videos",
         "description": "SLOW (1-2 min): Scrape and index videos by hashtag. Use for trend analysis or archiving hashtag content to the public library.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "hashtags": {
-                    "type": "array",
-                    "items": {"type": "string"},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "hashtags": {
+                        "type": "array",
+                        "items": {"type": "string"},
                     "description": "Hashtags to scrape (e.g., ['LVMH', 'Dior', 'fashion'])"
+                    },
+                    "video_count": {
+                        "type": "integer",
+                    "default": 20,
+                    "description": "Number of videos per hashtag (default: 20)"
+                    }
                 },
-                "video_count": {
-                    "type": "integer",
-                    "default": 10,
-                    "description": "Number of videos per hashtag (default: 10)"
-                }
-            },
-            "required": ["hashtags"]
+                "required": ["hashtags"]
         }
     })
     async def upload_hashtag_videos(
         self,
         hashtags: List[str],
-        video_count: int = 10
+        video_count: int = 20
     ) -> ToolResult:
         """Scrape and index videos by hashtag"""
         
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(hashtags, str):
@@ -508,8 +530,8 @@ class MemoriesTool(Tool):
             # Wait for task to complete (blocking)
             videos_data = await self._wait_for_task(task_id, max_wait=180)
             
-            # Fetch full details for all videos
-            video_nos = [v.get('video_no') for v in videos_data if v.get('video_no')]
+            # Fetch full details for all videos (API returns 'video_no' in task status)
+            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if v.get('video_no') or v.get('videoNo')]
             videos = await self._fetch_all_video_details(video_nos)
             
             logger.info(f"Hashtag upload complete: {len(videos)} videos indexed")
@@ -567,8 +589,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(video_nos, str):
@@ -588,13 +610,12 @@ class MemoriesTool(Tool):
                 prompt=prompt
             )
             
-            # Extract data
-            data = response.get('data', {})
-            role = data.get('role', 'ASSISTANT')
-            content = data.get('content', '')
-            thinkings = data.get('thinkings', [])
-            refs = data.get('refs', [])
-            session_id = data.get('session_id', '')
+            # Extract data (response IS already the data object from client)
+            role = response.get('role', 'ASSISTANT')
+            content = response.get('content', '')
+            thinkings = response.get('thinkings', [])
+            refs = response.get('refs', [])
+            session_id = response.get('session_id', '')
             
             # Enrich refs with full video metadata
             if refs:

@@ -138,8 +138,8 @@ function VideoCard({ video, platform }: VideoCardProps) {
             <div className="flex items-center gap-1 text-muted-foreground">
               <MessageCircle className="h-3 w-3" />
               <span>{formatCount(comments)}</span>
-            </div>
-          )}
+          </div>
+        )}
           {shares > 0 && (
             <div className="flex items-center gap-1 text-muted-foreground">
               <Share2 className="h-3 w-3" />
