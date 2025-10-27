@@ -154,15 +154,15 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "search_platform_videos",
         "description": "Search TikTok, YouTube, or Instagram for videos matching a query. Returns videos with full metadata including title, creator, stats, and thumbnail.",
-            "parameters": {
-                "type": "object",
-                "properties": {
+        "parameters": {
+            "type": "object",
+            "properties": {
                 "query": {
-                        "type": "string",
-                    "description": "Search query (e.g., 'MrBeast challenges', 'Nike fitness ads', 'cooking tutorials')"
-                    },
+                    "type": "string",
+                    "description": "Specific search query describing the actual video content (e.g., 'red lipstick tutorial', 'nike running shoes review', 'pasta recipe'). Search for what you SEE in videos, not meta-concepts like 'promotions' or 'influencer content'."
+                },
                 "platform": {
-                        "type": "string",
+                    "type": "string",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK",
                     "description": "Platform to search (default: TIKTOK)"
@@ -172,7 +172,7 @@ class MemoriesTool(Tool):
                     "default": 5,
                     "description": "Number of results to return (default: 5, max recommended: 5 due to API rate limits)"
                 }
-                },
+            },
             "required": ["query"]
         }
     })
@@ -206,8 +206,9 @@ class MemoriesTool(Tool):
             response = await asyncio.to_thread(
                 self.memories_client.search_public_videos,
                 query=query,
-                    platform=platform,
-                top_k=top_k
+                platform=platform,
+                top_k=top_k,
+                filtering_level="high"
             )
             
             # Extract video numbers and deduplicate

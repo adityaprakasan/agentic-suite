@@ -57,7 +57,7 @@ class MemoriesClient:
         platform: str = "TIKTOK", 
         search_type: str = "BY_VIDEO", 
         top_k: int = 10, 
-        filtering_level: str = "medium"
+        filtering_level: str = "high"
     ) -> List[Dict[str, Any]]:
         """
         Search public video platforms (TikTok, YouTube, Instagram)
