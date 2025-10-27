@@ -155,14 +155,14 @@ class MemoriesTool(Tool):
                     videos.append(result)
                 
                 # Add delay between requests to avoid rate limiting (except for last video)
-                # Rate limit: Search API = 10 QPS, so 3 second delay is very conservative
+                # Rate limit: Search API = 10 QPS, so 2 second delay is safe
                 if i < len(video_nos) - 1:
-                    await asyncio.sleep(3.0)  # 3 second delay to respect rate limits (Search: 10 QPS)
-                    
-            except Exception as e:
+                    await asyncio.sleep(2.0)  # 2 second delay to respect rate limits (Search: 10 QPS)
+            
+        except Exception as e:
                 logger.error(f"Error fetching video {video_no}: {str(e)}")
                 continue
-        
+    
         return videos
     
     @openapi_schema({
@@ -182,11 +182,11 @@ class MemoriesTool(Tool):
                     "description": "Platform to search (default: TIKTOK)"
                 },
                 "top_k": {
-                    "type": "integer",
-                    "default": 15,
-                    "description": "Number of results to return (default: 15, max: 20)"
-                }
-            },
+                        "type": "integer",
+                    "default": 5,
+                    "description": "Number of results to return (default: 5, max: 10)"
+                    }
+                },
             "required": ["query"]
         }
     })
@@ -194,15 +194,15 @@ class MemoriesTool(Tool):
         self,
         query: str,
         platform: str = "TIKTOK",
-        top_k: int = 15
+        top_k: int = 5
     ) -> ToolResult:
         """Search for videos on public platforms"""
         
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(query, list):
@@ -220,7 +220,7 @@ class MemoriesTool(Tool):
             response = await asyncio.to_thread(
                 self.memories_client.search_public_videos,
                 query=query,
-                platform=platform,
+                    platform=platform,
                 top_k=top_k
             )
             
@@ -378,7 +378,7 @@ class MemoriesTool(Tool):
                 # Still processing, wait and retry
                 await asyncio.sleep(poll_interval)
                 
-            except Exception as e:
+                except Exception as e:
                 logger.error(f"Error polling task {task_id}: {str(e)}")
                 await asyncio.sleep(poll_interval)
         
@@ -396,8 +396,8 @@ class MemoriesTool(Tool):
                     },
                     "video_count": {
                         "type": "integer",
-                    "default": 20,
-                    "description": "Number of recent videos to scrape (default: 20)"
+                    "default": 10,
+                    "description": "Number of recent videos to scrape (default: 10)"
                     }
                 },
                 "required": ["creator_url"]
@@ -406,7 +406,7 @@ class MemoriesTool(Tool):
     async def upload_creator_videos(
         self,
         creator_url: str,
-        video_count: int = 20
+        video_count: int = 10
     ) -> ToolResult:
         """Scrape and index videos from a creator's profile"""
         
@@ -486,8 +486,8 @@ class MemoriesTool(Tool):
                     },
                     "video_count": {
                         "type": "integer",
-                    "default": 20,
-                    "description": "Number of videos per hashtag (default: 20)"
+                    "default": 10,
+                    "description": "Number of videos per hashtag (default: 10)"
                     }
                 },
                 "required": ["hashtags"]
@@ -496,7 +496,7 @@ class MemoriesTool(Tool):
     async def upload_hashtag_videos(
         self,
         hashtags: List[str],
-        video_count: int = 20
+        video_count: int = 10
     ) -> ToolResult:
         """Scrape and index videos by hashtag"""
         
