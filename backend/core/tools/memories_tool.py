@@ -154,10 +154,10 @@ class MemoriesTool(Tool):
                 if result:
                     videos.append(result)
                 
-                        # Add delay between requests to avoid rate limiting (except for last video)
-                        # Rate limit: Search API = 10 QPS, so 3 second delay is very conservative
-                        if i < len(video_nos) - 1:
-                            await asyncio.sleep(3.0)  # 3 second delay to respect rate limits (Search: 10 QPS)
+                # Add delay between requests to avoid rate limiting (except for last video)
+                # Rate limit: Search API = 10 QPS, so 3 second delay is very conservative
+                if i < len(video_nos) - 1:
+                    await asyncio.sleep(3.0)  # 3 second delay to respect rate limits (Search: 10 QPS)
                     
             except Exception as e:
                 logger.error(f"Error fetching video {video_no}: {str(e)}")
