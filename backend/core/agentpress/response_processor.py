@@ -254,7 +254,14 @@ class ResponseProcessor:
         
         # Initialize from continuous state if provided (for auto-continue)
         continuous_state = continuous_state or {}
-        accumulated_content = continuous_state.get('accumulated_content', "")
+        accumulated_content_raw = continuous_state.get('accumulated_content', "")
+        # Ensure accumulated_content is always a string
+        if isinstance(accumulated_content_raw, list):
+            accumulated_content = ''.join(str(item) for item in accumulated_content_raw)
+        elif not isinstance(accumulated_content_raw, str):
+            accumulated_content = str(accumulated_content_raw)
+        else:
+            accumulated_content = accumulated_content_raw
         tool_calls_buffer = {}
         current_xml_content = accumulated_content   # equal to accumulated_content if auto-continuing, else blank
         xml_chunks_buffer = []
@@ -358,6 +365,8 @@ class ResponseProcessor:
                         # logger.debug(f"Processing reasoning_content: type={type(reasoning_content)}, value={reasoning_content}")
                         if isinstance(reasoning_content, list):
                             reasoning_content = ''.join(str(item) for item in reasoning_content)
+                        elif not isinstance(reasoning_content, str):
+                            reasoning_content = str(reasoning_content)
                         # logger.debug(f"About to concatenate reasoning_content (type={type(reasoning_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += reasoning_content
 
@@ -367,6 +376,8 @@ class ResponseProcessor:
                         # logger.debug(f"Processing chunk_content: type={type(chunk_content)}, value={chunk_content}")
                         if isinstance(chunk_content, list):
                             chunk_content = ''.join(str(item) for item in chunk_content)
+                        elif not isinstance(chunk_content, str):
+                            chunk_content = str(chunk_content)
                         # print(chunk_content, end='', flush=True)
                         # logger.debug(f"About to concatenate chunk_content (type={type(chunk_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += chunk_content
@@ -1060,6 +1071,11 @@ class ResponseProcessor:
                  if response_message:
                      if hasattr(response_message, 'content') and response_message.content:
                          content = response_message.content
+                         # Ensure content is always a string
+                         if isinstance(content, list):
+                             content = ''.join(str(item) for item in content)
+                         elif not isinstance(content, str):
+                             content = str(content)
                          if config.xml_tool_calling:
                              parsed_xml_data = self._parse_xml_tool_calls(content)
                              if config.max_xml_tool_calls > 0 and len(parsed_xml_data) > config.max_xml_tool_calls:
