@@ -692,11 +692,13 @@ class AgentRunner:
                 }
                 break
 
-            # REMOVED: Premature termination check based on assistant messages
-            # The agent should continue working through tasks until it explicitly signals completion
-            # via 'ask', 'complete', or termination metadata (handled later in the loop)
-            # Old logic was causing premature stops after long-running tools like upload_creator_videos
-            
+            latest_message = await self.client.table('messages').select('*').eq('thread_id', self.config.thread_id).in_('type', ['assistant', 'tool', 'user']).order('created_at', desc=True).limit(1).execute()
+            if latest_message.data and len(latest_message.data) > 0:
+                message_type = latest_message.data[0].get('type')
+                if message_type == 'assistant':
+                    continue_execution = False
+                    break
+
             temporary_message = None
             # Don't set max_tokens by default - let LiteLLM and providers handle their own defaults
             max_tokens = None
