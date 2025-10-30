@@ -13,7 +13,7 @@ class AgentCreateRequest(BaseModel):
     system_prompt: Optional[str] = None
     configured_mcps: Optional[List[Dict[str, Any]]] = []
     custom_mcps: Optional[List[Dict[str, Any]]] = []
-    agentpress_tools: Optional[Dict[str, Any]] = {}
+    agentpress_tools: Optional[Dict[str, Any]] = None  # None triggers default tools in backend
     is_default: Optional[bool] = False
     icon_name: Optional[str] = None
     icon_color: Optional[str] = None
@@ -58,7 +58,7 @@ class AgentVersionCreateRequest(BaseModel):
     system_prompt: str
     configured_mcps: Optional[List[Dict[str, Any]]] = []
     custom_mcps: Optional[List[Dict[str, Any]]] = []
-    agentpress_tools: Optional[Dict[str, Any]] = {}
+    agentpress_tools: Optional[Dict[str, Any]] = None  # None triggers default tools in backend
     version_name: Optional[str] = None
 
 
