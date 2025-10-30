@@ -118,9 +118,14 @@ class ThreadManager:
             raise
 
     async def _handle_billing(self, thread_id: str, content: dict, saved_message: dict):
+        # CRITICAL: Billing MUST complete even if logging fails
+        # Wrap ALL operations in try-except to ensure credits are deducted
         try:
-            llm_response_id = content.get("llm_response_id", "unknown")
-            logger.info(f"💰 Processing billing for LLM response: {llm_response_id}")
+            llm_response_id = str(content.get("llm_response_id", "unknown"))
+            try:
+                logger.info("💰 Processing billing for LLM response: " + str(llm_response_id))
+            except:
+                pass  # Don't let logging break billing
             
             usage = content.get("usage", {})
             
@@ -137,38 +142,68 @@ class ThreadManager:
             model = content.get("model")
             
             usage_type = "FALLBACK ESTIMATE" if is_fallback else ("ESTIMATED" if is_estimated else "EXACT")
-            logger.info(f"💰 Usage type: {usage_type} - prompt={prompt_tokens}, completion={completion_tokens}, cache_read={cache_read_tokens}, cache_creation={cache_creation_tokens}")
+            
+            # Safe logging - don't let this break billing
+            try:
+                logger.info("💰 Usage type: " + str(usage_type) + " - prompt=" + str(prompt_tokens) + 
+                           ", completion=" + str(completion_tokens) + ", cache_read=" + str(cache_read_tokens) + 
+                           ", cache_creation=" + str(cache_creation_tokens))
+            except:
+                pass  # Logging failed but billing continues
             
             client = await self.db.client
             thread_row = await client.table('threads').select('account_id').eq('thread_id', thread_id).limit(1).execute()
             user_id = thread_row.data[0]['account_id'] if thread_row.data and len(thread_row.data) > 0 else None
             
             if user_id and (prompt_tokens > 0 or completion_tokens > 0):
+                # Safe cache logging - don't break billing
+                try:
+                    if cache_read_tokens > 0:
+                        cache_hit_percentage = (cache_read_tokens / prompt_tokens * 100) if prompt_tokens > 0 else 0
+                        logger.info("🎯 CACHE HIT: " + str(cache_read_tokens) + "/" + str(prompt_tokens) + 
+                                   " tokens (" + str(round(cache_hit_percentage, 1)) + "%)")
+                    elif cache_creation_tokens > 0:
+                        logger.info("💾 CACHE WRITE: " + str(cache_creation_tokens) + " tokens stored for future use")
+                    else:
+                        logger.debug("❌ NO CACHE: All " + str(prompt_tokens) + " tokens processed fresh")
+                except:
+                    pass  # Logging failed but billing continues
 
-                if cache_read_tokens > 0:
-                    cache_hit_percentage = (cache_read_tokens / prompt_tokens * 100) if prompt_tokens > 0 else 0
-                    logger.info(f"🎯 CACHE HIT: {cache_read_tokens}/{prompt_tokens} tokens ({cache_hit_percentage:.1f}%)")
-                elif cache_creation_tokens > 0:
-                    logger.info(f"💾 CACHE WRITE: {cache_creation_tokens} tokens stored for future use")
-                else:
-                    logger.debug(f"❌ NO CACHE: All {prompt_tokens} tokens processed fresh")
-
-                deduct_result = await billing_integration.deduct_usage(
-                    account_id=user_id,
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    model=model or "unknown",
-                    message_id=saved_message['message_id'],
-                    cache_read_tokens=cache_read_tokens,
-                    cache_creation_tokens=cache_creation_tokens
-                )
-                
-                if deduct_result.get('success'):
-                    logger.info(f"Successfully deducted ${deduct_result.get('cost', 0):.6f}")
-                else:
-                    logger.error(f"Failed to deduct credits: {deduct_result}")
+                # THE CRITICAL PART - This MUST succeed
+                try:
+                    deduct_result = await billing_integration.deduct_usage(
+                        account_id=user_id,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                        model=model or "unknown",
+                        message_id=saved_message['message_id'],
+                        cache_read_tokens=cache_read_tokens,
+                        cache_creation_tokens=cache_creation_tokens
+                    )
+                    
+                    # Safe logging of result
+                    try:
+                        if deduct_result.get('success'):
+                            cost = deduct_result.get('cost', 0)
+                            logger.info("✅ Successfully deducted $" + str(round(cost, 6)))
+                        else:
+                            logger.error("Failed to deduct credits: " + str(deduct_result))
+                    except:
+                        pass  # Logging failed but deduction happened
+                        
+                except Exception as deduct_error:
+                    # Even if deduction fails, log it safely
+                    try:
+                        logger.error("CRITICAL: Credit deduction failed: " + str(deduct_error))
+                    except:
+                        print(f"CRITICAL: Credit deduction failed: {deduct_error}")
+                        
         except Exception as e:
-            logger.error(f"Error handling billing: {str(e)}", exc_info=True)
+            # Last resort error handling
+            try:
+                logger.error("Error in billing handler: " + str(e))
+            except:
+                print(f"CRITICAL: Billing handler failed: {e}")
 
     async def get_llm_messages(self, thread_id: str) -> List[Dict[str, Any]]:
         """Get all messages for a thread."""
