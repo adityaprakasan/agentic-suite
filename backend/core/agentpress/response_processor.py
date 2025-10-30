@@ -255,6 +255,13 @@ class ResponseProcessor:
         # Initialize from continuous state if provided (for auto-continue)
         continuous_state = continuous_state or {}
         accumulated_content = continuous_state.get('accumulated_content', "")
+        # Safety check: ensure accumulated_content is always a string
+        if not isinstance(accumulated_content, str):
+            logger.warning(f"accumulated_content from continuous_state was not a string (type={type(accumulated_content)}), converting to string")
+            if isinstance(accumulated_content, (list, tuple)):
+                accumulated_content = ''.join(str(item) for item in accumulated_content)
+            else:
+                accumulated_content = str(accumulated_content)
         tool_calls_buffer = {}
         current_xml_content = accumulated_content   # equal to accumulated_content if auto-continuing, else blank
         xml_chunks_buffer = []
@@ -356,8 +363,12 @@ class ResponseProcessor:
                         # Append reasoning to main content to be saved in the final message
                         reasoning_content = delta.reasoning_content
                         # logger.debug(f"Processing reasoning_content: type={type(reasoning_content)}, value={reasoning_content}")
-                        if isinstance(reasoning_content, list):
-                            reasoning_content = ''.join(str(item) for item in reasoning_content)
+                        # Convert any non-string type to string safely
+                        if not isinstance(reasoning_content, str):
+                            if isinstance(reasoning_content, (list, tuple)):
+                                reasoning_content = ''.join(str(item) for item in reasoning_content)
+                            else:
+                                reasoning_content = str(reasoning_content)
                         # logger.debug(f"About to concatenate reasoning_content (type={type(reasoning_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += reasoning_content
 
@@ -365,8 +376,12 @@ class ResponseProcessor:
                     if delta and hasattr(delta, 'content') and delta.content:
                         chunk_content = delta.content
                         # logger.debug(f"Processing chunk_content: type={type(chunk_content)}, value={chunk_content}")
-                        if isinstance(chunk_content, list):
-                            chunk_content = ''.join(str(item) for item in chunk_content)
+                        # Convert any non-string type to string safely
+                        if not isinstance(chunk_content, str):
+                            if isinstance(chunk_content, (list, tuple)):
+                                chunk_content = ''.join(str(item) for item in chunk_content)
+                            else:
+                                chunk_content = str(chunk_content)
                         # print(chunk_content, end='', flush=True)
                         # logger.debug(f"About to concatenate chunk_content (type={type(chunk_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += chunk_content
