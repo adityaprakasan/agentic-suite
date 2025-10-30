@@ -737,7 +737,13 @@ class AgentRunner:
                         async for chunk in response:
                             # Check for error status from thread_manager
                             if isinstance(chunk, dict) and chunk.get('type') == 'status' and chunk.get('status') == 'error':
-                                logger.error(f"Error in thread execution: {chunk.get('message', 'Unknown error')}")
+                                # Safely convert message to string (in case it's a list or other type)
+                                error_msg = chunk.get('message', 'Unknown error')
+                                if isinstance(error_msg, (list, tuple)):
+                                    error_msg = ' '.join(str(item) for item in error_msg)
+                                elif not isinstance(error_msg, str):
+                                    error_msg = str(error_msg)
+                                logger.error(f"Error in thread execution: {error_msg}")
                                 error_detected = True
                                 yield chunk
                                 continue
