@@ -70,11 +70,9 @@ export const useCreateNewAgent = () => {
         name: 'New Agent',
         description: 'A newly created agent, open for configuration',
         configured_mcps: [],
-        agentpress_tools: {},
+        // Don't pass agentpress_tools - let backend apply defaults (26 tools)
+        // Don't pass icon_name - let backend use Adentic logo default
         is_default: false,
-        icon_name: 'brain',
-        icon_color: '#000000',
-        icon_background: '#F3F4F6',
       };
 
       const newAgent = await createAgentMutation.mutateAsync(defaultAgentData);
