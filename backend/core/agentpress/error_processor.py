@@ -203,28 +203,47 @@ class ErrorProcessor:
     @staticmethod
     def log_error(processed_error: ProcessedError, level: str = "error") -> None:
         """Log a processed error with appropriate level."""
-        log_func = getattr(logger, level, logger.error)
-        
-        # Safely convert message to string in case it's a list or other type
-        error_message = processed_error.message
-        if isinstance(error_message, (list, tuple)):
-            error_message = ' '.join(str(item) for item in error_message)
-        elif not isinstance(error_message, str):
-            error_message = str(error_message)
-        
-        log_message = f"[{processed_error.error_type.upper()}] {error_message}"
-        
-        # NEVER pass exc_info to structlog - it causes concatenation errors with complex exceptions
-        # Instead, log the error details safely
-        if processed_error.original_error:
-            try:
-                error_details = f"Original error: {ErrorProcessor.safe_error_to_string(processed_error.original_error)}"
-                log_func(f"{log_message} | {error_details}")
-            except Exception:
-                # If even our safe conversion fails, just log the message
-                log_func(log_message)
-        else:
-            log_func(log_message)
-        
-        if processed_error.context:
-            logger.debug(f"Error context: {processed_error.context}")
+        try:
+            log_func = getattr(logger, level, logger.error)
+            
+            # Safely convert message to string in case it's a list or other type
+            error_message = processed_error.message
+            if isinstance(error_message, (list, tuple)):
+                error_message = ' '.join(str(item) for item in error_message)
+            elif not isinstance(error_message, str):
+                error_message = str(error_message)
+            
+            # Create the log message as a plain string (no f-string to avoid any issues)
+            log_message = "[" + str(processed_error.error_type).upper() + "] " + str(error_message)
+            
+            # NEVER pass exc_info to structlog - it causes concatenation errors with complex exceptions
+            # Instead, log the error details safely
+            if processed_error.original_error:
+                try:
+                    error_details = "Original error: " + str(ErrorProcessor.safe_error_to_string(processed_error.original_error))
+                    # Use plain string concatenation instead of f-strings
+                    final_message = str(log_message) + " | " + str(error_details)
+                    log_func(final_message)
+                except Exception as inner_error:
+                    # If even our safe conversion fails, just log the basic message
+                    try:
+                        log_func(str(log_message))
+                    except:
+                        # Last resort: print directly
+                        print(f"ERROR LOGGING FAILED: {log_message}")
+            else:
+                try:
+                    log_func(str(log_message))
+                except:
+                    print(f"ERROR LOGGING FAILED: {log_message}")
+            
+            if processed_error.context:
+                try:
+                    context_str = str(processed_error.context)
+                    logger.debug("Error context: " + context_str)
+                except:
+                    pass  # Silently fail on context logging
+        except Exception as e:
+            # Absolute last resort - print to stdout
+            print(f"CRITICAL: Error processor itself failed: {type(e).__name__}: {str(e)}")
+            print(f"Original error type: {processed_error.error_type if processed_error else 'unknown'}")
