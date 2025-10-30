@@ -201,7 +201,7 @@ def build_unified_config(
 def _get_default_agentpress_tools() -> Dict[str, bool]:
     """Get default tool configuration with all visible tools enabled.
     
-    This returns all tools that are marked as visible=True in their @tool_metadata decorator.
+    This returns all tools that actually exist in backend/core/tools/.
     Users can customize this later, but new agents start with full capabilities.
     """
     return {
@@ -222,19 +222,12 @@ def _get_default_agentpress_tools() -> Dict[str, bool]:
         # AI vision and image tools
         "sb_vision_tool": True,
         "sb_image_edit_tool": True,
-        "sb_design_tool": True,  # Fixed: was sb_designer_tool
+        "sb_designer_tool": True,  # The actual file name
         
         # Document and content creation
         "sb_docs_tool": True,
         "sb_presentation_tool": True,
-        "sb_presentation_outline_tool": True,
         "sb_kb_tool": True,
-        "sb_sheets_tool": True,
-        "sb_templates_tool": True,
-        
-        # Development tools
-        "sb_web_dev_tool": True,
-        "sb_deploy_tool": True,
         
         # Communication and tasks
         "message_tool": True,
@@ -244,11 +237,6 @@ def _get_default_agentpress_tools() -> Dict[str, bool]:
         
         # Browser automation
         "browser_tool": True,
-        "sb_browser_tool": True,
-        
-        # Workflow and automation
-        "workflow_tool": True,
-        "computer_use_tool": True,
         
         # Agent builder tools
         "agent_config_tool": True,
