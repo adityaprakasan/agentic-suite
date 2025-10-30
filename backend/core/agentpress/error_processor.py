@@ -157,48 +157,111 @@ class ErrorProcessor:
     @staticmethod
     def process_tool_error(error: Exception, tool_name: str, context: Optional[Dict[str, Any]] = None) -> ProcessedError:
         """Process tool execution errors."""
-        return ProcessedError(
-            error_type="tool_execution_error",
-            message=f"Tool '{tool_name}' execution failed: {ErrorProcessor.safe_error_to_string(error)}",
-            original_error=error,
-            context=context
-        )
+        try:
+            error_message = ErrorProcessor.safe_error_to_string(error)
+            # Ensure error_message is a string
+            if isinstance(error_message, list):
+                error_message = ' '.join(str(item) for item in error_message)
+            elif not isinstance(error_message, str):
+                error_message = str(error_message)
+            
+            return ProcessedError(
+                error_type="tool_execution_error",
+                message=f"Tool '{tool_name}' execution failed: {error_message}",
+                original_error=error,
+                context=context
+            )
+        except Exception as e:
+            # If even safe_error_to_string fails, create a basic error message
+            try:
+                error_type_name = type(error).__name__
+            except Exception:
+                error_type_name = "UnknownError"
+            
+            return ProcessedError(
+                error_type="tool_execution_error",
+                message=f"Tool '{tool_name}' execution failed: {error_type_name} (error details unavailable)",
+                original_error=error,
+                context=context
+            )
     
     @staticmethod
     def process_system_error(error: Exception, context: Optional[Dict[str, Any]] = None) -> ProcessedError:
         """Process general system errors."""
-        return ProcessedError(
-            error_type="system_error",
-            message=f"System error: {ErrorProcessor.safe_error_to_string(error)}",
-            original_error=error,
-            context=context
-        )
+        try:
+            error_message = ErrorProcessor.safe_error_to_string(error)
+            # Ensure error_message is a string
+            if isinstance(error_message, list):
+                error_message = ' '.join(str(item) for item in error_message)
+            elif not isinstance(error_message, str):
+                error_message = str(error_message)
+            
+            return ProcessedError(
+                error_type="system_error",
+                message=f"System error: {error_message}",
+                original_error=error,
+                context=context
+            )
+        except Exception as e:
+            # If even safe_error_to_string fails, create a basic error message
+            try:
+                error_type_name = type(error).__name__
+            except Exception:
+                error_type_name = "UnknownError"
+            
+            return ProcessedError(
+                error_type="system_error",
+                message=f"System error: {error_type_name} (error details unavailable)",
+                original_error=error,
+                context=context
+            )
     
     @staticmethod
     def safe_error_to_string(error: Exception) -> str:
         """Safely convert an exception to a string, cleaning up verbose LiteLLM error messages."""
         try:
+            # Try to get string representation, but handle lists carefully
             error_str = str(error)
+            # Ensure it's actually a string and not accidentally a list
+            if isinstance(error_str, list):
+                error_str = ' '.join(str(item) for item in error_str)
+            elif not isinstance(error_str, str):
+                error_str = str(error_str)
+            
             # remove fallback information
-            if "Fallbacks=[" in error_str:
+            if isinstance(error_str, str) and "Fallbacks=[" in error_str:
                 error_str = re.sub(r'Fallbacks=\[(?:[^\[\]]+|\[(?:[^\[\]]+|\[[^\[\]]*\])*\])*\]', '', error_str)
             
-            return error_str
+            return error_str if isinstance(error_str, str) else str(error_str)
             
-        except Exception:
+        except (TypeError, ValueError) as e:
+            # If str(error) fails due to concatenation issues, handle args directly
             try:
-                # Handle case where error.args[0] might be a list or other non-string type
                 if error.args:
-                    first_arg = error.args[0]
-                    if isinstance(first_arg, (list, tuple)):
-                        # Convert list/tuple to string safely
-                        return f"{type(error).__name__}: {str(first_arg)}"
-                    else:
-                        return f"{type(error).__name__}: {str(first_arg)}"
+                    # Process each arg separately to avoid concatenation issues
+                    arg_strings = []
+                    for arg in error.args:
+                        if isinstance(arg, (list, tuple)):
+                            arg_strings.append(' '.join(str(item) for item in arg))
+                        elif isinstance(arg, str):
+                            arg_strings.append(arg)
+                        else:
+                            try:
+                                arg_strings.append(str(arg))
+                            except Exception:
+                                arg_strings.append(repr(arg))
+                    
+                    return f"{type(error).__name__}: {' | '.join(arg_strings)}"
                 else:
                     return f"{type(error).__name__}: Unknown error"
             except Exception:
                 return f"Error of type {type(error).__name__}"
+        except Exception:
+            # Last resort - just return the type name
+            try:
+                return f"Error of type {type(error).__name__}"
+            except Exception:
+                return "Unknown error"
     
     @staticmethod
     def log_error(processed_error: ProcessedError, level: str = "error") -> None:
@@ -227,7 +290,17 @@ class ErrorProcessor:
                 
                 error_details = f"Original error: {error_details_str}"
                 # Use explicit string concatenation with ensured string types
+                # Double-check that everything is a string before concatenation
+                if not isinstance(log_message, str):
+                    log_message = str(log_message) if not isinstance(log_message, list) else ' '.join(str(x) for x in log_message)
+                if not isinstance(error_details, str):
+                    error_details = str(error_details) if not isinstance(error_details, list) else ' '.join(str(x) for x in error_details)
+                
                 full_message = f"{log_message} | {error_details}"
+                # Final safety check - ensure full_message is a string
+                if not isinstance(full_message, str):
+                    full_message = str(full_message) if not isinstance(full_message, list) else ' '.join(str(x) for x in full_message)
+                
                 log_func(full_message)
             except Exception as log_err:
                 # If even our safe conversion fails, just log the message
