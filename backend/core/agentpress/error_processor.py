@@ -205,49 +205,19 @@ class ErrorProcessor:
         """Log a processed error with appropriate level."""
         log_func = getattr(logger, level, logger.error)
         
-        # Ensure message is always a string, even if it somehow contains a list
-        safe_message = processed_error.message
-        if isinstance(safe_message, list):
-            safe_message = ' '.join(str(item) for item in safe_message)
-        elif not isinstance(safe_message, str):
-            safe_message = str(safe_message)
-        
-        log_message = f"[{processed_error.error_type.upper()}] {safe_message}"
+        log_message = f"[{processed_error.error_type.upper()}] {processed_error.message}"
         
         # NEVER pass exc_info to structlog - it causes concatenation errors with complex exceptions
         # Instead, log the error details safely
         if processed_error.original_error:
             try:
-                error_details_str = ErrorProcessor.safe_error_to_string(processed_error.original_error)
-                # Ensure error_details_str is also a string
-                if isinstance(error_details_str, list):
-                    error_details_str = ' '.join(str(item) for item in error_details_str)
-                elif not isinstance(error_details_str, str):
-                    error_details_str = str(error_details_str)
-                
-                error_details = f"Original error: {error_details_str}"
-                # Use explicit string concatenation with ensured string types
-                full_message = f"{log_message} | {error_details}"
-                log_func(full_message)
-            except Exception as log_err:
-                # If even our safe conversion fails, just log the message
-                # Catch any exceptions during logging to prevent cascading errors
-                try:
-                    log_func(log_message)
-                except Exception:
-                    # Last resort: log without any formatting
-                    logger.error("Failed to log error - attempting basic log")
-                    logger.error(str(safe_message)[:500])  # Truncate to avoid issues
-        else:
-            try:
-                log_func(log_message)
+                error_details = f"Original error: {ErrorProcessor.safe_error_to_string(processed_error.original_error)}"
+                log_func(f"{log_message} | {error_details}")
             except Exception:
-                # Fallback logging
-                logger.error(str(safe_message)[:500])
+                # If even our safe conversion fails, just log the message
+                log_func(log_message)
+        else:
+            log_func(log_message)
         
         if processed_error.context:
-            try:
-                logger.debug(f"Error context: {processed_error.context}")
-            except Exception:
-                # Ignore context logging errors
-                pass
+            logger.debug(f"Error context: {processed_error.context}")
