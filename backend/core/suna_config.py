@@ -9,61 +9,39 @@ SUNA_CONFIG = {
     "configured_mcps": [],
     "custom_mcps": [],
     "agentpress_tools": {
-        # Core file & shell operations
-        "sb_files_tool": True,
+        # Core file and shell operations
         "sb_shell_tool": True,
-        
-        # Search & research
-        "web_search_tool": True,
-        "image_search_tool": True,
-        "people_search_tool": True,
-        "company_search_tool": True,
-        "paper_search_tool": True,
-        
-        # AI & vision
-        "sb_vision_tool": True,
-        "sb_image_edit_tool": True,
-        
-        # Browser & web
-        "browser_tool": True,
-        "sb_browser_tool": True,
-        "sb_web_dev_tool": True,
-        
-        # Presentation & docs
-        "sb_presentation_tool": True,
-        "sb_presentation_outline_tool": True,
-        "sb_sheets_tool": True,
-        "sb_docs_tool": True,
-        "sb_design_tool": True,
-        
-        # Data & integrations
-        "data_providers_tool": True,
-        "sb_kb_tool": True,
+        "sb_files_tool": True,
+        "sb_expose_tool": True,
         "sb_upload_file_tool": True,
         
-        # Deployment & exposure
-        "sb_expose_tool": True,
-        "sb_deploy_tool": True,
-        "sb_templates_tool": True,
+        # Search and research tools
+        "web_search_tool": True,
+        "image_search_tool": True,
+        "data_providers_tool": True,
         
-        # Task management & messaging
-        "task_list_tool": True,
-        "expand_message_tool": True,
-        "message_tool": True,
+        # AI vision and image tools
+        "sb_vision_tool": True,
+        "sb_image_edit_tool": True,
+        "sb_design_tool": True,
         
-        # Agent management & config
+        # Document and content creation
+        "sb_docs_tool": True,
+        "sb_presentation_tool": True,
+        "sb_kb_tool": True,
+
+        # search tools
+        "people_search_tool": True,
+        "company_search_tool": True,
+
+        "browser_tool": True,
+        
+        # Agent builder tools
         "agent_config_tool": True,
         "agent_creation_tool": True,
         "mcp_search_tool": True,
         "credential_profile_tool": True,
-        "trigger_tool": True,
-        "workflow_tool": True,
-        
-        # Video intelligence
-        "memories_tool": True,
-        
-        # Advanced
-        "computer_use_tool": True,
+        "trigger_tool": True
     },
     "is_default": True
 }

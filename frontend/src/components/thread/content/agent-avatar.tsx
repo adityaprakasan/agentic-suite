@@ -71,7 +71,7 @@ export const AgentAvatar: React.FC<AgentAvatarProps> = ({
     );
   }
 
-  if (isAdentic || iconName === 'adentic') {
+  if (isAdentic) {
     return (
       <div 
         className={cn(

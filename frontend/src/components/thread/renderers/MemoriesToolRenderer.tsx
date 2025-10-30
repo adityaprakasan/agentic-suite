@@ -105,7 +105,7 @@ function VideoCard({ video, platform }: VideoCardProps) {
             <Clock className="h-3 w-3 mr-1" />
             {formatDuration(duration)}
           </Badge>
-              )}
+        )}
         {platform && (
           <Badge className={`absolute top-2 right-2 ${getPlatformColor(platform)}`}>
             {platform.toUpperCase()}
@@ -406,15 +406,15 @@ export function MemoriesToolRenderer({ result, agentExplanation }: MemoriesToolR
       }
       
       // Generic fallback
-  return (
+      return (
         <>
           {explanationSection}
           <div className="p-4 rounded-lg bg-muted">
             <pre className="text-xs overflow-auto">
               {JSON.stringify(output, null, 2)}
-      </pre>
-    </div>
+            </pre>
+          </div>
         </>
-  );
-}
+      );
+  }
 }
