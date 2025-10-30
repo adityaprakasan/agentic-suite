@@ -28,10 +28,9 @@ def initialize():
     redis_port = int(os.getenv("REDIS_PORT", 6379))
     redis_password = os.getenv("REDIS_PASSWORD", "")
     
-    # Connection pool configuration - optimized for production with video intelligence
-    # Sized for 10+ concurrent users running long-running video intelligence workflows
-    max_connections = 1024           # High limit for 10+ concurrent users with video tools
-    socket_timeout = 30.0            # 30 seconds socket timeout (industry standard for production)
+    # Connection pool configuration - optimized for production
+    max_connections = 128            # Reasonable limit for production
+    socket_timeout = 15.0            # 15 seconds socket timeout
     connect_timeout = 10.0           # 10 seconds connection timeout
     retry_on_timeout = not (os.getenv("REDIS_RETRY_ON_TIMEOUT", "True").lower() != "true")
 
