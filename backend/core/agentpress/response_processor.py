@@ -358,9 +358,6 @@ class ResponseProcessor:
                         # logger.debug(f"Processing reasoning_content: type={type(reasoning_content)}, value={reasoning_content}")
                         if isinstance(reasoning_content, list):
                             reasoning_content = ''.join(str(item) for item in reasoning_content)
-                        elif not isinstance(reasoning_content, str):
-                            # Ensure reasoning_content is always a string before concatenation
-                            reasoning_content = str(reasoning_content)
                         # logger.debug(f"About to concatenate reasoning_content (type={type(reasoning_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += reasoning_content
 
@@ -370,9 +367,6 @@ class ResponseProcessor:
                         # logger.debug(f"Processing chunk_content: type={type(chunk_content)}, value={chunk_content}")
                         if isinstance(chunk_content, list):
                             chunk_content = ''.join(str(item) for item in chunk_content)
-                        elif not isinstance(chunk_content, str):
-                            # Ensure chunk_content is always a string before concatenation
-                            chunk_content = str(chunk_content)
                         # print(chunk_content, end='', flush=True)
                         # logger.debug(f"About to concatenate chunk_content (type={type(chunk_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += chunk_content
