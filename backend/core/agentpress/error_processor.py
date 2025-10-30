@@ -205,7 +205,14 @@ class ErrorProcessor:
         """Log a processed error with appropriate level."""
         log_func = getattr(logger, level, logger.error)
         
-        log_message = f"[{processed_error.error_type.upper()}] {processed_error.message}"
+        # Safely convert message to string in case it's a list or other type
+        error_message = processed_error.message
+        if isinstance(error_message, (list, tuple)):
+            error_message = ' '.join(str(item) for item in error_message)
+        elif not isinstance(error_message, str):
+            error_message = str(error_message)
+        
+        log_message = f"[{processed_error.error_type.upper()}] {error_message}"
         
         # NEVER pass exc_info to structlog - it causes concatenation errors with complex exceptions
         # Instead, log the error details safely
