@@ -428,7 +428,7 @@ class MemoriesTool(Tool):
             logger.info(f"Scraping started, task_id: {task_id}. Waiting for completion...")
             
             # Wait for task to complete (blocking)
-            videos_data = await self._wait_for_task(task_id, max_wait=180)
+            videos_data = await self._wait_for_task(task_id, max_wait=600)
             
             # Fetch full details for all videos (API returns 'video_no' in some responses, 'videoNo' in others)
             video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if (v.get('video_no') or v.get('videoNo'))]
@@ -515,7 +515,7 @@ class MemoriesTool(Tool):
             logger.info(f"Hashtag scraping started, task_id: {task_id}. Waiting for completion...")
             
             # Wait for task to complete (blocking)
-            videos_data = await self._wait_for_task(task_id, max_wait=180)
+            videos_data = await self._wait_for_task(task_id, max_wait=600)
             
             # Fetch full details for all videos (API returns 'video_no' in some responses, 'videoNo' in others)
             video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if (v.get('video_no') or v.get('videoNo'))]
