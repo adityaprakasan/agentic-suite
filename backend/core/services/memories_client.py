@@ -38,7 +38,7 @@ class MemoriesClient:
             "Authorization": self.api_key,
             "Content-Type": "application/json"
         }
-        response = requests.post(url, headers=headers, json=json_data)
+            response = requests.post(url, headers=headers, json=json_data)
         response.raise_for_status()
         result = response.json()
         # Ensure we always return a dict, never None

@@ -6,6 +6,7 @@ import { icons } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { AdenticLogo } from '@/components/sidebar/kortix-logo';
 
 interface IconPickerProps {
   selectedIcon?: string;
@@ -32,7 +33,9 @@ export function IconPicker({
   const [searchQuery, setSearchQuery] = useState('');
   
   const allIconNames = useMemo(() => {
-    return Object.keys(icons).map(name => toKebabCase(name)).sort();
+    const lucideIcons = Object.keys(icons).map(name => toKebabCase(name));
+    // Add custom Adentic icon at the start
+    return ['adentic', ...lucideIcons].sort();
   }, []);
 
   const filteredIcons = useMemo(() => {
@@ -46,7 +49,7 @@ export function IconPicker({
   }, [allIconNames, searchQuery]);
 
   const popularIcons = [
-    'bot', 'brain', 'sparkles', 'zap', 'rocket', 
+    'adentic', 'bot', 'brain', 'sparkles', 'zap', 'rocket', 
     'briefcase', 'code', 'database', 'globe', 'heart',
     'lightbulb', 'message-circle', 'shield', 'star', 'user',
     'cpu', 'terminal', 'settings', 'wand-2', 'layers'
@@ -86,11 +89,15 @@ export function IconPicker({
                     }}
                     title={iconName}
                   >
-                    <DynamicIcon 
-                      name={iconName as any} 
-                      size={18} 
-                      color={selectedIcon === iconName ? iconColor : undefined}
-                    />
+                    {iconName === 'adentic' ? (
+                      <AdenticLogo size={18} />
+                    ) : (
+                      <DynamicIcon 
+                        name={iconName as any} 
+                        size={18} 
+                        color={selectedIcon === iconName ? iconColor : undefined}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
@@ -126,11 +133,15 @@ export function IconPicker({
                     }}
                     title={iconName}
                   >
-                    <DynamicIcon 
-                      name={iconName as any} 
-                      size={18} 
-                      color={selectedIcon === iconName ? iconColor : undefined}
-                    />
+                    {iconName === 'adentic' ? (
+                      <AdenticLogo size={18} />
+                    ) : (
+                      <DynamicIcon 
+                        name={iconName as any} 
+                        size={18} 
+                        color={selectedIcon === iconName ? iconColor : undefined}
+                      />
+                    )}
                   </button>
                 ))}
               </div>

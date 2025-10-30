@@ -140,9 +140,9 @@ class AdenticDefaultAgentService:
             "name": SUNA_CONFIG["name"],
             "description": SUNA_CONFIG["description"],
             "is_default": True,
-            "icon_name": "sun",
-            "icon_color": "#F59E0B",
-            "icon_background": "#FFF3CD",
+            "icon_name": "adentic",  # Use the actual Adentic logo (renders adentic-icon.avif)
+            "icon_color": "#F59E0B",  # Not used when icon is "adentic"
+            "icon_background": "#FFF3CD",  # Not used when icon is "adentic"
             "metadata": {
                 "is_suna_default": True,
                 "centrally_managed": True,

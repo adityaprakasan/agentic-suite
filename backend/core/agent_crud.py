@@ -561,9 +561,9 @@ async def create_agent(
         insert_data = {
             "account_id": user_id,
             "name": agent_data.name,
-            "icon_name": agent_data.icon_name or "bot",
-            "icon_color": agent_data.icon_color or "#000000",
-            "icon_background": agent_data.icon_background or "#F3F4F6",
+            "icon_name": agent_data.icon_name or "adentic",  # Default to Adentic logo (renders adentic-icon.avif)
+            "icon_color": agent_data.icon_color or "#F59E0B",  # Adentic orange (not used when icon is "adentic")
+            "icon_background": agent_data.icon_background or "#FFF3CD",  # Adentic yellow (not used when icon is "adentic")
             "is_default": agent_data.is_default or False,
             "version_count": 1
         }
