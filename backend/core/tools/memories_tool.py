@@ -144,110 +144,111 @@ class MemoriesTool(Tool):
                 # get_public_video_detail is not listed in rate limits docs, so it's severely limited
                 if i < len(video_nos) - 1:
                     await asyncio.sleep(2.0)  # 2 second delay - API rate limits are very strict
-                    
+                
             except Exception as e:
                 logger.error(f"Error fetching video {video_no}: {str(e)}")
                 continue
     
         return videos
     
-    @openapi_schema({
-        "name": "search_platform_videos",
-        "description": "Search TikTok, YouTube, or Instagram for videos matching a query. Returns videos with full metadata including title, creator, stats, and thumbnail.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                "query": {
-                        "type": "string",
-                    "description": "Specific search query describing the actual video content (e.g., 'red lipstick tutorial', 'nike running shoes review', 'pasta recipe'). Search for what you SEE in videos, not meta-concepts like 'promotions' or 'influencer content'."
-                    },
-                "platform": {
-                        "type": "string",
-                    "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
-                    "default": "TIKTOK",
-                    "description": "Platform to search (default: TIKTOK)"
-                },
-                "top_k": {
-                        "type": "integer",
-                    "default": 10,
-                    "description": "Number of results to return (default: 10, max: 20. Note: Higher values take longer due to rate limiting - each video detail fetch has a 2-second delay)"
-                    }
-                },
-            "required": ["query"]
-        }
-    })
-    async def search_platform_videos(
-        self,
-        query: str,
-        platform: str = "TIKTOK",
-        top_k: int = 10
-    ) -> ToolResult:
-        """Search for videos on public platforms"""
-        
-        # Check client
-        error = self._check_client()
-        if error:
-                return error
-            
-        try:
-            # Defensive type handling
-            if isinstance(query, list):
-                query = " ".join(str(q) for q in query)
-            if isinstance(platform, list):
-                platform = platform[0] if platform else "TIKTOK"
-            
-            query = str(query).strip()
-            platform = str(platform).upper()
-            top_k = int(top_k)
-            
-            logger.info(f"Searching {platform} for: {query} (top_k={top_k})")
-            
-            # Call API
-            response = await asyncio.to_thread(
-                self.memories_client.search_public_videos,
-                query=query,
-                    platform=platform,
-                top_k=top_k,
-                filtering_level="high"
-            )
-            
-            # Extract video numbers and deduplicate
-            video_data = response if isinstance(response, list) else []
-            video_nos = list(dict.fromkeys([v.get('videoNo') for v in video_data if v.get('videoNo')]))  # Deduplicate while preserving order
-            
-            if not video_nos:
-                return ToolResult(
-                    success=True,
-                    output={
-                        "videos": [],
-                        "count": 0,
-                        "platform": platform,
-                        "query": query,
-                        "message": "No videos found"
-                    }
-                )
-            
-            # Fetch full details for all videos in parallel
-            videos = await self._fetch_all_video_details(video_nos)
-            
-            logger.info(f"Found {len(videos)} videos on {platform}")
-            
-            return ToolResult(
-                success=True,
-                output={
-                    "videos": videos,
-                    "count": len(videos),
-                    "platform": platform,
-                    "query": query
-                }
-            )
-            
-        except Exception as e:
-            logger.error(f"Error searching {platform}: {str(e)}")
-            return ToolResult(
-                success=False,
-                output={"error": f"Failed to search {platform}: {str(e)}"}
-            )
+    # DISABLED: search_platform_videos tool - commented out per user request
+    # @openapi_schema({
+    #     "name": "search_platform_videos",
+    #     "description": "Search TikTok, YouTube, or Instagram for videos matching a query. Returns videos with full metadata including title, creator, stats, and thumbnail.",
+    #         "parameters": {
+    #             "type": "object",
+    #             "properties": {
+    #             "query": {
+    #                     "type": "string",
+    #                 "description": "Specific search query describing the actual video content (e.g., 'red lipstick tutorial', 'nike running shoes review', 'pasta recipe'). Search for what you SEE in videos, not meta-concepts like 'promotions' or 'influencer content'."
+    #                 },
+    #             "platform": {
+    #                     "type": "string",
+    #                 "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
+    #                 "default": "TIKTOK",
+    #                 "description": "Platform to search (default: TIKTOK)"
+    #             },
+    #             "top_k": {
+    #                     "type": "integer",
+    #                 "default": 10,
+    #                 "description": "Number of results to return (default: 10, max: 20. Note: Higher values take longer due to rate limiting - each video detail fetch has a 2-second delay)"
+    #                 }
+    #             },
+    #         "required": ["query"]
+    #     }
+    # })
+    # async def search_platform_videos(
+    #     self,
+    #     query: str,
+    #     platform: str = "TIKTOK",
+    #     top_k: int = 10
+    # ) -> ToolResult:
+    #     """Search for videos on public platforms"""
+    #     
+    #     # Check client
+    #     error = self._check_client()
+    #     if error:
+    #             return error
+    #         
+    #     try:
+    #         # Defensive type handling
+    #         if isinstance(query, list):
+    #             query = " ".join(str(q) for q in query)
+    #         if isinstance(platform, list):
+    #             platform = platform[0] if platform else "TIKTOK"
+    #         
+    #         query = str(query).strip()
+    #         platform = str(platform).upper()
+    #         top_k = int(top_k)
+    #         
+    #         logger.info(f"Searching {platform} for: {query} (top_k={top_k})")
+    #         
+    #         # Call API
+    #         response = await asyncio.to_thread(
+    #             self.memories_client.search_public_videos,
+    #             query=query,
+    #                 platform=platform,
+    #             top_k=top_k,
+    #             filtering_level="high"
+    #         )
+    #         
+    #         # Extract video numbers and deduplicate
+    #         video_data = response if isinstance(response, list) else []
+    #         video_nos = list(dict.fromkeys([v.get('videoNo') for v in video_data if v.get('videoNo')]))  # Deduplicate while preserving order
+    #         
+    #         if not video_nos:
+    #             return ToolResult(
+    #                 success=True,
+    #                 output={
+    #                     "videos": [],
+    #                     "count": 0,
+    #                     "platform": platform,
+    #                     "query": query,
+    #                     "message": "No videos found"
+    #                 }
+    #             )
+    #         
+    #         # Fetch full details for all videos in parallel
+    #         videos = await self._fetch_all_video_details(video_nos)
+    #         
+    #         logger.info(f"Found {len(videos)} videos on {platform}")
+    #         
+    #         return ToolResult(
+    #             success=True,
+    #             output={
+    #                 "videos": videos,
+    #                 "count": len(videos),
+    #                 "platform": platform,
+    #                 "query": query
+    #             }
+    #         )
+    #         
+    #     except Exception as e:
+    #         logger.error(f"Error searching {platform}: {str(e)}")
+    #         return ToolResult(
+    #             success=False,
+    #             output={"error": f"Failed to search {platform}: {str(e)}"}
+    #         )
     
     @openapi_schema({
         "name": "video_marketer_chat",

@@ -40,14 +40,18 @@ class MemoriesClient:
         }
         response = requests.post(url, headers=headers, json=json_data)
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        # Ensure we always return a dict, never None
+        return result if result is not None else {}
     
     def _get(self, endpoint: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """Make GET request to Memories.ai API"""
         url = f"{self.BASE_URL}{endpoint}"
         response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        # Ensure we always return a dict, never None
+        return result if result is not None else {}
     
     # ============ PUBLIC LIBRARY SEARCH ============
     
@@ -111,6 +115,10 @@ class MemoriesClient:
             data["session_id"] = session_id
         
         response = self._post("/serve/api/v1/marketer_chat", json_data=data)
+        # Defensive: ensure response is a dict
+        if not isinstance(response, dict):
+            logger.warning(f"marketer_chat received non-dict response: {type(response)}")
+            return {"role": "ASSISTANT", "content": "", "thinkings": [], "refs": [], "session_id": ""}
         return response.get("data", {})
     
     def chat_with_video(
@@ -134,6 +142,11 @@ class MemoriesClient:
             data["session_id"] = session_id
         
         response = self._post("/serve/api/v1/chat", json_data=data)
+        # Defensive: ensure response is a dict
+        if not isinstance(response, dict):
+            logger.warning(f"chat_with_video received non-dict response: {type(response)}")
+            return {"role": "ASSISTANT", "content": "", "thinkings": [], "refs": [], "session_id": ""}
+        
         result = response.get("data", {})
         # Preserve session_id at top level for backward compatibility
         if "session_id" in response:

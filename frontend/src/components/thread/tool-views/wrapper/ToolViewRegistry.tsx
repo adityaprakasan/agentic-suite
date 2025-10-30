@@ -191,9 +191,8 @@ const defaultRegistry: ToolViewRegistryType = {
   'global_kb_enable_item': KbToolView,
   'global-kb-enable-item': KbToolView,
 
-  // Memories.ai video intelligence tools - 5 core public library tools (support both - and _ formats)
-  'search_platform_videos': MemoriesToolView,
-  'search-platform-videos': MemoriesToolView,
+  // Memories.ai video intelligence tools - 4 core public library tools (support both - and _ formats)
+  // Note: search_platform_videos is DISABLED
   'video_marketer_chat': MemoriesToolView,
   'video-marketer-chat': MemoriesToolView,
   'upload_creator_videos': MemoriesToolView,

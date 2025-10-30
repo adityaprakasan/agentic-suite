@@ -1151,12 +1151,12 @@ TOOL_GROUPS: Dict[str, ToolGroup] = {
             ),
             
             # Search and Discovery
-            ToolMethod(
-                name="search_platform_videos",
-                display_name="Search Platform Videos",
-                description="Search for videos on YouTube, TikTok, or Instagram",
-                enabled=True
-            ),
+            # ToolMethod(
+            #     name="search_platform_videos",
+            #     display_name="Search Platform Videos",
+            #     description="Search for videos on YouTube, TikTok, or Instagram",
+            #     enabled=False  # DISABLED per user request
+            # ),
             ToolMethod(
                 name="search_trending_content",
                 display_name="Video Marketer Chat",
