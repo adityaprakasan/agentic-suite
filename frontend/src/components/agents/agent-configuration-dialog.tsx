@@ -161,10 +161,9 @@ export function AgentConfigurationDialog({
 
   const isAdenticAgent = agent?.metadata?.is_suna_default || false;
   const restrictions = agent?.metadata?.restrictions || {};
-  // Respect backend restrictions - don't hardcode Adentic as non-editable
-  const isNameEditable = !isViewingOldVersion && (restrictions.name_editable !== false);
-  const isSystemPromptEditable = !isViewingOldVersion && (restrictions.system_prompt_editable !== false);
-  const areToolsEditable = !isViewingOldVersion && (restrictions.tools_editable !== false);
+  const isNameEditable = !isViewingOldVersion && (restrictions.name_editable !== false) && !isAdenticAgent;
+  const isSystemPromptEditable = !isViewingOldVersion && (restrictions.system_prompt_editable !== false) && !isAdenticAgent;
+  const areToolsEditable = !isViewingOldVersion && (restrictions.tools_editable !== false) && !isAdenticAgent;
 
   const hasChanges = useMemo(() => {
     return JSON.stringify(formData) !== JSON.stringify(originalFormData);

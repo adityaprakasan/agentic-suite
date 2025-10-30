@@ -44,11 +44,11 @@ def _extract_suna_agent_config(agent_data: Dict[str, Any], version_data: Optiona
         'current_version_id': agent_data.get('current_version_id'),
         'version_name': version_data.get('version_name', 'v1') if version_data else 'v1',
         'restrictions': {
-            'system_prompt_editable': True,  # Allow editing system prompt
-            'tools_editable': True,  # Allow customizing tools
-            'name_editable': True,  # Allow renaming the agent
-            'description_editable': True,  # Allow editing description
-            'mcps_editable': True  # Allow configuring integrations
+            'system_prompt_editable': False,
+            'tools_editable': False,
+            'name_editable': False,
+            'description_editable': False,
+            'mcps_editable': True
         }
     }
     
@@ -199,63 +199,22 @@ def build_unified_config(
 
 
 def _get_default_agentpress_tools() -> Dict[str, bool]:
-    """Get default tool configuration with all tools from frontend enabled.
-    
-    IMPORTANT: These names must match EXACTLY what frontend/src/components/agents/tools/tool-groups-comprehensive.ts defines.
-    The frontend is the source of truth for tool names.
-    """
     return {
-        # Core file and shell operations  
-        "sb_files_tool": True,
         "sb_shell_tool": True,
+        "sb_files_tool": True,
         "sb_expose_tool": True,
-        "sb_upload_file_tool": True,
-        
-        # Search and research tools
         "web_search_tool": True,
         "image_search_tool": True,
-        "people_search_tool": True,
-        "company_search_tool": True,
-        "paper_search_tool": True,
-        
-        # AI vision and image tools
         "sb_vision_tool": True,
         "sb_image_edit_tool": True,
-        "sb_design_tool": True,  # Frontend uses sb_design_tool, not sb_designer_tool!
-        
-        # Document and content creation
-        "sb_docs_tool": True,
         "sb_presentation_tool": True,
-        "sb_presentation_outline_tool": True,
-        "sb_kb_tool": True,
-        "sb_sheets_tool": True,
-        "sb_templates_tool": True,
-        
-        # Development tools
-        "sb_web_dev_tool": True,
-        "sb_deploy_tool": True,
-        
-        # Communication and tasks
-        "message_tool": True,
-        "task_list_tool": True,
-        "expand_message_tool": True,
-        
-        # Browser automation
         "browser_tool": True,
-        "sb_browser_tool": True,
-        
-        # Workflow and automation
-        "workflow_tool": True,
-        "computer_use_tool": True,
-        
-        # External data
         "data_providers_tool": True,
-        
-        # Agent builder tools
+        "people_search_tool": False,
         "agent_config_tool": True,
-        "agent_creation_tool": True,
         "mcp_search_tool": True,
         "credential_profile_tool": True,
+        "agent_creation_tool": True,
         "trigger_tool": True
     }
 

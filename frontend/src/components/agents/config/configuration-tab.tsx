@@ -92,7 +92,7 @@ export function ConfigurationTab({
   const areToolsEditable = !isViewingOldVersion && (restrictions.tools_editable !== false);
 
   const handleSystemPromptChange = (value: string) => {
-    if (!isSystemPromptEditable) {
+    if (!isSystemPromptEditable && isAdenticAgent) {
       toast.error("System prompt cannot be edited", {
         description: "Adentic's system prompt is managed centrally and cannot be changed.",
       });

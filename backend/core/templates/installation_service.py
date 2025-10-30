@@ -404,7 +404,7 @@ class InstallationService:
             'agent_id': agent_id,
             'account_id': request.account_id,
             'name': agent_name,
-            'icon_name': template.icon_name or 'adentic-logo',  # Special value for Adentic logo
+            'icon_name': template.icon_name or 'brain',
             'icon_color': template.icon_color or '#000000',
             'icon_background': template.icon_background or '#F3F4F6',
             'metadata': metadata,

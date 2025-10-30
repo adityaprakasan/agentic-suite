@@ -561,7 +561,7 @@ async def create_agent(
         insert_data = {
             "account_id": user_id,
             "name": agent_data.name,
-            "icon_name": agent_data.icon_name or "adentic-logo",  # Special value for Adentic logo
+            "icon_name": agent_data.icon_name or "bot",
             "icon_color": agent_data.icon_color or "#000000",
             "icon_background": agent_data.icon_background or "#F3F4F6",
             "is_default": agent_data.is_default or False,

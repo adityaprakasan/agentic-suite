@@ -6,10 +6,9 @@ import { icons } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { AdenticLogo } from '@/components/sidebar/kortix-logo';
 
 interface IconPickerProps {
-  selectedIcon?: string | null;
+  selectedIcon?: string;
   onIconSelect: (iconName: string) => void;
   iconColor?: string;
   backgroundColor?: string;
@@ -66,31 +65,6 @@ export function IconPicker({
       </div>
       <ScrollArea className="flex-1 rounded-lg border min-h-0">
         <div className="p-4 space-y-6">
-          {/* Adentic Logo Option - Always visible at top when not searching */}
-          {!searchQuery && (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Default Icon
-              </p>
-              <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
-                <button
-                  onClick={() => onIconSelect('adentic-logo')}
-                  className={cn(
-                    "p-2 sm:p-3 rounded-md border transition-all hover:scale-105 flex items-center justify-center aspect-square",
-                    selectedIcon === 'adentic-logo' || selectedIcon === null || selectedIcon === undefined || selectedIcon === ''
-                      ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                      : "border-border hover:border-primary/60 hover:bg-accent"
-                  )}
-                  style={{
-                    backgroundColor: (selectedIcon === 'adentic-logo' || selectedIcon === null || selectedIcon === undefined || selectedIcon === '') ? backgroundColor : undefined
-                  }}
-                  title="Adentic Logo (Default)"
-                >
-                  <AdenticLogo size={18} />
-                </button>
-              </div>
-            </div>
-          )}
           {!searchQuery && (
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
