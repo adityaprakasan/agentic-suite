@@ -121,6 +121,15 @@ class ThreadManager:
         # CRITICAL: Billing MUST complete even if logging fails
         # Wrap ALL operations in try-except to ensure credits are deducted
         try:
+            # Safety check: ensure we have valid inputs
+            if not content or not isinstance(content, dict):
+                logger.warning("⚠️ Billing skipped: invalid content provided")
+                return
+            
+            if not saved_message or not isinstance(saved_message, dict):
+                logger.warning("⚠️ Billing skipped: invalid saved_message provided")
+                return
+            
             llm_response_id = str(content.get("llm_response_id", "unknown"))
             try:
                 logger.info("💰 Processing billing for LLM response: " + str(llm_response_id))
