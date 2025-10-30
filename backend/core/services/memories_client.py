@@ -54,31 +54,32 @@ class MemoriesClient:
         return result if result is not None else {}
     
     # ============ PUBLIC LIBRARY SEARCH ============
+    # DISABLED: search_public_videos - not exposed as a tool per user request
     
-    def search_public_videos(
-        self, 
-        query: str, 
-        platform: str = "TIKTOK", 
-        search_type: str = "BY_VIDEO", 
-        top_k: int = 10, 
-        filtering_level: str = "high"
-    ) -> List[Dict[str, Any]]:
-        """
-        Search public video platforms (TikTok, YouTube, Instagram)
-        Endpoint: POST /serve/api/v1/search_public
-        platform: TIKTOK, YOUTUBE, INSTAGRAM
-        Returns: {code, msg, data: [{videoNo, videoName, startTime, endTime, score}]}
-        """
-        data = {
-            "search_param": query,
-            "search_type": search_type,
-            "type": platform.upper(),
-            "top_k": top_k,
-            "filtering_level": filtering_level
-        }
-        
-        response = self._post("/serve/api/v1/search_public", json_data=data)
-        return response.get("data", [])
+    # def search_public_videos(
+    #     self, 
+    #     query: str, 
+    #     platform: str = "TIKTOK", 
+    #     search_type: str = "BY_VIDEO", 
+    #     top_k: int = 10, 
+    #     filtering_level: str = "high"
+    # ) -> List[Dict[str, Any]]:
+    #     """
+    #     Search public video platforms (TikTok, YouTube, Instagram)
+    #     Endpoint: POST /serve/api/v1/search_public
+    #     platform: TIKTOK, YOUTUBE, INSTAGRAM
+    #     Returns: {code, msg, data: [{videoNo, videoName, startTime, endTime, score}]}
+    #     """
+    #     data = {
+    #         "search_param": query,
+    #         "search_type": search_type,
+    #         "type": platform.upper(),
+    #         "top_k": top_k,
+    #         "filtering_level": filtering_level
+    #     }
+    #     
+    #     response = self._post("/serve/api/v1/search_public", json_data=data)
+    #     return response.get("data", [])
     
     # ============ PUBLIC VIDEO DETAILS ============
     

@@ -1,12 +1,13 @@
 """
 Memories.ai Video Intelligence Tool - Public Library Only
 
-Provides 5 core video intelligence capabilities:
-1. search_platform_videos - Find videos on TikTok/YouTube/Instagram
-2. video_marketer_chat - AI-powered analysis from 1M+ indexed videos
-3. upload_creator_videos - Scrape and index creator's videos (async)
-4. upload_hashtag_videos - Scrape and index hashtag videos (async)
-5. chat_with_videos - Q&A with specific videos
+Provides 4 core video intelligence capabilities:
+1. video_marketer_chat - AI-powered analysis from 1M+ indexed videos
+2. upload_creator_videos - Scrape and index creator's videos (async)
+3. upload_hashtag_videos - Scrape and index hashtag videos (async)
+4. chat_with_videos - Q&A with specific videos
+
+Note: search_platform_videos has been disabled
 """
 
 import asyncio
@@ -21,7 +22,7 @@ from core.utils.config import config
 
 @tool_metadata(
     display_name="Video Intelligence",
-    description="Search and analyze videos from TikTok, YouTube, and Instagram with AI-powered insights",
+    description="Analyze videos from TikTok, YouTube, and Instagram with AI-powered insights from 1M+ indexed videos",
     icon="Video",
     color="bg-purple-100 dark:bg-purple-800/50",
     weight=150,
