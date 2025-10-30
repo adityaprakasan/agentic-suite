@@ -86,7 +86,7 @@ class AgentCreationTool(Tool):
                         "default": False
                     }
                 },
-                "required": ["name", "system_prompt", "icon_name", "icon_color", "icon_background"]
+                "required": ["name", "system_prompt"]
             }
         }
     })
@@ -94,9 +94,9 @@ class AgentCreationTool(Tool):
         self,
         name: str,
         system_prompt: str,
-        icon_name: str,
-        icon_color: str,
-        icon_background: str,
+        icon_name: Optional[str] = None,
+        icon_color: Optional[str] = None,
+        icon_background: Optional[str] = None,
         agentpress_tools: Optional[Dict[str, bool]] = None,
         configured_mcps: Optional[List[Dict[str, Any]]] = None,
         is_default: bool = False
@@ -145,9 +145,9 @@ class AgentCreationTool(Tool):
             insert_data = {
                 "account_id": account_id,
                 "name": name,
-                "icon_name": icon_name,
-                "icon_color": icon_color,
-                "icon_background": icon_background,
+                "icon_name": icon_name if icon_name else "adentic-logo",  # Special value for Adentic logo
+                "icon_color": icon_color if icon_color else "#000000",
+                "icon_background": icon_background if icon_background else "#F3F4F6",
                 "is_default": is_default,
                 "version_count": 1
             }
@@ -185,7 +185,10 @@ class AgentCreationTool(Tool):
                 }).eq("agent_id", agent_id).execute()
 
                 success_message = f"✅ Successfully created agent '{name}'!\n\n"
-                success_message += f"**Icon**: {icon_name} ({icon_color} on {icon_background})\n"
+                if icon_name and icon_name != 'adentic-logo':
+                    success_message += f"**Icon**: {icon_name} ({icon_color} on {icon_background})\n"
+                else:
+                    success_message += f"**Icon**: Adentic Logo (default)\n"
                 success_message += f"**Default Agent**: {'Yes' if is_default else 'No'}\n"
                 success_message += f"**Tools Enabled**: {len([k for k, v in agentpress_tools.items() if v])}\n"
                 success_message += f"**MCPs Configured**: {len(configured_mcps)}\n\n"

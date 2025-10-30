@@ -54,6 +54,9 @@ export const AgentAvatar: React.FC<AgentAvatarProps> = ({
   const backgroundColor = propBackgroundColor ?? agent?.icon_background ?? '#F3F4F6';
   const agentName = propAgentName ?? agent?.name ?? fallbackName;
   const isAdentic = propIsAdenticDefault ?? agent?.metadata?.is_suna_default;
+  
+  // Show Adentic logo for default icons (special marker or null/undefined/empty)
+  const isDefaultIcon = !isAdentic && (iconName === 'adentic-logo' || iconName === null || iconName === undefined || iconName === '');
 
   // Calculate responsive border radius - proportional to size
   // Use a ratio that prevents full rounding while maintaining nice corners
@@ -71,7 +74,8 @@ export const AgentAvatar: React.FC<AgentAvatarProps> = ({
     );
   }
 
-  if (isAdentic) {
+  // Show Adentic logo for both Adentic default agents AND agents with no icon set
+  if (isAdentic || isDefaultIcon) {
     return (
       <div 
         className={cn(
@@ -87,7 +91,7 @@ export const AgentAvatar: React.FC<AgentAvatarProps> = ({
 
   if (iconName) {
     return (
-      <div 
+      <div
         className={cn(
           "flex items-center justify-center transition-all border",
           className
@@ -108,7 +112,7 @@ export const AgentAvatar: React.FC<AgentAvatarProps> = ({
     );
   }
 
-  // Fallback to default bot icon
+  // Fallback to Adentic logo (this path should rarely be hit now)
   return (
     <div 
       className={cn(
@@ -117,11 +121,7 @@ export const AgentAvatar: React.FC<AgentAvatarProps> = ({
       )}
       style={{ width: size, height: size, ...borderRadiusStyle }}
     >
-      <DynamicIcon 
-        name="bot" 
-        size={size * 0.5} 
-        color="#6B7280"
-      />
+      <AdenticLogo size={size * 0.6} />
     </div>
   );
 };

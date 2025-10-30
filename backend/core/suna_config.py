@@ -19,21 +19,27 @@ SUNA_CONFIG = {
         "web_search_tool": True,
         "image_search_tool": True,
         "data_providers_tool": True,
+        "people_search_tool": True,
+        "company_search_tool": True,
+        "paper_search_tool": True,
         
         # AI vision and image tools
         "sb_vision_tool": True,
         "sb_image_edit_tool": True,
-        "sb_design_tool": True,
+        "sb_designer_tool": True,
         
         # Document and content creation
         "sb_docs_tool": True,
         "sb_presentation_tool": True,
         "sb_kb_tool": True,
-
-        # search tools
-        "people_search_tool": True,
-        "company_search_tool": True,
-
+        
+        # Communication and tasks
+        "message_tool": True,
+        "task_list_tool": True,
+        "vapi_voice_tool": True,
+        "memories_tool": True,
+        
+        # Browser automation
         "browser_tool": True,
         
         # Agent builder tools

@@ -28,10 +28,10 @@ interface AgentIconEditorDialogProps {
   onClose: () => void;
   agentName?: string;
   agentDescription?: string;
-  currentIconName?: string;
+  currentIconName?: string | null;
   currentIconColor?: string;
   currentBackgroundColor?: string;
-  onIconUpdate?: (iconName: string | null, iconColor: string, backgroundColor: string) => void;
+  onIconUpdate?: (iconName: string, iconColor: string, backgroundColor: string) => void;
 }
 
 export function AgentIconEditorDialog({
@@ -44,7 +44,7 @@ export function AgentIconEditorDialog({
   currentBackgroundColor = '#F3F4F6',
   onIconUpdate,
 }: AgentIconEditorDialogProps) {
-  const [selectedIcon, setSelectedIcon] = useState(currentIconName || 'bot');
+  const [selectedIcon, setSelectedIcon] = useState<string>(currentIconName || 'adentic-logo');
   const [iconColor, setIconColor] = useState(currentIconColor || '#000000');
   const [backgroundColor, setBackgroundColor] = useState(currentBackgroundColor || '#e5e5e5');
   
@@ -65,7 +65,12 @@ export function AgentIconEditorDialog({
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedIcon(currentIconName || 'bot');
+      // Map special marker or null/empty to 'adentic-logo' for picker
+      setSelectedIcon(
+        currentIconName === 'adentic-logo' || currentIconName === null || currentIconName === undefined || currentIconName === '' 
+          ? 'adentic-logo' 
+          : currentIconName
+      );
       setIconColor(currentIconColor || '#000000');
       setBackgroundColor(currentBackgroundColor || '#e5e5e5');
     }

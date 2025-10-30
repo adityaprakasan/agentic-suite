@@ -44,11 +44,11 @@ def _extract_suna_agent_config(agent_data: Dict[str, Any], version_data: Optiona
         'current_version_id': agent_data.get('current_version_id'),
         'version_name': version_data.get('version_name', 'v1') if version_data else 'v1',
         'restrictions': {
-            'system_prompt_editable': False,
-            'tools_editable': False,
-            'name_editable': False,
-            'description_editable': False,
-            'mcps_editable': True
+            'system_prompt_editable': True,  # Allow editing system prompt
+            'tools_editable': True,  # Allow customizing tools
+            'name_editable': True,  # Allow renaming the agent
+            'description_editable': True,  # Allow editing description
+            'mcps_editable': True  # Allow configuring integrations
         }
     }
     
@@ -199,22 +199,50 @@ def build_unified_config(
 
 
 def _get_default_agentpress_tools() -> Dict[str, bool]:
+    """Get default tool configuration with all visible tools enabled.
+    
+    This returns all tools that are marked as visible=True in their @tool_metadata decorator.
+    Users can customize this later, but new agents start with full capabilities.
+    """
     return {
+        # Core file and shell operations
         "sb_shell_tool": True,
         "sb_files_tool": True,
         "sb_expose_tool": True,
+        "sb_upload_file_tool": True,
+        
+        # Search and research tools
         "web_search_tool": True,
         "image_search_tool": True,
+        "data_providers_tool": True,
+        "people_search_tool": True,
+        "company_search_tool": True,
+        "paper_search_tool": True,
+        
+        # AI vision and image tools
         "sb_vision_tool": True,
         "sb_image_edit_tool": True,
+        "sb_designer_tool": True,
+        
+        # Document and content creation
+        "sb_docs_tool": True,
         "sb_presentation_tool": True,
+        "sb_kb_tool": True,
+        
+        # Communication and tasks
+        "message_tool": True,
+        "task_list_tool": True,
+        "vapi_voice_tool": True,
+        "memories_tool": True,
+        
+        # Browser automation
         "browser_tool": True,
-        "data_providers_tool": True,
-        "people_search_tool": False,
+        
+        # Agent builder tools
         "agent_config_tool": True,
+        "agent_creation_tool": True,
         "mcp_search_tool": True,
         "credential_profile_tool": True,
-        "agent_creation_tool": True,
         "trigger_tool": True
     }
 
