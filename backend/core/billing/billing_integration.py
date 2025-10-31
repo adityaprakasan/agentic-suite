@@ -57,25 +57,8 @@ class BillingIntegration:
             cost = calculate_token_cost(prompt_tokens, completion_tokens, model)
         
         if cost <= 0:
-            if config.ENV_MODE != EnvMode.LOCAL and (prompt_tokens > 0 or completion_tokens > 0):
-                # CRITICAL: Never allow zero-cost in production when tokens were used
-                logger.critical(
-                    f"🚨 BILLING CRITICAL: Zero cost calculated for {model} with "
-                    f"{prompt_tokens}+{completion_tokens} tokens in {config.ENV_MODE.value.upper()} mode"
-                )
-                
-                # Use emergency fallback pricing (2x base rate as safety margin)
-                from core.billing.config import TOKEN_PRICE_MULTIPLIER
-                emergency_cost = Decimal(str((prompt_tokens + completion_tokens) / 1_000_000 * 2.0)) * TOKEN_PRICE_MULTIPLIER
-                logger.critical(f"Using emergency fallback cost: ${emergency_cost:.6f}")
-                cost = emergency_cost
-                
-                # Alert admin (could send email/slack notification here)
-                logger.critical(f"Model resolution: {model} → investigate pricing configuration immediately")
-            else:
-                # Local mode or genuinely zero tokens
-                logger.warning(f"Zero cost calculated for {model} with {prompt_tokens}+{completion_tokens} tokens")
-                return {'success': True, 'cost': 0}
+            logger.warning(f"Zero cost calculated for {model} with {prompt_tokens}+{completion_tokens} tokens")
+            return {'success': True, 'cost': 0}
         
         logger.info(f"[BILLING] Calculated cost: ${cost:.6f} for {model}")
         

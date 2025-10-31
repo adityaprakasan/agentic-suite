@@ -358,15 +358,6 @@ class ResponseProcessor:
                         # logger.debug(f"Processing reasoning_content: type={type(reasoning_content)}, value={reasoning_content}")
                         if isinstance(reasoning_content, list):
                             reasoning_content = ''.join(str(item) for item in reasoning_content)
-                        elif reasoning_content is not None:
-                            reasoning_content = str(reasoning_content)
-                        else:
-                            reasoning_content = ""
-                        
-                        # Ensure accumulated_content is string before concatenation
-                        if not isinstance(accumulated_content, str):
-                            accumulated_content = str(accumulated_content) if accumulated_content else ""
-                        
                         # logger.debug(f"About to concatenate reasoning_content (type={type(reasoning_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += reasoning_content
 
@@ -376,17 +367,6 @@ class ResponseProcessor:
                         # logger.debug(f"Processing chunk_content: type={type(chunk_content)}, value={chunk_content}")
                         if isinstance(chunk_content, list):
                             chunk_content = ''.join(str(item) for item in chunk_content)
-                        elif chunk_content is not None:
-                            chunk_content = str(chunk_content)
-                        else:
-                            chunk_content = ""
-                        
-                        # Ensure accumulated_content and current_xml_content are strings before concatenation
-                        if not isinstance(accumulated_content, str):
-                            accumulated_content = str(accumulated_content) if accumulated_content else ""
-                        if not isinstance(current_xml_content, str):
-                            current_xml_content = str(current_xml_content) if current_xml_content else ""
-                        
                         # print(chunk_content, end='', flush=True)
                         # logger.debug(f"About to concatenate chunk_content (type={type(chunk_content)}) to accumulated_content (type={type(accumulated_content)})")
                         accumulated_content += chunk_content
@@ -557,9 +537,8 @@ class ResponseProcessor:
                                 logger.warning(f"Task for tool index {tool_idx} not done after wait.")
                                 self.trace.event(name="task_for_tool_index_not_done_after_wait", level="WARNING", status_message=(f"Task for tool index {tool_idx} not done after wait."))
                          except Exception as e:
-                             error_msg = ErrorProcessor.safe_error_to_string(e)
-                             logger.error(f"Error getting result for pending tool execution {tool_idx}: {error_msg}")
-                             self.trace.event(name="error_getting_result_for_pending_tool_execution", level="ERROR", status_message=(f"Error getting result for pending tool execution {tool_idx}: {error_msg}"))
+                             logger.error(f"Error getting result for pending tool execution {tool_idx}: {str(e)}")
+                             self.trace.event(name="error_getting_result_for_pending_tool_execution", level="ERROR", status_message=(f"Error getting result for pending tool execution {tool_idx}: {str(e)}"))
                              context.error = e
                              error_msg_obj = await self._yield_and_save_tool_error(context, thread_id, thread_run_id)
                              if error_msg_obj: yield format_for_yield(error_msg_obj)
@@ -582,9 +561,8 @@ class ResponseProcessor:
                             if completed_msg_obj: yield format_for_yield(completed_msg_obj)
                             yielded_tool_indices.add(tool_idx)
                     except Exception as e:
-                        error_msg = ErrorProcessor.safe_error_to_string(e)
-                        logger.error(f"Error getting result/yielding status for pending tool execution {tool_idx}: {error_msg}")
-                        self.trace.event(name="error_getting_result_yielding_status_for_pending_tool_execution", level="ERROR", status_message=(f"Error getting result/yielding status for pending tool execution {tool_idx}: {error_msg}"))
+                        logger.error(f"Error getting result/yielding status for pending tool execution {tool_idx}: {str(e)}")
+                        self.trace.event(name="error_getting_result_yielding_status_for_pending_tool_execution", level="ERROR", status_message=(f"Error getting result/yielding status for pending tool execution {tool_idx}: {str(e)}"))
                         context.error = e
                         error_msg_obj = await self._yield_and_save_tool_error(context, thread_id, thread_run_id)
                         if error_msg_obj: yield format_for_yield(error_msg_obj)
@@ -860,9 +838,8 @@ class ResponseProcessor:
                             llm_response_end_saved = True
                         logger.info(f"✅ llm_response_end saved for call #{auto_continue_count + 1} (before termination)")
                     except Exception as e:
-                        error_msg = ErrorProcessor.safe_error_to_string(e)
-                        logger.error(f"Error saving llm_response_end (before termination): {error_msg}")
-                        self.trace.event(name="error_saving_llm_response_end_before_termination", level="ERROR", status_message=(f"Error saving llm_response_end (before termination): {error_msg}"))
+                        logger.error(f"Error saving llm_response_end (before termination): {str(e)}")
+                        self.trace.event(name="error_saving_llm_response_end_before_termination", level="ERROR", status_message=(f"Error saving llm_response_end (before termination): {str(e)}"))
                 
                 # Skip all remaining processing and go to finally block
                 return
@@ -924,9 +901,8 @@ class ResponseProcessor:
                             logger.warning("⚠️ No complete LiteLLM response available, skipping llm_response_end")
                         logger.info(f"✅ llm_response_end saved for call #{auto_continue_count + 1} (normal completion)")
                     except Exception as e:
-                        error_msg = ErrorProcessor.safe_error_to_string(e)
-                        logger.error(f"Error saving llm_response_end: {error_msg}")
-                        self.trace.event(name="error_saving_llm_response_end", level="ERROR", status_message=(f"Error saving llm_response_end: {error_msg}"))
+                        logger.error(f"Error saving llm_response_end: {str(e)}")
+                        self.trace.event(name="error_saving_llm_response_end", level="ERROR", status_message=(f"Error saving llm_response_end: {str(e)}"))
 
         except Exception as e:
             # Use ErrorProcessor for consistent error handling
@@ -1218,9 +1194,8 @@ class ResponseProcessor:
                     )
                     logger.debug("Assistant response end saved for non-stream")
                 except Exception as e:
-                    error_msg = ErrorProcessor.safe_error_to_string(e)
-                    logger.error(f"Error saving assistant response end for non-stream: {error_msg}")
-                    self.trace.event(name="error_saving_assistant_response_end_for_non_stream", level="ERROR", status_message=(f"Error saving assistant response end for non-stream: {error_msg}"))
+                    logger.error(f"Error saving assistant response end for non-stream: {str(e)}")
+                    self.trace.event(name="error_saving_assistant_response_end_for_non_stream", level="ERROR", status_message=(f"Error saving assistant response end for non-stream: {str(e)}"))
 
         except Exception as e:
              # Use ErrorProcessor for consistent error handling
@@ -1514,7 +1489,7 @@ class ResponseProcessor:
             logger.error(f"❌ Error type: {type(e).__name__}")
             logger.error(f"❌ Tool call data: {tool_call}")
             logger.error(f"❌ Full traceback:", exc_info=True)
-            span.end(status_message="critical_error", output=ErrorProcessor.safe_error_to_string(e), level="ERROR")
+            span.end(status_message="critical_error", output=str(e), level="ERROR")
             return ToolResult(success=False, output=f"Critical error executing tool: {str(e)}")
 
     async def _execute_tools(
@@ -1620,14 +1595,13 @@ class ResponseProcessor:
 
                 except Exception as e:
                     logger.error(f"❌ ERROR executing tool {tool_name}: {str(e)}")
-                    error_msg = ErrorProcessor.safe_error_to_string(e)
                     logger.error(f"❌ Error type: {type(e).__name__}")
                     logger.error(f"❌ Tool call that failed: {tool_call}")
-                    self.trace.event(name="error_executing_tool", level="ERROR", status_message=(f"Error executing tool {tool_name}: {error_msg}"))
+                    self.trace.event(name="error_executing_tool", level="ERROR", status_message=(f"Error executing tool {tool_name}: {str(e)}"))
 
                     # Create error result safely
                     try:
-                        error_result = ToolResult(success=False, output=f"Error executing tool: {error_msg}")
+                        error_result = ToolResult(success=False, output=f"Error executing tool: {str(e)}")
                         results.append((tool_call, error_result))
                     except Exception as result_error:
                         logger.error(f"❌ Failed to create error result: {result_error}")
@@ -1739,12 +1713,11 @@ class ResponseProcessor:
             return processed_results
 
         except Exception as e:
-            error_msg = ErrorProcessor.safe_error_to_string(e)
-            logger.error(f"❌ CRITICAL ERROR in parallel tool execution: {error_msg}")
+            logger.error(f"❌ CRITICAL ERROR in parallel tool execution: {str(e)}")
             logger.error(f"❌ Error type: {type(e).__name__}")
             logger.error(f"❌ Tool calls data: {tool_calls}")
             logger.error(f"❌ Full traceback:", exc_info=True)
-            self.trace.event(name="error_in_parallel_tool_execution", level="ERROR", status_message=(f"Error in parallel tool execution: {error_msg}"))
+            self.trace.event(name="error_in_parallel_tool_execution", level="ERROR", status_message=(f"Error in parallel tool execution: {str(e)}"))
 
             # Return error results for all tools if the gather itself fails
             error_results = []
@@ -1888,9 +1861,8 @@ class ResponseProcessor:
 
             return message_obj # Return the modified message object
         except Exception as e:
-            error_msg = ErrorProcessor.safe_error_to_string(e)
-            logger.error(f"Error adding tool result: {error_msg}", exc_info=True)
-            self.trace.event(name="error_adding_tool_result", level="ERROR", status_message=(f"Error adding tool result: {error_msg}"), metadata={"tool_call": tool_call, "result": result, "strategy": strategy, "assistant_message_id": assistant_message_id, "parsing_details": parsing_details})
+            logger.error(f"Error adding tool result: {str(e)}", exc_info=True)
+            self.trace.event(name="error_adding_tool_result", level="ERROR", status_message=(f"Error adding tool result: {str(e)}"), metadata={"tool_call": tool_call, "result": result, "strategy": strategy, "assistant_message_id": assistant_message_id, "parsing_details": parsing_details})
             # Fallback to a simple message
             try:
                 fallback_message = {
