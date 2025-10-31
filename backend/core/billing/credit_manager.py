@@ -289,7 +289,9 @@ class CreditManager:
             'balance_after': float(new_total),
             'type': 'usage',
             'description': description,
-            'reference_id': thread_id or message_id,
+            'reference_id': None,
+            'thread_id': message_id,
+            'message_id': message_id,
             'metadata': {
                 'thread_id': thread_id,
                 'message_id': message_id,
