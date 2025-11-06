@@ -57,7 +57,7 @@ export default function IntroductionPage() {
           Adentic is a marketing platform for in-house marketing teams and agencies. It provides a comprehensive suite of tools and resources to help you automate your marketing operations.
         </p>
         
-        <h3 id="meet-suna">Adentic - Our Flagship Agent</h3>
+        <h3 id="meet-adentic">Adentic - Our Flagship Agent</h3>
         <p className="mb-4">
           Adentic is a marketing platform for in-house marketing teams and agencies. It provides a comprehensive suite of tools and resources to help you automate your marketing operations.
         </p>
