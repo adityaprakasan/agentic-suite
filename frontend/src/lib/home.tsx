@@ -1230,9 +1230,7 @@ export const siteConfig = {
     {
       title: 'Adentic',
       links: [
-        { id: 1, title: 'About', url: 'https://tryadenti.com' },
         { id: 3, title: 'Contact', url: 'mailto:aditya.p@tryadentic.com' },
-        { id: 4, title: 'Careers', url: 'https://tryadentic.com' },
       ],
     },
     {
