@@ -151,7 +151,7 @@ function LegalContent() {
                       Terms of Service & Privacy Policy
                     </h3>
                     <p className="text-muted-foreground text-balance mb-4">
-                      Last updated and effective date: 13 August 2024
+                      Last updated and effective date: 31 October 2024
                     </p>
 
                     <p className="text-muted-foreground text-balance mb-6">
@@ -169,7 +169,7 @@ function LegalContent() {
                     </h3>
                     <ul className="text-muted-foreground space-y-1 mb-6">
                       <li>
-                        "Company" refers to Adentic AI Corp (272 London Rd, 
+                        "Company" refers to Adentic LTD (272 London Rd, 
                         Wallington, United Kingdom, SM6 7DJ).
                       </li>
                       <li>
@@ -348,28 +348,6 @@ function LegalContent() {
                       to indemnify and hold harmless the Company from any
                       claims, losses, damages, or expenses arising out of or
                       related to your created content or performed actions.
-                    </p>
-
-                    <h3 className="text-lg font-medium tracking-tight">
-                      Open Source License
-                    </h3>
-                    <p className="text-muted-foreground text-balance mb-6">
-                      Adentic is licensed under the Apache License, Version 2.0.
-                      You may obtain a copy of the License at{' '}
-                      <a
-                        href="http://www.apache.org/licenses/LICENSE-2.0"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-secondary hover:underline"
-                      >
-                        http://www.apache.org/licenses/LICENSE-2.0
-                      </a>
-                      . Unless required by applicable law or agreed to in
-                      writing, software distributed under the License is
-                      distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-                      CONDITIONS OF ANY KIND, either express or implied. See the
-                      License for the specific language governing permissions
-                      and limitations under the License.
                     </p>
 
                     <h3 className="text-lg font-medium tracking-tight">
@@ -646,14 +624,14 @@ function LegalContent() {
                     <p className="text-muted-foreground text-balance mb-6">
                       ALL USE OF THE SERVICE AND ANY CONTENT IS UNDERTAKEN
                       ENTIRELY AT YOUR OWN RISK. THE SERVICE (INCLUDING, WITHOUT
-                      LIMITATION, THE SUNA WEB APP AND ANY CONTENT) IS PROVIDED
+                      LIMITATION, THE ADENTIC WEB APP AND ANY CONTENT) IS PROVIDED
                       "AS IS" AND "AS AVAILABLE" AND IS WITHOUT WARRANTY OF ANY
                       KIND, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
                       THE IMPLIED WARRANTIES OF TITLE, NON-INFRINGEMENT,
                       MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE, AND
                       ANY WARRANTIES IMPLIED BY ANY COURSE OF PERFORMANCE OR
                       USAGE OF TRADE, ALL OF WHICH ARE EXPRESSLY DISCLAIMED.
-                      SUNA DOES NOT GUARANTEE THE ACCURACY, COMPLETENESS, OR
+                      ADENTIC DOES NOT GUARANTEE THE ACCURACY, COMPLETENESS, OR
                       RELIABILITY OF THE AI-GENERATED CONTENT, AND USERS ASSUME
                       FULL RESPONSIBILITY FOR ANY APPLICATIONS CREATED USING THE
                       SERVICE. SOME STATES DO NOT ALLOW LIMITATIONS ON HOW LONG
@@ -691,7 +669,7 @@ function LegalContent() {
                         href="mailto:aditya.p@tryadentic.com"
                         className="text-secondary hover:underline"
                       >
-                        legal@kortixai.com
+                        aditya.p@tryadentic.com
                       </a>
                       .
                     </p>

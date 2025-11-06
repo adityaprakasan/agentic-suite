@@ -35,7 +35,7 @@ export default function IntroductionPage() {
     <>
       <DocsHeader
         title="What is Adentic?"
-        subtitle="An open source platform for building AI agents that actually get things done"
+        subtitle="AI Marketing Platform for in-house marketing teams and agencies"
         breadcrumbs={breadcrumbs}
         lastUpdated="August 2025"
         showSeparator
@@ -54,12 +54,12 @@ export default function IntroductionPage() {
       <DocsBody className="mb-8">
         <h2 id="overview">What is Adentic?</h2>
         <p className="text-lg mb-6">
-          Adentic is an open source platform where you can build AI agents that handle real work. Think of it as the infrastructure and tools you need to create agents that can browse the web, manage files, analyze data, and automate workflows.
+          Adentic is a marketing platform for in-house marketing teams and agencies. It provides a comprehensive suite of tools and resources to help you automate your marketing operations.
         </p>
         
         <h3 id="meet-suna">Adentic - Our Flagship Agent</h3>
         <p className="mb-4">
-          Adentic is our showcase agent that demonstrates what's possible with Adentic. It's a generalist AI worker that can:
+          Adentic is a marketing platform for in-house marketing teams and agencies. It provides a comprehensive suite of tools and resources to help you automate your marketing operations.
         </p>
         <ul className="list-disc pl-6 mb-6 space-y-1">
           <li>Research topics and gather information from across the web</li>

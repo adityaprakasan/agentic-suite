@@ -572,7 +572,7 @@ export const siteConfig = {
         content: <FourthBentoAnimation once={false} />,
         title: 'Complete Customization',
         description:
-          'Tailor Adentic to your specific needs. As an open source solution, you have full control over its capabilities, integrations, and implementation.',
+          'Tailor Adentic to your specific needs. As a flexible marketing operations platform, you have full control over its capabilities, integrations, and implementation.',
       },
     ],
   },
@@ -594,14 +594,14 @@ export const siteConfig = {
     },
     {
       id: 4,
-      text: 'Access cutting-edge AI as an open source, transparent solution.',
+      text: 'Access cutting-edge AI for modern marketing operations.',
       image: '/Device-1.png',
     },
   ],
   growthSection: {
-    title: 'Open Source & Secure',
+    title: 'Enterprise-Grade Security',
     description:
-      'Where advanced security meets complete transparency—designed to protect your data while providing full access to the code.',
+      'Where advanced security meets marketing excellence—designed to protect your data while powering your operations.',
     items: [
       {
         id: 1,
@@ -881,9 +881,9 @@ export const siteConfig = {
           </div>
         ),
 
-        title: 'Open Source Security',
+        title: 'Enterprise Security',
         description:
-          'Benefit from the security of open source code that thousands of eyes can review, audit, and improve.',
+          'Benefit from enterprise-grade security that protects your marketing data and operations with industry-leading standards.',
       },
       {
         id: 2,
@@ -893,15 +893,15 @@ export const siteConfig = {
           </div>
         ),
 
-        title: 'Community Powered',
+        title: 'Marketing Operations Excellence',
         description:
-          "Join a thriving community of developers and users continuously enhancing and expanding Adentic's capabilities.",
+          "Join marketing teams and agencies worldwide who trust Adentic to power their campaigns and drive results.",
       },
     ],
   },
   quoteSection: {
     quote:
-      'Adentic Adentic has transformed how we approach everyday tasks. The level of automation it provides, combined with its open source nature, makes it an invaluable tool for our entire organization.',
+      'Adentic Adentic has transformed how we approach everyday tasks. The level of automation it provides for our marketing operations makes it an invaluable tool for our entire organization.',
     author: {
       name: 'Alex Johnson',
       role: 'CTO, Innovatech',
@@ -909,9 +909,9 @@ export const siteConfig = {
     },
   },
   pricing: {
-    title: 'Open Source & Free Forever',
+    title: 'Flexible Pricing for Every Team',
     description:
-      'Adentic Adentic is 100% open source and free to use. No hidden fees, no premium features locked behind paywalls.',
+      'Choose the plan that fits your marketing operations needs. No hidden fees, transparent pricing.',
     pricingItems: [
       {
         name: 'Community',
@@ -1192,9 +1192,9 @@ export const siteConfig = {
       },
       {
         id: 3,
-        question: 'Is Adentic Adentic really free?',
+        question: 'What pricing plans are available?',
         answer:
-          'Yes, Adentic Adentic is completely free and open source. We believe in democratizing AI technology and making it accessible to everyone. You can use it, modify it, and contribute to its development without any cost.',
+          'Adentic offers flexible pricing plans to suit teams of all sizes. From individual marketers to large agencies, we have a plan that fits your needs. Check our pricing section for detailed information on features and costs.',
       },
       {
         id: 4,
@@ -1238,11 +1238,6 @@ export const siteConfig = {
     {
       title: 'Resources',
       links: [
-        {
-          id: 5,
-          title: 'Documentation',
-          url: '/docs',
-        },
         { id: 7, title: 'Support', url: 'mailto:aditya.p@tryadentic.com' },
       ],
     },
