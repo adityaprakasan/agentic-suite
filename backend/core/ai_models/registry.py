@@ -2,13 +2,8 @@ from typing import Dict, List, Optional, Set
 from .ai_models import Model, ModelProvider, ModelCapability, ModelPricing, ModelConfig
 from core.utils.config import config, EnvMode
 
-FREE_MODEL_ID = "moonshotai/kimi-k2"
-
-# Set premium model ID based on environment
-if config.ENV_MODE == EnvMode.LOCAL:
-    PREMIUM_MODEL_ID = "anthropic/claude-sonnet-4-20250514"
-else:  # STAGING or PRODUCTION
-    PREMIUM_MODEL_ID = "bedrock/anthropic.claude-sonnet-4-20250514-v1:0"
+FREE_MODEL_ID = "xai/grok-4-fast-non-reasoning"  # Fast, reliable for triggers
+PREMIUM_MODEL_ID = "xai/grok-4-fast-non-reasoning"  # Using Grok 4 Fast for all tiers
 
 is_local = config.ENV_MODE == EnvMode.LOCAL
 
@@ -38,7 +33,6 @@ class ModelRegistry:
             ),
             tier_availability=["paid"],
             priority=101,
-            recommended=True,
             enabled=True,
             config=ModelConfig(
                 extra_headers={
@@ -65,7 +59,6 @@ class ModelRegistry:
             ),
             tier_availability=["paid"],
             priority=100,
-            recommended=True,
             enabled=True,
             config=ModelConfig(
                 extra_headers={
@@ -113,8 +106,9 @@ class ModelRegistry:
                 input_cost_per_million_tokens=0.20,
                 output_cost_per_million_tokens=0.50
             ),
-            tier_availability=["paid"],
+            tier_availability=["free", "paid"],
             priority=98,
+            recommended=True,
             enabled=True
         ))        
         
