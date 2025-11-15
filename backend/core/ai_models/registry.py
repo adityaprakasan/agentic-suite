@@ -111,12 +111,7 @@ class ModelRegistry:
             tier_availability=["free", "paid"],
             priority=97,
             recommended=True,
-            enabled=True,
-            config=ModelConfig(
-                extra_headers={
-                    "anthropic-beta": "prompt-caching-2024-07-31"
-                },
-            )
+            enabled=True
         ))
         
         self.register(Model(
@@ -139,24 +134,32 @@ class ModelRegistry:
             enabled=True
         ))
         
-        # DeepSeek R1 - Reasoning model with DeepSeek API fallback
+        # DeepSeek V3.1 - Managed Bedrock model with DeepSeek API fallback
         self.register(Model(
-            id="deepseek/deepseek-chat" if is_local else "bedrock/deepseek_r1/arn:aws:bedrock:us-west-2:905357846920:imported-model/deepseek-r1",
-            name="DeepSeek R1",
+            id="deepseek/deepseek-chat" if is_local else "bedrock/converse/deepseek.v3-v1:0",
+            name="DeepSeek V3.1",
             provider=ModelProvider.OPENROUTER,
-            aliases=["deepseek", "deepseek-chat", "DeepSeek R1", "deepseek-r1", "arn:aws:bedrock:us-west-2:905357846920:imported-model/deepseek-r1"],
-            context_window=128_000,
+            aliases=[
+                "deepseek-v3.1",
+                "DeepSeek V3.1",
+                "deepseek.v3-v1:0",
+                "deepseek-v3_1",
+                "deepseek/deepseek-chat"
+            ],
+            context_window=163_840,
             capabilities=[
                 ModelCapability.CHAT,
                 ModelCapability.FUNCTION_CALLING,
-                ModelCapability.REASONING,  # Advanced reasoning model
+                ModelCapability.THINKING,
+                ModelCapability.REASONING,
             ],
             pricing=ModelPricing(
-                input_cost_per_million_tokens=0.27,
-                output_cost_per_million_tokens=1.10
+                input_cost_per_million_tokens=0.35,
+                output_cost_per_million_tokens=1.40
             ),
             tier_availability=["free", "paid"],
             priority=95,
+            recommended=True,
             enabled=True
         ))
         
@@ -243,9 +246,9 @@ class ModelRegistry:
             enabled=True
         ))
         
-        # Kimi K2 Thinking - Advanced reasoning model from Moonshot AI
+        # Kimi K2 Thinking - Advanced reasoning model from Moonshot AI (direct API)
         self.register(Model(
-            id="openrouter/moonshotai/kimi-k2-thinking",
+            id="moonshot/kimi-k2-thinking",
             name="Kimi K2 Thinking",
             provider=ModelProvider.MOONSHOTAI,
             aliases=["kimi-k2-thinking", "Kimi K2 Thinking", "moonshotai/kimi-k2-thinking"],
@@ -263,13 +266,7 @@ class ModelRegistry:
             tier_availability=["free", "paid"],
             priority=93,
             recommended=True,
-            enabled=True,
-            config=ModelConfig(
-                extra_headers={
-                    "HTTP-Referer": config.OR_SITE_URL if hasattr(config, 'OR_SITE_URL') and config.OR_SITE_URL else "",
-                    "X-Title": config.OR_APP_NAME if hasattr(config, 'OR_APP_NAME') and config.OR_APP_NAME else ""
-                }
-            )
+            enabled=True
         ))
         
         

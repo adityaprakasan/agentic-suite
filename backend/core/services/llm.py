@@ -46,6 +46,7 @@ def setup_api_keys() -> None:
         "MORPH",
         "GEMINI",
         "DEEPSEEK",
+        "MOONSHOT",
         "OPENAI_COMPATIBLE",
     ]
     for provider in providers:
@@ -115,9 +116,9 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
                 "anthropic/claude-haiku-4-5-latest"
             ]
         },
-        # Bedrock DeepSeek R1 -> DeepSeek API
+        # Bedrock DeepSeek V3.1 -> DeepSeek API
         {
-            "bedrock/deepseek_r1/arn:aws:bedrock:us-west-2:905357846920:imported-model/deepseek-r1": [
+            "bedrock/converse/deepseek.v3-v1:0": [
                 "deepseek/deepseek-chat"
             ]
         }
@@ -129,7 +130,7 @@ def setup_provider_router(openai_compatible_api_key: str = None, openai_compatib
         fallbacks=fallbacks,
     )
     
-    logger.info(f"Configured LiteLLM Router with {len(fallbacks)} fallback rules (Haiku 4.5, Sonnet models, DeepSeek R1)")
+    logger.info(f"Configured LiteLLM Router with {len(fallbacks)} fallback rules (Haiku 4.5, Sonnet models, DeepSeek V3.1)")
 
 def _configure_openai_compatible(params: Dict[str, Any], model_name: str, api_key: Optional[str], api_base: Optional[str]) -> None:
     """Configure OpenAI-compatible provider setup."""
