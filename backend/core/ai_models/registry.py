@@ -92,6 +92,33 @@ class ModelRegistry:
             )
         ))
 
+        # Claude Haiku 4.5 - Fast, cost-effective model with Anthropic fallback
+        self.register(Model(
+            id="anthropic/claude-haiku-4-5-latest" if is_local else "bedrock/converse/arn:aws:bedrock:us-west-2:905357846920:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            name="Claude Haiku 4.5",
+            provider=ModelProvider.ANTHROPIC,
+            aliases=["claude-haiku-4.5", "haiku-4.5", "Claude Haiku 4.5", "claude-haiku-4-5-latest", "anthropic/claude-haiku-4.5", "arn:aws:bedrock:us-west-2:905357846920:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0", "bedrock/anthropic.claude-haiku-4-5-20251001-v1:0"],
+            context_window=200_000,
+            capabilities=[
+                ModelCapability.CHAT,
+                ModelCapability.FUNCTION_CALLING,
+                ModelCapability.VISION,
+            ],
+            pricing=ModelPricing(
+                input_cost_per_million_tokens=0.80,
+                output_cost_per_million_tokens=4.00
+            ),
+            tier_availability=["free", "paid"],
+            priority=97,
+            recommended=True,
+            enabled=True,
+            config=ModelConfig(
+                extra_headers={
+                    "anthropic-beta": "prompt-caching-2024-07-31"
+                },
+            )
+        ))
+        
         self.register(Model(
             id="xai/grok-4-fast-non-reasoning",
             name="Grok 4 Fast",
@@ -107,30 +134,52 @@ class ModelRegistry:
                 output_cost_per_million_tokens=0.50
             ),
             tier_availability=["free", "paid"],
-            priority=98,
+            priority=96,
             recommended=True,
             enabled=True
-        ))        
+        ))
         
-        # self.register(Model(
-        #     id="anthropic/claude-3-5-sonnet-latest",
-        #     name="Claude 3.5 Sonnet",
-        #     provider=ModelProvider.ANTHROPIC,
-        #     aliases=["sonnet-3.5", "claude-3.5", "Claude 3.5 Sonnet", "claude-3-5-sonnet-latest"],
-        #     context_window=200_000,
-        #     capabilities=[
-        #         ModelCapability.CHAT,
-        #         ModelCapability.FUNCTION_CALLING,
-        #         ModelCapability.VISION,
-        #     ],
-        #     pricing=ModelPricing(
-        #         input_cost_per_million_tokens=3.00,
-        #         output_cost_per_million_tokens=15.00
-        #     ),
-        #     tier_availability=["paid"],
-        #     priority=90,
-        #     enabled=True
-        # ))
+        # DeepSeek R1 - Reasoning model with DeepSeek API fallback
+        self.register(Model(
+            id="deepseek/deepseek-chat" if is_local else "bedrock/deepseek_r1/arn:aws:bedrock:us-west-2:905357846920:imported-model/deepseek-r1",
+            name="DeepSeek R1",
+            provider=ModelProvider.OPENROUTER,
+            aliases=["deepseek", "deepseek-chat", "DeepSeek R1", "deepseek-r1", "arn:aws:bedrock:us-west-2:905357846920:imported-model/deepseek-r1"],
+            context_window=128_000,
+            capabilities=[
+                ModelCapability.CHAT,
+                ModelCapability.FUNCTION_CALLING,
+                ModelCapability.REASONING,  # Advanced reasoning model
+            ],
+            pricing=ModelPricing(
+                input_cost_per_million_tokens=0.27,
+                output_cost_per_million_tokens=1.10
+            ),
+            tier_availability=["free", "paid"],
+            priority=95,
+            enabled=True
+        ))
+        
+        # GPT-OSS-120B - OpenAI's open-weight model (Bedrock only, no fallback)
+        self.register(Model(
+            id="bedrock/converse/arn:aws:bedrock:us-west-2:905357846920:inference-profile/us.openai.gpt-oss-120b-1:0",
+            name="GPT-OSS-120B",
+            provider=ModelProvider.OPENAI,
+            aliases=["gpt-oss-120b", "GPT-OSS-120B", "openai.gpt-oss-120b-1:0", "us.openai.gpt-oss-120b-1:0"],
+            context_window=128_000,
+            capabilities=[
+                ModelCapability.CHAT,
+                ModelCapability.FUNCTION_CALLING,
+                ModelCapability.STRUCTURED_OUTPUT,  # OpenAI structured output support
+            ],
+            pricing=ModelPricing(
+                input_cost_per_million_tokens=0.50,
+                output_cost_per_million_tokens=1.50
+            ),
+            tier_availability=["paid"],
+            priority=94,
+            enabled=True
+        ))
         
         self.register(Model(
             id="openai/gpt-5",
@@ -192,6 +241,35 @@ class ModelRegistry:
             tier_availability=["paid"],
             priority=95,
             enabled=True
+        ))
+        
+        # Kimi K2 Thinking - Advanced reasoning model from Moonshot AI
+        self.register(Model(
+            id="openrouter/moonshotai/kimi-k2-thinking",
+            name="Kimi K2 Thinking",
+            provider=ModelProvider.MOONSHOTAI,
+            aliases=["kimi-k2-thinking", "Kimi K2 Thinking", "moonshotai/kimi-k2-thinking"],
+            context_window=256_000,
+            capabilities=[
+                ModelCapability.CHAT,
+                ModelCapability.FUNCTION_CALLING,
+                ModelCapability.THINKING,
+                ModelCapability.REASONING,
+            ],
+            pricing=ModelPricing(
+                input_cost_per_million_tokens=1.00,
+                output_cost_per_million_tokens=3.00
+            ),
+            tier_availability=["free", "paid"],
+            priority=93,
+            recommended=True,
+            enabled=True,
+            config=ModelConfig(
+                extra_headers={
+                    "HTTP-Referer": config.OR_SITE_URL if hasattr(config, 'OR_SITE_URL') and config.OR_SITE_URL else "",
+                    "X-Title": config.OR_APP_NAME if hasattr(config, 'OR_APP_NAME') and config.OR_APP_NAME else ""
+                }
+            )
         ))
         
         

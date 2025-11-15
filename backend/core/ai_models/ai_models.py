@@ -19,6 +19,7 @@ class ModelCapability(Enum):
     CODE_INTERPRETER = "code_interpreter"
     WEB_SEARCH = "web_search"
     THINKING = "thinking"
+    REASONING = "reasoning"
     STRUCTURED_OUTPUT = "structured_output"
 
 
