@@ -200,6 +200,7 @@ class JsonImportService:
         
         tools = json_data.get('tools', {})
         
+        # Start with tools from JSON import
         agentpress_tools = {}
         json_agentpress = tools.get('agentpress', {})
         for tool_name, tool_config in json_agentpress.items():
@@ -207,6 +208,18 @@ class JsonImportService:
                 agentpress_tools[tool_name] = tool_config.get('enabled', True)
             else:
                 agentpress_tools[tool_name] = bool(tool_config)
+        
+        # Merge with current dynamic defaults to ensure all tools are included
+        # This ensures tools not in the imported JSON are enabled by default
+        # and the UI will show the correct state
+        from core.config_helper import _get_default_agentpress_tools
+        default_tools = _get_default_agentpress_tools()
+        
+        # Only add tools from defaults that aren't already in the import config
+        # This preserves explicit import settings while adding missing tools
+        for tool_name, default_enabled in default_tools.items():
+            if tool_name not in agentpress_tools:
+                agentpress_tools[tool_name] = default_enabled
         
         agent_config = {
             'tools': {

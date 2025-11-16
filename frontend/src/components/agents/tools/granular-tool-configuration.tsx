@@ -53,12 +53,13 @@ export const GranularToolConfiguration = ({
 
   const isToolGroupEnabled = (toolName: string): boolean => {
     const toolConfig = tools[toolName];
-    if (toolConfig === undefined) return false;
+    // Missing tools are enabled by default (matches backend behavior)
+    if (toolConfig === undefined) return true;
     if (typeof toolConfig === 'boolean') return toolConfig;
     if (typeof toolConfig === 'object' && toolConfig !== null) {
       return toolConfig.enabled ?? true;
     }
-    return false;
+    return true; // Default to enabled
   };
 
   const isMethodEnabled = (toolName: string, methodName: string): boolean => {
@@ -97,28 +98,64 @@ export const GranularToolConfiguration = ({
 
     const updatedTools = { ...tools };
     
-    if (hasGranularControl(toolName, toolsData)) {
-      // For tools with granular control, maintain method configuration
-      const currentConfig = tools[toolName];
-      if (typeof currentConfig === 'object' && currentConfig !== null) {
-        updatedTools[toolName] = {
-          ...currentConfig,
-          enabled,
-        };
+    if (enabled) {
+      // When enabling, remove the tool from config to use defaults
+      // Only keep explicit false or granular configs
+      if (updatedTools[toolName] === false || 
+          (typeof updatedTools[toolName] === 'object' && updatedTools[toolName] !== null)) {
+        // Keep existing granular config, just update enabled flag
+        if (hasGranularControl(toolName, toolsData)) {
+          const currentConfig = updatedTools[toolName];
+          if (typeof currentConfig === 'object' && currentConfig !== null) {
+            updatedTools[toolName] = {
+              ...currentConfig,
+              enabled: true,
+            };
+          } else {
+            // Convert to granular format
+            updatedTools[toolName] = {
+              enabled: true,
+              methods: toolGroup?.methods.reduce((acc, method) => {
+                acc[method.name] = method.enabled;
+                return acc;
+              }, {} as Record<string, boolean>) || {},
+            };
+          }
+        } else {
+          // Remove from config to use default (enabled)
+          delete updatedTools[toolName];
+        }
       } else {
-        // Convert to granular format
-        const toolGroup = getToolGroup(toolName, toolsData);
-        updatedTools[toolName] = {
-          enabled,
-          methods: toolGroup?.methods.reduce((acc, method) => {
-            acc[method.name] = method.enabled;
-            return acc;
-          }, {} as Record<string, boolean>) || {},
-        };
+        // Already enabled (missing or true), no change needed
+        // But if it was explicitly false, remove it
+        if (updatedTools[toolName] === false) {
+          delete updatedTools[toolName];
+        }
       }
     } else {
-      // Simple boolean toggle for non-granular tools
-      updatedTools[toolName] = enabled;
+      // When disabling, explicitly set to false
+      if (hasGranularControl(toolName, toolsData)) {
+        // For tools with granular control, maintain method configuration
+        const currentConfig = tools[toolName];
+        if (typeof currentConfig === 'object' && currentConfig !== null) {
+          updatedTools[toolName] = {
+            ...currentConfig,
+            enabled: false,
+          };
+        } else {
+          // Convert to granular format with enabled: false
+          updatedTools[toolName] = {
+            enabled: false,
+            methods: toolGroup?.methods.reduce((acc, method) => {
+              acc[method.name] = method.enabled;
+              return acc;
+            }, {} as Record<string, boolean>) || {},
+          };
+        }
+      } else {
+        // Simple boolean toggle for non-granular tools
+        updatedTools[toolName] = false;
+      }
     }
     
     onToolsChange(updatedTools);
@@ -197,7 +234,8 @@ export const GranularToolConfiguration = ({
   };
 
   const getEnabledToolsCount = (): number => {
-    return Object.entries(tools).filter(([toolName, toolConfig]) => {
+    // Count all tools from TOOL_GROUPS, treating missing ones as enabled
+    return Object.keys(TOOL_GROUPS).filter((toolName) => {
       return isToolGroupEnabled(toolName);
     }).length;
   };

@@ -198,57 +198,55 @@ def build_unified_config(
     return config
 
 
+# Tools that should never be enabled by default for new agents
+# Add tool names here if they should be opt-in only
+NON_DEFAULT_TOOLS: set[str] = set()
+
+# Cache for discovered tools to avoid repeated discovery calls
+_discovered_tools_cache: Optional[Dict[str, bool]] = None
+
+
 def _get_default_agentpress_tools() -> Dict[str, bool]:
-    return {
-        # Core file and shell operations
-        "sb_shell_tool": True,
-        "sb_files_tool": True,
-        "sb_expose_tool": True,
-        "sb_upload_file_tool": True,
-        "sb_deploy_tool": True,
+    """
+    Get default agentpress tools configuration.
+    
+    Dynamically discovers all available tools and enables them by default,
+    except for tools in NON_DEFAULT_TOOLS blacklist.
+    
+    Returns:
+        Dict mapping tool names to True (enabled) for all discovered tools
+        except those in the blacklist.
+    """
+    global _discovered_tools_cache
+    
+    # Use cache if available to avoid repeated discovery
+    if _discovered_tools_cache is not None:
+        return _discovered_tools_cache.copy()
+    
+    try:
+        from core.utils.tool_discovery import discover_tools
         
-        # Search and research tools
-        "web_search_tool": True,
-        "image_search_tool": True,
-        "data_providers_tool": True,
-        "people_search_tool": True,
-        "company_search_tool": True,
-        "paper_search_tool": True,
+        # Discover all available tools
+        tools_map = discover_tools()
         
-        # AI vision and image tools
-        "sb_vision_tool": True,
-        "sb_image_edit_tool": True,
-        "sb_design_tool": True,
+        # Build default config: all tools enabled except blacklisted ones
+        default_tools = {
+            tool_name: True
+            for tool_name in tools_map.keys()
+            if tool_name not in NON_DEFAULT_TOOLS
+        }
         
-        # Browser tools
-        "browser_tool": True,
-        "sb_browser_tool": True,
+        # Cache the result
+        _discovered_tools_cache = default_tools
         
-        # Document and content creation
-        "sb_docs_tool": True,
-        "sb_presentation_tool": True,
-        "sb_presentation_outline_tool": True,
-        "sb_kb_tool": True,
-        "sb_sheets_tool": True,
+        logger.debug(f"Discovered {len(default_tools)} tools for default agent configuration")
+        return default_tools.copy()
         
-        # Development tools
-        "sb_web_dev_tool": True,
-        "sb_templates_tool": True,
-        
-        # Video intelligence
-        "memories_tool": True,
-        
-        # Advanced capabilities
-        "computer_use_tool": True,
-        "workflow_tool": True,
-        
-        # Agent builder tools
-        "agent_config_tool": True,
-        "mcp_search_tool": True,
-        "credential_profile_tool": True,
-        "agent_creation_tool": True,
-        "trigger_tool": True
-    }
+    except Exception as e:
+        logger.error(f"Error discovering tools for default configuration: {e}", exc_info=True)
+        # Fallback to empty dict if discovery fails - tools will be enabled by default
+        # at runtime via get_enabled_methods_for_tool's default behavior
+        return {}
 
 
 def _extract_agentpress_tools_for_run(agentpress_config: Dict[str, Any]) -> Dict[str, Any]:

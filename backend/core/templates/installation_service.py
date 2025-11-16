@@ -299,6 +299,7 @@ class InstallationService:
         request: TemplateInstallationRequest,
         requirements: List[MCPRequirementValue]
     ) -> Dict[str, Any]:
+        # Start with template's explicitly configured tools
         agentpress_tools = {}
         template_agentpress = template.agentpress_tools or {}
         for tool_name, tool_config in template_agentpress.items():
@@ -306,6 +307,18 @@ class InstallationService:
                 agentpress_tools[tool_name] = tool_config.get('enabled', True)
             else:
                 agentpress_tools[tool_name] = tool_config
+        
+        # Merge with current dynamic defaults to ensure all tools are included
+        # This ensures tools not explicitly in the template are enabled by default
+        # and the UI will show the correct state
+        from core.config_helper import _get_default_agentpress_tools
+        default_tools = _get_default_agentpress_tools()
+        
+        # Only add tools from defaults that aren't already in the template config
+        # This preserves explicit template settings while adding missing tools
+        for tool_name, default_enabled in default_tools.items():
+            if tool_name not in agentpress_tools:
+                agentpress_tools[tool_name] = default_enabled
         
         agent_config = {
             'tools': {

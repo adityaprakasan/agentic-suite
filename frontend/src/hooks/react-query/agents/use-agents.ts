@@ -70,7 +70,7 @@ export const useCreateNewAgent = () => {
         name: 'New Agent',
         description: 'A newly created agent, open for configuration',
         configured_mcps: [],
-        agentpress_tools: {},
+        // Don't pass agentpress_tools - let backend use dynamic defaults
         is_default: false,
         icon_name: 'brain',
         icon_color: '#000000',
