@@ -13,6 +13,14 @@ export interface SubscriptionTierData {
 
 // Subscription tiers structure
 export interface SubscriptionTiers {
+  // New pricing tiers (Basic/Plus/Ultra)
+  TIER_BASIC: SubscriptionTierData;
+  TIER_BASIC_YEARLY: SubscriptionTierData;
+  TIER_PLUS: SubscriptionTierData;
+  TIER_PLUS_YEARLY: SubscriptionTierData;
+  TIER_ULTRA: SubscriptionTierData;
+  TIER_ULTRA_YEARLY: SubscriptionTierData;
+  // Legacy tiers (kept for existing customers)
   TIER_2_20: SubscriptionTierData;
   TIER_6_50: SubscriptionTierData;
   TIER_12_100: SubscriptionTierData;
@@ -20,7 +28,7 @@ export interface SubscriptionTiers {
   TIER_50_400: SubscriptionTierData;
   TIER_125_800: SubscriptionTierData;
   TIER_200_1000: SubscriptionTierData;
-  // Yearly plans with 15% discount
+  // Legacy yearly plans with 15% discount
   TIER_2_20_YEARLY: SubscriptionTierData;
   TIER_6_50_YEARLY: SubscriptionTierData;
   TIER_12_100_YEARLY: SubscriptionTierData;

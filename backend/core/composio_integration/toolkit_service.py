@@ -19,6 +19,7 @@ class ToolkitInfo(BaseModel):
     auth_schemes: List[str] = []
     categories: List[str] = []
     is_developer_managed: bool = False
+    requires_user_credentials: bool = False  # True if user needs to provide API keys/credentials
 
 
 class AuthConfigField(BaseModel):
@@ -142,16 +143,31 @@ class ToolkitService:
                 composio_managed_auth_schemes = toolkit_data.get("composio_managed_auth_schemes", [])
                 toolkit_slug = toolkit_data.get("slug", "")
                 
-                # Include if either Composio-managed OR developer-managed
+                # Auth schemes that users can provide credentials for (non-OAuth2)
+                USER_PROVIDABLE_AUTH_SCHEMES = ["API_KEY", "BASIC", "KEYS", "CUSTOM"]
+                
+                # Check OAuth2 status
                 has_oauth2 = "OAUTH2" in auth_schemes
-                is_composio_managed = "OAUTH2" in composio_managed_auth_schemes
+                is_composio_managed_oauth2 = "OAUTH2" in composio_managed_auth_schemes
                 is_dev_managed = is_developer_managed(toolkit_slug)
                 
-                if not has_oauth2:
+                # Check if has any user-providable auth schemes
+                has_user_providable_auth = any(
+                    scheme in auth_schemes for scheme in USER_PROVIDABLE_AUTH_SCHEMES
+                )
+                
+                # Include if:
+                # 1. Has OAuth2 AND (Composio-managed OR developer-managed), OR
+                # 2. Has user-providable auth schemes (API_KEY, BASIC, etc.) - users can provide their own credentials
+                is_oauth2_eligible = has_oauth2 and (is_composio_managed_oauth2 or is_dev_managed)
+                is_user_providable = has_user_providable_auth
+                
+                if not (is_oauth2_eligible or is_user_providable):
                     continue
-                    
-                if not (is_composio_managed or is_dev_managed):
-                    continue
+                
+                # Determine if this integration requires user-provided credentials
+                # (i.e., has user-providable auth but no Composio-managed OAuth2)
+                requires_user_credentials = is_user_providable and not is_oauth2_eligible
                 
                 logo_url = None
                 meta = toolkit_data.get("meta", {})
@@ -196,7 +212,8 @@ class ToolkitService:
                     tags=tags,
                     auth_schemes=auth_schemes,
                     categories=categories,
-                    is_developer_managed=is_developer_managed(toolkit_data.get("slug", ""))
+                    is_developer_managed=is_developer_managed(toolkit_data.get("slug", "")),
+                    requires_user_credentials=requires_user_credentials
                 )
                 toolkits.append(toolkit)
             
@@ -208,7 +225,7 @@ class ToolkitService:
                 "next_cursor": response_data.get("next_cursor")
             }
             
-            logger.debug(f"Successfully fetched {len(toolkits)} toolkits with OAUTH2 in both auth schemes" + (f" for category {category}" if category else ""))
+            logger.debug(f"Successfully fetched {len(toolkits)} toolkits (OAuth2-managed or user-providable auth)" + (f" for category {category}" if category else ""))
             return result
             
         except Exception as e:
@@ -250,7 +267,7 @@ class ToolkitService:
                 "next_cursor": None
             }
             
-            logger.debug(f"Found {len(filtered_toolkits)} toolkits with OAUTH2 in both auth schemes matching query: {query}" + (f" in category {category}" if category else ""))
+            logger.debug(f"Found {len(filtered_toolkits)} toolkits (OAuth2-managed or user-providable auth) matching query: {query}" + (f" in category {category}" if category else ""))
             return result
             
         except Exception as e:

@@ -60,6 +60,29 @@ class AuthConfigService:
                 
                 logger.debug(f"Using custom credentials (keys): {list(credentials.keys())}")
                 
+                # Determine the auth scheme from the toolkit
+                # For non-OAuth2 integrations, we need to get the toolkit's auth schemes
+                auth_scheme = "OAUTH2"  # Default fallback
+                try:
+                    from .toolkit_service import ToolkitService
+                    # Use None to get API key from environment (same as AuthConfigService does)
+                    toolkit_service = ToolkitService(api_key=None)
+                    toolkit_info = await toolkit_service.get_toolkit_by_slug(toolkit_slug)
+                    if toolkit_info and toolkit_info.auth_schemes:
+                        # Prefer user-providable auth schemes (API_KEY, BASIC, etc.) over OAUTH2
+                        user_providable_schemes = ["API_KEY", "BASIC", "KEYS", "CUSTOM"]
+                        for scheme in user_providable_schemes:
+                            if scheme in toolkit_info.auth_schemes:
+                                auth_scheme = scheme
+                                break
+                        # If no user-providable scheme found, use the first available scheme
+                        if auth_scheme == "OAUTH2" and toolkit_info.auth_schemes:
+                            auth_scheme = toolkit_info.auth_schemes[0]
+                except Exception as e:
+                    logger.warning(f"Could not determine auth scheme for {toolkit_slug}, defaulting to OAUTH2: {e}")
+                
+                logger.debug(f"Using auth scheme: {auth_scheme} for toolkit {toolkit_slug}")
+                
                 response = self.client.auth_configs.create(
                     toolkit={
                         "slug": toolkit_slug
@@ -67,7 +90,7 @@ class AuthConfigService:
                     auth_config={
                         "type": "use_custom_auth",
                         "credentials": credentials,
-                        "authScheme": "OAUTH2"
+                        "authScheme": auth_scheme
                     }
                 )
             else:
