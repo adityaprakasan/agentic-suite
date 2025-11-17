@@ -118,15 +118,11 @@ export async function middleware(request: NextRequest) {
       return supabaseResponse;
     }
 
-    // Check if user has pending purchase intent - skip ALL billing checks if true
-    const hasPendingPurchase = request.cookies.get('pendingPurchase')?.value === 'true';
-    if (hasPendingPurchase) {
-      console.log('[MIDDLEWARE] Pending purchase detected, skipping billing checks');
-      return supabaseResponse;
-    }
-
     // Only check billing for protected routes that require active subscription
     if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+      // Check if user has pending purchase intent (from pricing page)
+      const hasPendingPurchase = request.cookies.get('pendingPurchase')?.value === 'true';
+      
       const { data: accounts } = await supabase
         .schema('basejump')
         .from('accounts')
@@ -136,6 +132,13 @@ export async function middleware(request: NextRequest) {
         .single();
 
       if (!accounts) {
+        // If they have pending purchase, skip trial redirect and go to homepage/pricing
+        if (hasPendingPurchase) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/';
+          url.hash = '#pricing';
+          return NextResponse.redirect(url);
+        }
         const url = request.nextUrl.clone();
         url.pathname = '/activate-trial';
         return NextResponse.redirect(url);
@@ -157,6 +160,13 @@ export async function middleware(request: NextRequest) {
       const hasUsedTrial = !!trialHistory;
 
       if (!creditAccount) {
+        // If they have pending purchase, skip trial redirect and go to homepage/pricing
+        if (hasPendingPurchase) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/';
+          url.hash = '#pricing';
+          return NextResponse.redirect(url);
+        }
         
         if (hasUsedTrial) {
           const url = request.nextUrl.clone();
