@@ -203,7 +203,14 @@ function PricingTier({
   // Handle subscription/trial start
   const handleSubscribe = async (planStripePriceId: string) => {
     if (!isAuthenticated) {
-      window.location.href = '/auth?mode=signup';
+      // Store the selected plan and billing period in localStorage
+      localStorage.setItem('pendingPlanSelection', JSON.stringify({
+        priceId: planStripePriceId,
+        billingPeriod,
+        tierName: tier.name,
+        timestamp: Date.now()
+      }));
+      window.location.href = '/auth?mode=signup&intent=purchase';
       return;
     }
 
@@ -484,15 +491,14 @@ function PricingTier({
           {billingPeriod === 'yearly' && tier.yearlyPrice && displayPrice !== '$0' ? (
             <div className="flex flex-col">
               <div className="flex items-baseline gap-2">
-                <PriceDisplay price={displayPrice} isCompact={insideDialog} />
-                {tier.discountPercentage && (
-                  <span className="text-xs line-through text-muted-foreground">
-                    {tier.originalYearlyPrice}
-                  </span>
-                )}
+                <PriceDisplay 
+                  price={`$${(parseFloat(displayPrice.slice(1)) / 12).toFixed(0)}`} 
+                  isCompact={insideDialog} 
+                />
+                <span className="ml-1 text-sm text-muted-foreground">/month</span>
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-muted-foreground">/year</span>
+                <span className="text-xs text-muted-foreground">billed annually at {displayPrice}</span>
               </div>
             </div>
           ) : (
@@ -609,6 +615,51 @@ export function PricingSection({
   useEffect(() => {
     setBillingPeriod(getDefaultBillingPeriod());
   }, [getDefaultBillingPeriod]);
+
+  // Auto-trigger checkout if user just authenticated with a pending plan selection
+  useEffect(() => {
+    if (isUserAuthenticated && typeof window !== 'undefined') {
+      const pendingPlan = localStorage.getItem('pendingPlanSelection');
+      if (pendingPlan) {
+        try {
+          const planData = JSON.parse(pendingPlan);
+          // Only use if less than 15 minutes old
+          if (Date.now() - planData.timestamp < 15 * 60 * 1000) {
+            localStorage.removeItem('pendingPlanSelection');
+            // Trigger checkout automatically
+            const tier = siteConfig.cloudPricingItems.find(t => t.name === planData.tierName);
+            if (tier) {
+              setBillingPeriod(planData.billingPeriod);
+              // Small delay to ensure state is updated
+              setTimeout(async () => {
+                handlePlanSelect(planData.priceId);
+                try {
+                  const response = await createCheckoutSession({
+                    price_id: planData.priceId,
+                    success_url: returnUrl,
+                    cancel_url: returnUrl,
+                    commitment_type: planData.billingPeriod,
+                  });
+                  if (response.url) {
+                    window.location.href = response.url;
+                  }
+                } catch (error: any) {
+                  console.error('Checkout error:', error);
+                  toast.error('Failed to start checkout. Please try again.');
+                  setPlanLoadingStates({});
+                }
+              }, 100);
+            }
+          } else {
+            localStorage.removeItem('pendingPlanSelection');
+          }
+        } catch (e) {
+          console.error('Failed to parse pending plan:', e);
+          localStorage.removeItem('pendingPlanSelection');
+        }
+      }
+    }
+  }, [isUserAuthenticated, returnUrl]);
 
   const handlePlanSelect = (planId: string) => {
     setPlanLoadingStates((prev) => ({ ...prev, [planId]: true }));

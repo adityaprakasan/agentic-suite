@@ -49,9 +49,29 @@ function LoginContent() {
 
   useEffect(() => {
     if (!isLoading && user) {
+      // Check if user came here intending to purchase a plan
+      const intent = searchParams.get('intent');
+      if (intent === 'purchase') {
+        const pendingPlan = localStorage.getItem('pendingPlanSelection');
+        if (pendingPlan) {
+          try {
+            const planData = JSON.parse(pendingPlan);
+            // Only use if less than 15 minutes old
+            if (Date.now() - planData.timestamp < 15 * 60 * 1000) {
+              localStorage.removeItem('pendingPlanSelection');
+              // Redirect back to pricing with the user now authenticated
+              router.push(`/#pricing`);
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to parse pending plan:', e);
+          }
+          localStorage.removeItem('pendingPlanSelection');
+        }
+      }
       router.push(returnUrl || '/dashboard');
     }
-  }, [user, isLoading, router, returnUrl]);
+  }, [user, isLoading, router, returnUrl, searchParams]);
 
   const isSuccessMessage =
     message &&
