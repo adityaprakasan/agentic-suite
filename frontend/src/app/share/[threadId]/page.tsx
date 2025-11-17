@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { ThreadContent } from '@/components/thread/content/ThreadContent';
 import {
@@ -40,6 +40,23 @@ export default function ShareThreadPage({
   const threadId = unwrappedParams.threadId;
 
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const queryString = searchParams.toString();
+  const currentRelativeUrl = useMemo(() => {
+    return queryString ? `${pathname}?${queryString}` : pathname;
+  }, [pathname, queryString]);
+
+  const appBaseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || 'https://workspace.tryadentic.com';
+
+  const loginHref = `${appBaseUrl}/auth?returnUrl=${encodeURIComponent(
+    currentRelativeUrl,
+  )}`;
+  const signupHref = `${appBaseUrl}/auth?mode=signup&returnUrl=${encodeURIComponent(
+    currentRelativeUrl,
+  )}`;
   
   // Use the new share-specific hook
   const {
@@ -625,7 +642,7 @@ export default function ShareThreadPage({
             {/* CTA Buttons */}
             <div className="flex w-full flex-col gap-3">
               <a
-                href="https://workspace.tryadentic.com"
+                href={loginHref}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl"
               >
                 Sign in to view conversation
@@ -644,7 +661,7 @@ export default function ShareThreadPage({
               <p className="text-xs text-muted-foreground">
                 Don't have an account?{' '}
                 <a
-                  href="https://workspace.tryadentic.com"
+                  href={signupHref}
                   className="font-medium text-primary hover:underline"
                 >
                   Sign up free
