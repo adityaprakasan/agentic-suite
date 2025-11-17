@@ -408,24 +408,31 @@ function PricingTier({
         buttonVariant = 'secondary';
         buttonClassName = 'opacity-50 cursor-not-allowed bg-muted text-muted-foreground';
       } else {
-        if (targetAmount > currentAmount || isSameTierUpgradeToLongerTerm) {
-          // Allow upgrade to higher tier OR upgrade to longer term on same tier
-          if (currentIsMonthly && targetIsYearly && targetAmount <= currentAmount) {
-            buttonText = 'Switch to Yearly';
-            buttonVariant = 'default';
-            buttonClassName = 'bg-green-600 hover:bg-green-700 text-white';
-          } else {
-            buttonText = 'Upgrade';
-            buttonVariant = tier.buttonColor as ButtonVariant;
-            buttonClassName = 'bg-primary hover:bg-primary/90 text-primary-foreground';
-          }
-        } else if (targetAmount < currentAmount || isSameTierDowngradeToShorterTerm) {
-          // Prevent downgrades and downgrades to shorter terms
+        // Check if this is a downgrade (lower tier or same tier with shorter term)
+        const isDowngrade = targetAmount < currentAmount || isSameTierDowngradeToShorterTerm;
+        
+        // Check if this is switching to yearly on same tier
+        const isSwitchToYearly = currentTier && currentTier.name === tier.name && 
+          currentIsMonthly && targetIsYearly;
+        
+        if (isDowngrade) {
+          // Downgrades not allowed
           buttonText = 'Not Available';
           buttonDisabled = true;
           buttonVariant = 'secondary';
           buttonClassName = 'opacity-50 cursor-not-allowed bg-muted text-muted-foreground';
+        } else if (isSwitchToYearly) {
+          // Allow upgrade to yearly on same tier
+          buttonText = 'Switch to Yearly';
+          buttonVariant = 'default';
+          buttonClassName = 'bg-green-600 hover:bg-green-700 text-white';
+        } else if (targetAmount > currentAmount) {
+          // Allow upgrade to higher tier
+          buttonText = 'Upgrade';
+          buttonVariant = tier.buttonColor as ButtonVariant;
+          buttonClassName = 'bg-primary hover:bg-primary/90 text-primary-foreground';
         } else {
+          // Fallback
           buttonText = 'Select Plan';
           buttonVariant = tier.buttonColor as ButtonVariant;
           buttonClassName = 'bg-primary hover:bg-primary/90 text-primary-foreground';
@@ -477,16 +484,15 @@ function PricingTier({
           {billingPeriod === 'yearly' && tier.yearlyPrice && displayPrice !== '$0' ? (
             <div className="flex flex-col">
               <div className="flex items-baseline gap-2">
-                <PriceDisplay price={`$${Math.round(parseFloat(tier.yearlyPrice.slice(1)) / 12)}`} isCompact={insideDialog} />
+                <PriceDisplay price={displayPrice} isCompact={insideDialog} />
                 {tier.discountPercentage && (
                   <span className="text-xs line-through text-muted-foreground">
-                    ${Math.round(parseFloat(tier.originalYearlyPrice?.slice(1) || '0') / 12)}
+                    {tier.originalYearlyPrice}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-muted-foreground">/month</span>
-                <span className="text-xs text-muted-foreground">billed yearly</span>
+                <span className="text-xs text-muted-foreground">/year</span>
               </div>
             </div>
           ) : (
@@ -499,17 +505,12 @@ function PricingTier({
         <p className="hidden text-sm mt-2">{tier.description}</p>
 
         {billingPeriod === 'yearly' && tier.yearlyPrice && tier.discountPercentage ? (
-          <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-50 border-green-200 text-green-700 w-fit">
-            Save ${Math.round(parseFloat(tier.originalYearlyPrice?.slice(1) || '0') - parseFloat(tier.yearlyPrice.slice(1)))} per year
+          <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 w-fit">
+            Save {tier.discountPercentage}% (${Math.round(parseFloat(tier.originalYearlyPrice?.slice(1) || '0') - parseFloat(tier.yearlyPrice.slice(1)))}/year)
           </div>
-        ) : (
-          <div className="hidden items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-primary/10 border-primary/20 text-primary w-fit">
-            {billingPeriod === 'yearly' && tier.yearlyPrice && displayPrice !== '$0'
-              ? `$${Math.round(parseFloat(tier.yearlyPrice.slice(1)) / 12)}/month (billed yearly)`
-              : `${displayPrice}/month`
-            }
-          </div>
-        )}
+        ) : billingPeriod === 'monthly' ? (
+          <div className="h-6" /> 
+        ) : null}
       </div>
 
       <div className={cn(

@@ -115,9 +115,9 @@ export const siteConfig = {
     {
       name: 'Basic',
       price: '$49',
-      yearlyPrice: '$588', // Will be updated when yearly price is confirmed
+      yearlyPrice: '$499.80', // $49 * 12 * 0.85 = $499.80 (15% discount)
       originalYearlyPrice: '$588',
-      discountPercentage: 0, // Will be updated when yearly discount is confirmed
+      discountPercentage: 15,
       description: 'Best for individuals and small teams',
       buttonText: 'Get started',
       buttonColor: 'bg-primary text-white dark:text-black',
@@ -140,9 +140,9 @@ export const siteConfig = {
     {
       name: 'Plus',
       price: '$199',
-      yearlyPrice: '$2388', // Will be updated when yearly price is confirmed
+      yearlyPrice: '$2029.80', // $199 * 12 * 0.85 = $2029.80 (15% discount)
       originalYearlyPrice: '$2388',
-      discountPercentage: 0, // Will be updated when yearly discount is confirmed
+      discountPercentage: 15,
       description: 'Ideal for growing businesses',
       buttonText: 'Get started',
       buttonColor: 'bg-secondary text-white',
@@ -165,9 +165,9 @@ export const siteConfig = {
     {
       name: 'Ultra',
       price: '$499',
-      yearlyPrice: '$5988', // Will be updated when yearly price is confirmed
+      yearlyPrice: '$5089.80', // $499 * 12 * 0.85 = $5089.80 (15% discount)
       originalYearlyPrice: '$5988',
-      discountPercentage: 0, // Will be updated when yearly discount is confirmed
+      discountPercentage: 15,
       description: 'For power users',
       buttonText: 'Get started',
       buttonColor: 'bg-secondary text-white',
