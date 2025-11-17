@@ -44,6 +44,20 @@ class Configuration:
     
     # Subscription tier IDs - Production
     STRIPE_FREE_TIER_ID_PROD: str = 'price_1RILb4G6l1KZGqIrK4QLrx9i'
+    
+    # Basic tier (was tier_2_20) - $49/month
+    STRIPE_TIER_BASIC_ID_PROD: str = 'price_1SUQyvRvmWhX18sj9bAT3z4s'
+    STRIPE_TIER_BASIC_YEARLY_ID_PROD: str = 'price_1SUR04RvmWhX18sjFFLHNAtY'
+    
+    # Plus tier (was tier_6_50) - $199/month
+    STRIPE_TIER_PLUS_ID_PROD: str = 'price_1SUR0aRvmWhX18sjL79nLETb'
+    STRIPE_TIER_PLUS_YEARLY_ID_PROD: str = 'price_1SURdMRvmWhX18sjJmiYLY4z'
+    
+    # Ultra tier (was tier_25_200) - $499/month
+    STRIPE_TIER_ULTRA_ID_PROD: str = 'price_1SURdlRvmWhX18sjZ8knVZKN'
+    STRIPE_TIER_ULTRA_YEARLY_ID_PROD: str = 'price_1SURemRvmWhX18sj6xEb42H4'
+    
+    # Legacy tier IDs (kept for existing customers - never used but kept for safety)
     STRIPE_TIER_2_20_ID_PROD: str = 'price_1RILb4G6l1KZGqIrhomjgDnO'
     STRIPE_TIER_6_50_ID_PROD: str = 'price_1RILb4G6l1KZGqIr5q0sybWn'
     STRIPE_TIER_12_100_ID_PROD: str = 'price_1RILb4G6l1KZGqIr5Y20ZLHm'
@@ -52,7 +66,7 @@ class Configuration:
     STRIPE_TIER_125_800_ID_PROD: str = 'price_1RILb3G6l1KZGqIrbJA766tN'
     STRIPE_TIER_200_1000_ID_PROD: str = 'price_1RILb3G6l1KZGqIrmauYPOiN'
     
-    # Yearly subscription tier IDs - Production (15% discount)
+    # Legacy yearly subscription tier IDs - Production (15% discount)
     STRIPE_TIER_2_20_YEARLY_ID_PROD: str = 'price_1ReHB5G6l1KZGqIrD70I1xqM'
     STRIPE_TIER_6_50_YEARLY_ID_PROD: str = 'price_1ReHAsG6l1KZGqIrlAog487C'
     STRIPE_TIER_12_100_YEARLY_ID_PROD: str = 'price_1ReHAWG6l1KZGqIrBHer2PQc'
@@ -61,13 +75,22 @@ class Configuration:
     STRIPE_TIER_125_800_YEARLY_ID_PROD: str = 'price_1ReH9GG6l1KZGqIrfgqaJyat'
     STRIPE_TIER_200_1000_YEARLY_ID_PROD: str = 'price_1ReH8qG6l1KZGqIrK1akY90q'
 
-    # Yearly commitment prices - Production (15% discount, monthly payments with 12-month commitment via schedules)
-    STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID_PROD: str = 'price_1RqtqiG6l1KZGqIrhjVPtE1s'  # $17/month
-    STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID_PROD: str = 'price_1Rqtr8G6l1KZGqIrQ0ql0qHi'  # $42.50/month
-    STRIPE_TIER_25_170_YEARLY_COMMITMENT_ID_PROD: str = 'price_1RqtrUG6l1KZGqIrEb8hLsk3'  # $170/month
-
     # Subscription tier IDs - Staging
     STRIPE_FREE_TIER_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrw14abxeL'
+    
+    # Basic tier (was tier_2_20) - $49/month - Staging (use same as prod for now, update when staging prices created)
+    STRIPE_TIER_BASIC_ID_STAGING: str = 'price_1SUQyvRvmWhX18sj9bAT3z4s'
+    STRIPE_TIER_BASIC_YEARLY_ID_STAGING: str = 'price_1SUR04RvmWhX18sjFFLHNAtY'
+    
+    # Plus tier (was tier_6_50) - $199/month - Staging
+    STRIPE_TIER_PLUS_ID_STAGING: str = 'price_1SUR0aRvmWhX18sjL79nLETb'
+    STRIPE_TIER_PLUS_YEARLY_ID_STAGING: str = 'price_1SURdMRvmWhX18sjJmiYLY4z'
+    
+    # Ultra tier (was tier_25_200) - $499/month - Staging
+    STRIPE_TIER_ULTRA_ID_STAGING: str = 'price_1SURdlRvmWhX18sjZ8knVZKN'
+    STRIPE_TIER_ULTRA_YEARLY_ID_STAGING: str = 'price_1SURemRvmWhX18sj6xEb42H4'
+    
+    # Legacy tier IDs - Staging (kept for existing customers)
     STRIPE_TIER_2_20_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrCRu0E4Gi'
     STRIPE_TIER_6_50_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrvjlz5p5V'
     STRIPE_TIER_12_100_ID_STAGING: str = 'price_1RIGvuG6l1KZGqIrT6UfgblC'
@@ -76,7 +99,7 @@ class Configuration:
     STRIPE_TIER_125_800_ID_STAGING: str = 'price_1RIKNrG6l1KZGqIrjKT0yGvI'
     STRIPE_TIER_200_1000_ID_STAGING: str = 'price_1RIKQ2G6l1KZGqIrum9n8SI7'
     
-    # Yearly subscription tier IDs - Staging (15% discount)
+    # Legacy yearly subscription tier IDs - Staging (15% discount)
     STRIPE_TIER_2_20_YEARLY_ID_STAGING: str = 'price_1ReGogG6l1KZGqIrEyBTmtPk'
     STRIPE_TIER_6_50_YEARLY_ID_STAGING: str = 'price_1ReGoJG6l1KZGqIr0DJWtoOc'
     STRIPE_TIER_12_100_YEARLY_ID_STAGING: str = 'price_1ReGnZG6l1KZGqIr0ThLEl5S'
@@ -84,11 +107,6 @@ class Configuration:
     STRIPE_TIER_50_400_YEARLY_ID_STAGING: str = 'price_1ReGmgG6l1KZGqIrn5nBc7e5'
     STRIPE_TIER_125_800_YEARLY_ID_STAGING: str = 'price_1ReGmMG6l1KZGqIrvE2ycrAX'
     STRIPE_TIER_200_1000_YEARLY_ID_STAGING: str = 'price_1ReGlXG6l1KZGqIrlgurP5GU'
-
-    # Yearly commitment prices - Staging (15% discount, monthly payments with 12-month commitment via schedules)
-    STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID_STAGING: str = 'price_1RqYGaG6l1KZGqIrIzcdPzeQ'  # $17/month
-    STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID_STAGING: str = 'price_1RqYH1G6l1KZGqIrWDKh8xIU'  # $42.50/month
-    STRIPE_TIER_25_170_YEARLY_COMMITMENT_ID_STAGING: str = 'price_1RqYHbG6l1KZGqIrAUVf8KpG'  # $170/month
     
     # Credit package price IDs - Production
     STRIPE_CREDITS_10_PRICE_ID_PROD: str = 'price_1RxmQUG6l1KZGqIru453O1zW'
@@ -113,6 +131,44 @@ class Configuration:
             return self.STRIPE_FREE_TIER_ID_STAGING
         return self.STRIPE_FREE_TIER_ID_PROD
     
+    # New tier computed properties (Basic/Plus/Ultra)
+    @property
+    def STRIPE_TIER_BASIC_ID(self) -> str:
+        if self.ENV_MODE == EnvMode.STAGING:
+            return self.STRIPE_TIER_BASIC_ID_STAGING
+        return self.STRIPE_TIER_BASIC_ID_PROD
+    
+    @property
+    def STRIPE_TIER_BASIC_YEARLY_ID(self) -> str:
+        if self.ENV_MODE == EnvMode.STAGING:
+            return self.STRIPE_TIER_BASIC_YEARLY_ID_STAGING
+        return self.STRIPE_TIER_BASIC_YEARLY_ID_PROD
+    
+    @property
+    def STRIPE_TIER_PLUS_ID(self) -> str:
+        if self.ENV_MODE == EnvMode.STAGING:
+            return self.STRIPE_TIER_PLUS_ID_STAGING
+        return self.STRIPE_TIER_PLUS_ID_PROD
+    
+    @property
+    def STRIPE_TIER_PLUS_YEARLY_ID(self) -> str:
+        if self.ENV_MODE == EnvMode.STAGING:
+            return self.STRIPE_TIER_PLUS_YEARLY_ID_STAGING
+        return self.STRIPE_TIER_PLUS_YEARLY_ID_PROD
+    
+    @property
+    def STRIPE_TIER_ULTRA_ID(self) -> str:
+        if self.ENV_MODE == EnvMode.STAGING:
+            return self.STRIPE_TIER_ULTRA_ID_STAGING
+        return self.STRIPE_TIER_ULTRA_ID_PROD
+    
+    @property
+    def STRIPE_TIER_ULTRA_YEARLY_ID(self) -> str:
+        if self.ENV_MODE == EnvMode.STAGING:
+            return self.STRIPE_TIER_ULTRA_YEARLY_ID_STAGING
+        return self.STRIPE_TIER_ULTRA_YEARLY_ID_PROD
+    
+    # Legacy tier computed properties (kept for backward compatibility)
     @property
     def STRIPE_TIER_2_20_ID(self) -> str:
         if self.ENV_MODE == EnvMode.STAGING:
@@ -351,6 +407,11 @@ class Configuration:
     # Note: These limits are bypassed in local mode (ENV_MODE=local) where unlimited agents are allowed
     AGENT_LIMITS = {
         'free': 2,
+        # New tiers
+        'tier_basic': 5,
+        'tier_plus': 20,
+        'tier_ultra': 100,
+        # Legacy tiers (kept for existing customers)
         'tier_2_20': 5,
         'tier_6_50': 20,
         'tier_12_100': 20,
@@ -366,7 +427,7 @@ class Configuration:
         'tier_50_400_yearly': 100,
         'tier_125_800_yearly': 100,
         'tier_200_1000_yearly': 100,
-        # Yearly commitment plans
+        # Yearly commitment plans (legacy)
         'tier_2_17_yearly_commitment': 5,
         'tier_6_42_yearly_commitment': 20,
         'tier_25_170_yearly_commitment': 100,
@@ -376,6 +437,11 @@ class Configuration:
     # Note: These limits are bypassed in local mode (ENV_MODE=local) where unlimited projects are allowed
     PROJECT_LIMITS = {
         'free': 3,
+        # New tiers
+        'tier_basic': 100,
+        'tier_plus': 500,
+        'tier_ultra': 2500,
+        # Legacy tiers (kept for existing customers)
         'tier_2_20': 100,
         'tier_6_50': 500,
         'tier_12_100': 1000,
@@ -391,7 +457,7 @@ class Configuration:
         'tier_50_400_yearly': 5000,
         'tier_125_800_yearly': 10000,
         'tier_200_1000_yearly': 25000,
-        # Yearly commitment plans
+        # Yearly commitment plans (legacy)
         'tier_2_17_yearly_commitment': 100,
         'tier_6_42_yearly_commitment': 500,
         'tier_25_170_yearly_commitment': 2500,

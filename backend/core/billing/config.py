@@ -5,7 +5,7 @@ from core.utils.config import config
 
 TRIAL_ENABLED = True
 TRIAL_DURATION_DAYS = 7
-TRIAL_TIER = "tier_2_20"
+TRIAL_TIER = "tier_basic"  # Updated to use Basic tier
 TRIAL_CREDITS = Decimal("5.00")
 
 TOKEN_PRICE_MULTIPLIER = Decimal('2.0')
@@ -43,6 +43,44 @@ TIERS: Dict[str, Tier] = {
         models=[],
         project_limit=0
     ),
+    # New pricing tiers (Basic/Plus/Ultra)
+    'tier_basic': Tier(
+        name='tier_basic',
+        price_ids=[
+            config.STRIPE_TIER_BASIC_ID,
+            config.STRIPE_TIER_BASIC_YEARLY_ID
+        ],
+        monthly_credits=Decimal('49.00'),
+        display_name='Basic',
+        can_purchase_credits=True,
+        models=['all'],
+        project_limit=100
+    ),
+    'tier_plus': Tier(
+        name='tier_plus',
+        price_ids=[
+            config.STRIPE_TIER_PLUS_ID,
+            config.STRIPE_TIER_PLUS_YEARLY_ID
+        ],
+        monthly_credits=Decimal('199.00'),
+        display_name='Plus',
+        can_purchase_credits=True,
+        models=['all'],
+        project_limit=500
+    ),
+    'tier_ultra': Tier(
+        name='tier_ultra',
+        price_ids=[
+            config.STRIPE_TIER_ULTRA_ID,
+            config.STRIPE_TIER_ULTRA_YEARLY_ID
+        ],
+        monthly_credits=Decimal('499.00'),
+        display_name='Ultra',
+        can_purchase_credits=True,
+        models=['all'],
+        project_limit=2500
+    ),
+    # Legacy tiers (kept for existing customers - never used but kept for safety)
     'tier_2_20': Tier(
         name='tier_2_20',
         price_ids=[
@@ -51,7 +89,7 @@ TIERS: Dict[str, Tier] = {
             config.STRIPE_TIER_2_17_YEARLY_COMMITMENT_ID
         ],
         monthly_credits=Decimal('20.00'),
-        display_name='Starter',
+        display_name='Starter (Legacy)',
         can_purchase_credits=True,
         models=['all'],
         project_limit=100
@@ -64,7 +102,7 @@ TIERS: Dict[str, Tier] = {
             config.STRIPE_TIER_6_42_YEARLY_COMMITMENT_ID
         ],
         monthly_credits=Decimal('50.00'),
-        display_name='Professional',
+        display_name='Professional (Legacy)',
         can_purchase_credits=True,
         models=['all'],
         project_limit=500
@@ -192,6 +230,11 @@ def get_price_type(price_id: str) -> str:
         return 'yearly_commitment'
     
     yearly_price_ids = [
+        # New tiers
+        config.STRIPE_TIER_BASIC_YEARLY_ID,
+        config.STRIPE_TIER_PLUS_YEARLY_ID,
+        config.STRIPE_TIER_ULTRA_YEARLY_ID,
+        # Legacy tiers
         config.STRIPE_TIER_2_20_YEARLY_ID,
         config.STRIPE_TIER_6_50_YEARLY_ID,
         config.STRIPE_TIER_12_100_YEARLY_ID,

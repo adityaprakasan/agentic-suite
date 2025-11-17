@@ -295,7 +295,7 @@ class WebhookService:
                     
                     price_id = subscription['items']['data'][0]['price']['id'] if subscription.get('items') else None
                     tier_info = get_tier_by_price_id(price_id)
-                    tier_name = tier_info.name if tier_info else 'tier_2_20'
+                    tier_name = tier_info.name if tier_info else 'tier_basic'
 
                     trial_ends_at = datetime.fromtimestamp(subscription.trial_end, tz=timezone.utc) if subscription.get('trial_end') else None
                     
@@ -526,7 +526,7 @@ class WebhookService:
                 if subscription.status == 'active':
                     price_id = subscription['items']['data'][0]['price']['id']
                     tier_info = get_tier_by_price_id(price_id)
-                    tier_name = tier_info.name if tier_info else 'tier_2_20'
+                    tier_name = tier_info.name if tier_info else 'tier_basic'
                     
                     await client.from_('credit_accounts').update({
                         'trial_status': 'converted',
@@ -553,10 +553,18 @@ class WebhookService:
                     }).eq('account_id', account_id).is_('ended_at', 'null').execute()
                     
                 else:
+                    # Get current balance before updating
+                    current_account = await client.from_('credit_accounts').select(
+                        'balance'
+                    ).eq('account_id', account_id).execute()
+                    current_balance = float(current_account.data[0].get('balance', 0)) if current_account.data else 0.00
+                    
                     await client.from_('credit_accounts').update({
                         'trial_status': 'expired',
                         'tier': 'none',
-                        'balance': '0.00',
+                        'balance': 0.00,
+                        'expiring_credits': 0.00,
+                        'non_expiring_credits': 0.00,
                         'stripe_subscription_id': None
                     }).eq('account_id', account_id).execute()
                     
@@ -565,13 +573,14 @@ class WebhookService:
                         'converted_to_paid': False
                     }).eq('account_id', account_id).is_('ended_at', 'null').execute()
                     
-                    await client.from_('credit_ledger').insert({
-                        'account_id': account_id,
-                        'amount': -20.00,
-                        'balance_after': 0.00,
-                        'type': 'adjustment',
-                        'description': 'Trial expired - all access removed'
-                    }).execute()
+                    if current_balance > 0:
+                        await client.from_('credit_ledger').insert({
+                            'account_id': account_id,
+                            'amount': -current_balance,
+                            'balance_after': 0.00,
+                            'type': 'adjustment',
+                            'description': 'Trial expired - all credits removed'
+                        }).execute()
     
     async def _handle_subscription_deleted(self, event, client):
         subscription = event.data.object
@@ -637,7 +646,11 @@ class WebhookService:
                 }).execute()
             
         else:
+            # Fallback case - get current balance and remove all credits
             await client.from_('credit_accounts').update({
+                'tier': 'none',
+                'balance': float(non_expiring_credits),
+                'expiring_credits': 0.00,
                 'stripe_subscription_id': None
             }).eq('account_id', account_id).execute()
                 
@@ -646,13 +659,32 @@ class WebhookService:
                 'converted_to_paid': False
             }).eq('account_id', account_id).is_('ended_at', 'null').execute()
             
-            await client.from_('credit_ledger').insert({
-                'account_id': account_id,
-                'amount': -20.00,
-                'balance_after': 0.00,
-                'type': 'adjustment',
-                'description': 'Trial cancelled - all access removed'
-            }).execute()
+            # Remove expiring credits if any exist
+            if expiring_credits > 0:
+                new_balance = float(non_expiring_credits)
+                await client.from_('credit_ledger').insert({
+                    'account_id': account_id,
+                    'amount': -float(expiring_credits),
+                    'balance_after': new_balance,
+                    'type': 'adjustment',
+                    'description': 'Subscription cancelled - expiring credits removed'
+                }).execute()
+            
+            # If trial was active, remove all credits
+            if current_trial_status == 'active' and current_balance > 0:
+                await client.from_('credit_accounts').update({
+                    'trial_status': 'cancelled',
+                    'balance': 0.00,
+                    'non_expiring_credits': 0.00
+                }).eq('account_id', account_id).execute()
+                
+                await client.from_('credit_ledger').insert({
+                    'account_id': account_id,
+                    'amount': -current_balance,
+                    'balance_after': 0.00,
+                    'type': 'adjustment',
+                    'description': 'Trial cancelled - all credits removed'
+                }).execute()
             
     
     async def _handle_invoice_payment_succeeded(self, event, client):

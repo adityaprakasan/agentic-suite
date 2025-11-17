@@ -44,6 +44,32 @@ interface Config {
 
 // Production tier IDs
 const PROD_TIERS: SubscriptionTiers = {
+  // New pricing tiers (Basic/Plus/Ultra)
+  TIER_BASIC: {
+    priceId: 'price_1SUQyvRvmWhX18sj9bAT3z4s',
+    name: 'Basic',
+  },
+  TIER_BASIC_YEARLY: {
+    priceId: 'price_1SUR04RvmWhX18sjFFLHNAtY',
+    name: 'Basic (Yearly)',
+  },
+  TIER_PLUS: {
+    priceId: 'price_1SUR0aRvmWhX18sjL79nLETb',
+    name: 'Plus',
+  },
+  TIER_PLUS_YEARLY: {
+    priceId: 'price_1SURdMRvmWhX18sjJmiYLY4z',
+    name: 'Plus (Yearly)',
+  },
+  TIER_ULTRA: {
+    priceId: 'price_1SURdlRvmWhX18sjZ8knVZKN',
+    name: 'Ultra',
+  },
+  TIER_ULTRA_YEARLY: {
+    priceId: 'price_1SURemRvmWhX18sj6xEb42H4',
+    name: 'Ultra (Yearly)',
+  },
+  // Legacy tiers (kept for existing customers)
   TIER_2_20: {
     priceId: 'price_1RILb4G6l1KZGqIrhomjgDnO',
     name: '2h/$20',
@@ -118,6 +144,32 @@ const PROD_TIERS: SubscriptionTiers = {
 
 // Staging tier IDs
 const STAGING_TIERS: SubscriptionTiers = {
+  // New pricing tiers (Basic/Plus/Ultra) - using same price IDs as prod for now
+  TIER_BASIC: {
+    priceId: 'price_1SUQyvRvmWhX18sj9bAT3z4s',
+    name: 'Basic',
+  },
+  TIER_BASIC_YEARLY: {
+    priceId: 'price_1SUR04RvmWhX18sjFFLHNAtY',
+    name: 'Basic (Yearly)',
+  },
+  TIER_PLUS: {
+    priceId: 'price_1SUR0aRvmWhX18sjL79nLETb',
+    name: 'Plus',
+  },
+  TIER_PLUS_YEARLY: {
+    priceId: 'price_1SURdMRvmWhX18sjJmiYLY4z',
+    name: 'Plus (Yearly)',
+  },
+  TIER_ULTRA: {
+    priceId: 'price_1SURdlRvmWhX18sjZ8knVZKN',
+    name: 'Ultra',
+  },
+  TIER_ULTRA_YEARLY: {
+    priceId: 'price_1SURemRvmWhX18sj6xEb42H4',
+    name: 'Ultra (Yearly)',
+  },
+  // Legacy tiers (kept for existing customers)
   TIER_2_20: {
     priceId: 'price_1RIGvuG6l1KZGqIrCRu0E4Gi',
     name: '2h/$20',
@@ -269,26 +321,42 @@ export const isYearlyCommitmentDowngrade = (currentPriceId: string, newPriceId: 
 export const isMonthlyPlan = (priceId: string): boolean => {
   const allTiers = config.SUBSCRIPTION_TIERS;
   const monthlyTiers = [
+    // New tiers
+    allTiers.TIER_BASIC, allTiers.TIER_PLUS, allTiers.TIER_ULTRA,
+    // Legacy tiers
     allTiers.TIER_2_20, allTiers.TIER_6_50, allTiers.TIER_12_100,
     allTiers.TIER_25_200, allTiers.TIER_50_400, allTiers.TIER_125_800,
     allTiers.TIER_200_1000
   ];
-  return monthlyTiers.some(tier => tier.priceId === priceId);
+  return monthlyTiers.some(tier => tier?.priceId === priceId);
 };
 
 export const isYearlyPlan = (priceId: string): boolean => {
   const allTiers = config.SUBSCRIPTION_TIERS;
   const yearlyTiers = [
+    // New tiers
+    allTiers.TIER_BASIC_YEARLY, allTiers.TIER_PLUS_YEARLY, allTiers.TIER_ULTRA_YEARLY,
+    // Legacy tiers
     allTiers.TIER_2_20_YEARLY, allTiers.TIER_6_50_YEARLY, allTiers.TIER_12_100_YEARLY,
     allTiers.TIER_25_200_YEARLY, allTiers.TIER_50_400_YEARLY, allTiers.TIER_125_800_YEARLY,
     allTiers.TIER_200_1000_YEARLY
   ];
-  return yearlyTiers.some(tier => tier.priceId === priceId);
+  return yearlyTiers.some(tier => tier?.priceId === priceId);
 };
 
 // Tier level mappings for all plan types
 const PLAN_TIERS = {
-  // Monthly plans
+  // New monthly plans
+  [PROD_TIERS.TIER_BASIC.priceId]: { tier: 1, type: 'monthly', name: 'Basic' },
+  [PROD_TIERS.TIER_PLUS.priceId]: { tier: 2, type: 'monthly', name: 'Plus' },
+  [PROD_TIERS.TIER_ULTRA.priceId]: { tier: 3, type: 'monthly', name: 'Ultra' },
+  
+  // New yearly plans
+  [PROD_TIERS.TIER_BASIC_YEARLY.priceId]: { tier: 1, type: 'yearly', name: 'Basic (Yearly)' },
+  [PROD_TIERS.TIER_PLUS_YEARLY.priceId]: { tier: 2, type: 'yearly', name: 'Plus (Yearly)' },
+  [PROD_TIERS.TIER_ULTRA_YEARLY.priceId]: { tier: 3, type: 'yearly', name: 'Ultra (Yearly)' },
+  
+  // Legacy monthly plans
   [PROD_TIERS.TIER_2_20.priceId]: { tier: 1, type: 'monthly', name: '2h/$20' },
   [PROD_TIERS.TIER_6_50.priceId]: { tier: 2, type: 'monthly', name: '6h/$50' },
   [PROD_TIERS.TIER_12_100.priceId]: { tier: 3, type: 'monthly', name: '12h/$100' },
@@ -297,7 +365,7 @@ const PLAN_TIERS = {
   [PROD_TIERS.TIER_125_800.priceId]: { tier: 6, type: 'monthly', name: '125h/$800' },
   [PROD_TIERS.TIER_200_1000.priceId]: { tier: 7, type: 'monthly', name: '200h/$1000' },
   
-  // Yearly plans  
+  // Legacy yearly plans  
   [PROD_TIERS.TIER_2_20_YEARLY.priceId]: { tier: 1, type: 'yearly', name: '2h/$204/year' },
   [PROD_TIERS.TIER_6_50_YEARLY.priceId]: { tier: 2, type: 'yearly', name: '6h/$510/year' },
   [PROD_TIERS.TIER_12_100_YEARLY.priceId]: { tier: 3, type: 'yearly', name: '12h/$1020/year' },
@@ -311,7 +379,16 @@ const PLAN_TIERS = {
   [PROD_TIERS.TIER_6_42_YEARLY_COMMITMENT.priceId]: { tier: 2, type: 'yearly_commitment', name: '6h/$42.50/month' },
   [PROD_TIERS.TIER_25_170_YEARLY_COMMITMENT.priceId]: { tier: 4, type: 'yearly_commitment', name: '25h/$170/month' },
 
-  // Staging plans
+  // Staging plans - New tiers
+  [STAGING_TIERS.TIER_BASIC.priceId]: { tier: 1, type: 'monthly', name: 'Basic' },
+  [STAGING_TIERS.TIER_PLUS.priceId]: { tier: 2, type: 'monthly', name: 'Plus' },
+  [STAGING_TIERS.TIER_ULTRA.priceId]: { tier: 3, type: 'monthly', name: 'Ultra' },
+  
+  [STAGING_TIERS.TIER_BASIC_YEARLY.priceId]: { tier: 1, type: 'yearly', name: 'Basic (Yearly)' },
+  [STAGING_TIERS.TIER_PLUS_YEARLY.priceId]: { tier: 2, type: 'yearly', name: 'Plus (Yearly)' },
+  [STAGING_TIERS.TIER_ULTRA_YEARLY.priceId]: { tier: 3, type: 'yearly', name: 'Ultra (Yearly)' },
+  
+  // Staging plans - Legacy
   [STAGING_TIERS.TIER_2_20.priceId]: { tier: 1, type: 'monthly', name: '2h/$20' },
   [STAGING_TIERS.TIER_6_50.priceId]: { tier: 2, type: 'monthly', name: '6h/$50' },
   [STAGING_TIERS.TIER_12_100.priceId]: { tier: 3, type: 'monthly', name: '12h/$100' },

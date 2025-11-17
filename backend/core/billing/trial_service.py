@@ -244,21 +244,14 @@ class TrialService:
             
             idempotency_key = generate_trial_idempotency_key(account_id, TRIAL_DURATION_DAYS)
             
+            # Use Basic tier monthly price ID for trial (converts to $49/month after trial)
+            basic_price_id = config.STRIPE_TIER_BASIC_ID
+            
             session = await stripe.checkout.Session.create_async(
                 customer=customer_id,
                 payment_method_types=['card'],
                 line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {
-                            'name': f'{TRIAL_DURATION_DAYS}-Day Trial',
-                            'description': f'Start your {TRIAL_DURATION_DAYS}-day free trial with ${TRIAL_CREDITS} in credits'
-                        },
-                        'unit_amount': 2000,
-                        'recurring': {
-                            'interval': 'month'
-                        }
-                    },
+                    'price': basic_price_id,
                     'quantity': 1
                 }],
                 mode='subscription',
