@@ -5,7 +5,7 @@ import { SubmitButton } from '@/components/ui/submit-button';
 import { Input } from '@/components/ui/input';
 import GoogleSignIn from '@/components/GoogleSignIn';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { signIn, signUp, forgotPassword } from './actions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/components/AuthProvider';
 import { useAuthMethodTracking } from '@/lib/stores/auth-tracking';
 import { toast } from 'sonner';
+import { createCheckoutSession } from '@/lib/api';
 
 import {
   Dialog,
@@ -40,6 +41,7 @@ function LoginContent() {
   const mode = searchParams.get('mode');
   const returnUrl = searchParams.get('returnUrl') || searchParams.get('redirect');
   const message = searchParams.get('message');
+  const intent = searchParams.get('intent');
 
   const isSignUp = mode === 'signup';
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -47,31 +49,63 @@ function LoginContent() {
 
   const { wasLastMethod: wasEmailLastMethod, markAsUsed: markEmailAsUsed } = useAuthMethodTracking('email');
 
+  // Shared function to handle purchase intent checkout
+  const initiatePurchaseCheckout = useCallback(async (): Promise<boolean> => {
+    if (intent !== 'purchase') {
+      return false;
+    }
+
+    const pendingPlan = localStorage.getItem('pendingPlanSelection');
+    if (!pendingPlan) {
+      return false;
+    }
+
+    try {
+      const planData = JSON.parse(pendingPlan);
+      
+      // Only use if less than 15 minutes old
+      if (Date.now() - planData.timestamp >= 15 * 60 * 1000) {
+        localStorage.removeItem('pendingPlanSelection');
+        return false;
+      }
+
+      localStorage.removeItem('pendingPlanSelection');
+
+      const response = await createCheckoutSession({
+        price_id: planData.priceId,
+        success_url: `${window.location.origin}/dashboard?subscription=activated`,
+        cancel_url: `${window.location.origin}/#pricing`,
+        commitment_type: planData.billingPeriod,
+      });
+
+      if (response.url) {
+        window.location.href = response.url;
+        return true;
+      } else {
+        toast.error('Failed to initiate checkout. Please try again.');
+        router.push('/#pricing');
+        return true; // Return true to indicate we handled it (even if failed)
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast.error('Failed to start checkout. Please try again.');
+      // Clean up localStorage in case of error (handles JSON.parse errors before line 72)
+      localStorage.removeItem('pendingPlanSelection');
+      router.push('/#pricing');
+      return true; // Return true to indicate we handled it (even if failed)
+    }
+  }, [intent, router]);
+
   useEffect(() => {
     if (!isLoading && user) {
       // Check if user came here intending to purchase a plan
-      const intent = searchParams.get('intent');
-      if (intent === 'purchase') {
-        const pendingPlan = localStorage.getItem('pendingPlanSelection');
-        if (pendingPlan) {
-          try {
-            const planData = JSON.parse(pendingPlan);
-            // Only use if less than 15 minutes old
-            if (Date.now() - planData.timestamp < 15 * 60 * 1000) {
-              localStorage.removeItem('pendingPlanSelection');
-              // Redirect back to pricing with the user now authenticated
-              router.push(`/#pricing`);
-              return;
-            }
-          } catch (e) {
-            console.error('Failed to parse pending plan:', e);
-          }
-          localStorage.removeItem('pendingPlanSelection');
+      initiatePurchaseCheckout().then((handled) => {
+        if (!handled) {
+          router.push(returnUrl || '/dashboard');
         }
-      }
-      router.push(returnUrl || '/dashboard');
+      });
     }
-  }, [user, isLoading, router, returnUrl, searchParams]);
+  }, [user, isLoading, router, returnUrl, initiatePurchaseCheckout]);
 
   const isSuccessMessage =
     message &&
@@ -115,6 +149,11 @@ function LoginContent() {
       result.success &&
       'redirectTo' in result
       ) {
+      // Check if user was trying to purchase a plan
+      const handled = await initiatePurchaseCheckout();
+      if (handled) {
+        return null;
+      }
       window.location.href = result.redirectTo as string;
       return null;
     }
@@ -152,6 +191,11 @@ function LoginContent() {
       result.success &&
       'redirectTo' in result
     ) {
+      // Check if user was trying to purchase a plan
+      const handled = await initiatePurchaseCheckout();
+      if (handled) {
+        return null;
+      }
       // Use window.location for hard navigation to avoid stale state
       window.location.href = result.redirectTo as string;
       return null; // Return null to prevent normal form action completion
@@ -295,8 +339,8 @@ function LoginContent() {
                 </h1>
               </div>
             <div className="space-y-3 mb-4">
-              <GoogleSignIn returnUrl={returnUrl || undefined} />
-              <GitHubSignIn returnUrl={returnUrl || undefined} />
+              <GoogleSignIn returnUrl={intent === 'purchase' ? '/auth?intent=purchase' : (returnUrl || undefined)} />
+              <GitHubSignIn returnUrl={intent === 'purchase' ? '/auth?intent=purchase' : (returnUrl || undefined)} />
             </div>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">

@@ -38,6 +38,7 @@ import { useDashboardTour } from '@/hooks/use-dashboard-tour';
 import { TourConfirmationDialog } from '@/components/tour/TourConfirmationDialog';
 import { Calendar, MessageSquare, Plus, Sparkles, Zap } from 'lucide-react';
 import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
+import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 
 const PENDING_PROMPT_KEY = 'pendingAgentPrompt';
 
@@ -107,6 +108,7 @@ export function DashboardContent() {
   const chatInputRef = React.useRef<ChatInputHandles>(null);
   const initiateAgentMutation = useInitiateAgentWithInvalidation();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const { refetch: refetchSubscription, refetchBalance } = useSubscriptionContext();
 
   // Tour integration
   const {
@@ -152,6 +154,26 @@ export function DashboardContent() {
       setViewMode('super-worker');
     }
   }, [searchParams]);
+
+  // Show success message after subscription activation and refresh subscription data
+  React.useEffect(() => {
+    const subscriptionStatus = searchParams.get('subscription');
+    if (subscriptionStatus === 'activated') {
+      toast.success('Subscription activated!', {
+        description: 'Your subscription is now active. Welcome to Adentic!',
+        duration: 5000,
+      });
+      
+      // Refetch subscription and credit balance to show updated credits
+      refetchSubscription();
+      refetchBalance();
+      
+      // Clean up URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('subscription');
+      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+    }
+  }, [searchParams, router, refetchSubscription, refetchBalance]);
 
   React.useEffect(() => {
     const agentIdFromUrl = searchParams.get('agent_id');
