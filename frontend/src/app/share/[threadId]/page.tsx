@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ThreadContent } from '@/components/thread/content/ThreadContent';
 import {
@@ -22,10 +22,6 @@ import { ToolCallInput } from '@/components/thread/tool-call-side-panel';
 // Share-specific imports
 import { useShareThreadData } from './_hooks/useShareThreadData';
 import { ShareThreadLayout } from './_components/ShareThreadLayout';
-import { ShareWelcomeBanner } from '@/components/share/share-welcome-banner';
-import { ShareCTABar } from '@/components/share/share-cta-bar';
-import { useAuth } from '@/components/AuthProvider';
-import { trackShareView } from '@/lib/utils/share-conversion-tracking';
 
 interface StreamingToolCall {
   id?: string;
@@ -44,24 +40,6 @@ export default function ShareThreadPage({
   const threadId = unwrappedParams.threadId;
 
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { user } = useAuth();
-
-  const queryString = searchParams.toString();
-  const currentRelativeUrl = useMemo(() => {
-    return queryString ? `${pathname}?${queryString}` : pathname;
-  }, [pathname, queryString]);
-
-  const appBaseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || 'https://workspace.tryadentic.com';
-
-  const loginHref = `${appBaseUrl}/auth?returnUrl=${encodeURIComponent(
-    currentRelativeUrl,
-  )}`;
-  const signupHref = `${appBaseUrl}/auth?mode=signup&returnUrl=${encodeURIComponent(
-    currentRelativeUrl,
-  )}`;
   
   // Use the new share-specific hook
   const {
@@ -291,13 +269,6 @@ export default function ShareThreadPage({
       startStreaming(agentRunId);
     }
   }, [agentRunId, startStreaming, currentHookRunId]);
-
-  // Track share page view for authenticated users
-  useEffect(() => {
-    if (user && initialLoadCompleted && !error) {
-      trackShareView(threadId, user.id, project?.id);
-    }
-  }, [user, threadId, project?.id, initialLoadCompleted, error]);
 
   // Handle streaming tool calls
   useEffect(() => {
@@ -622,10 +593,10 @@ export default function ShareThreadPage({
             {/* Headline */}
             <div className="space-y-2">
               <h2 className="text-2xl font-bold tracking-tight">
-                Someone shared an AI conversation with you
+                Someone shared a conversation with you
               </h2>
               <p className="text-base text-muted-foreground">
-                Sign in to view this conversation and start building your own AI agents
+                Sign in to Adentic to view this AI conversation and create your own
               </p>
             </div>
 
@@ -635,38 +606,29 @@ export default function ShareThreadPage({
                 <svg className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <div>
-                  <span className="text-sm font-medium">View AI conversations</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">See how AI agents work in real-time</p>
-                </div>
+                <span className="text-sm">View and collaborate on AI conversations</span>
               </div>
               <div className="flex items-start gap-3">
                 <svg className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <div>
-                  <span className="text-sm font-medium">Build AI agents with code execution</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">Create agents that can write and run code</p>
-                </div>
+                <span className="text-sm">Build AI agents with code execution</span>
               </div>
               <div className="flex items-start gap-3">
                 <svg className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <div>
-                  <span className="text-sm font-medium">Start free with 5 credits</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">No credit card required to get started</p>
-                </div>
+                <span className="text-sm">Deploy and share your own AI workflows</span>
               </div>
             </div>
 
             {/* CTA Buttons */}
             <div className="flex w-full flex-col gap-3">
               <a
-                href={signupHref}
+                href="https://workspace.tryadentic.com"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl"
               >
-                Get started free
+                Sign in to view conversation
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4"
@@ -680,12 +642,12 @@ export default function ShareThreadPage({
               </a>
               
               <p className="text-xs text-muted-foreground">
-                Already have an account?{' '}
+                Don't have an account?{' '}
                 <a
-                  href={loginHref}
+                  href="https://workspace.tryadentic.com"
                   className="font-medium text-primary hover:underline"
                 >
-                  Sign in
+                  Sign up free
                 </a>
               </p>
             </div>
@@ -720,37 +682,21 @@ export default function ShareThreadPage({
       }}
       initialLoadCompleted={initialLoadCompleted}
     >
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <ThreadContent
-          messages={messages}
-          agentStatus={agentStatus}
-          handleToolClick={handleToolClick}
-          handleOpenFileViewer={handleOpenFileViewer}
-          readOnly={true}
-          visibleMessages={playbackState.visibleMessages}
-          streamingText={playbackState.streamingText}
-          isStreamingText={playbackState.isStreamingText}
-          currentToolCall={playbackState.currentToolCall}
-          sandboxId={sandboxId || ''}
-          project={project}
-        />
-        {user && (
-          <ShareCTABar
-            threadId={threadId}
-            projectId={project?.id}
-            projectName={projectName}
-          />
-        )}
-      </div>
+      <ThreadContent
+        messages={messages}
+        agentStatus={agentStatus}
+        handleToolClick={handleToolClick}
+        handleOpenFileViewer={handleOpenFileViewer}
+        readOnly={true}
+        visibleMessages={playbackState.visibleMessages}
+        streamingText={playbackState.streamingText}
+        isStreamingText={playbackState.isStreamingText}
+        currentToolCall={playbackState.currentToolCall}
+        sandboxId={sandboxId || ''}
+        project={project}
+      />
       {renderWelcomeOverlay()}
       {renderFloatingControls()}
-      {user && (
-        <ShareWelcomeBanner
-          threadId={threadId}
-          projectId={project?.id}
-          projectName={projectName}
-        />
-      )}
     </ShareThreadLayout>
   );
 }
