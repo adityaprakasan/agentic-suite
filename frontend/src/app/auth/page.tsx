@@ -136,7 +136,12 @@ function LoginContent() {
     const email = formData.get('email') as string;
     setRegistrationEmail(email);
 
-    const finalReturnUrl = returnUrl || '/dashboard';
+    // Preserve purchase intent in returnUrl
+    const intent = searchParams.get('intent');
+    let finalReturnUrl = returnUrl || '/dashboard';
+    if (intent === 'purchase') {
+      finalReturnUrl = '/#pricing';
+    }
     formData.append('returnUrl', finalReturnUrl);
 
     // Add origin for email redirects

@@ -83,6 +83,27 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/auth';
       url.searchParams.set('redirect', pathname);
+      
+      // If there's an auth error (invalid/expired tokens), clear cookies
+      if (authError) {
+        console.log('[MIDDLEWARE] Auth error, clearing cookies:', authError.message);
+        const response = NextResponse.redirect(url);
+        
+        // Clear all Supabase auth cookies
+        const cookiesToClear = [
+          'sb-access-token',
+          'sb-refresh-token',
+          'sb-auth-token',
+          'supabase-auth-token'
+        ];
+        
+        cookiesToClear.forEach(cookieName => {
+          response.cookies.delete(cookieName);
+        });
+        
+        return response;
+      }
+      
       return NextResponse.redirect(url);
     }
 
@@ -185,8 +206,32 @@ export async function middleware(request: NextRequest) {
     }
 
     return supabaseResponse;
-  } catch (error) {
-    console.error('Middleware error:', error);
+  } catch (error: any) {
+    console.error('[MIDDLEWARE] Unexpected error:', error?.message || error);
+    
+    // If it's an auth-related error, clear cookies and redirect to auth
+    if (error?.__isAuthError || error?.status === 400 || error?.code?.includes('token')) {
+      console.log('[MIDDLEWARE] Auth error in catch block, clearing cookies');
+      const url = request.nextUrl.clone();
+      url.pathname = '/auth';
+      const response = NextResponse.redirect(url);
+      
+      // Clear all Supabase auth cookies
+      const cookiesToClear = [
+        'sb-access-token',
+        'sb-refresh-token',
+        'sb-auth-token',
+        'supabase-auth-token'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.delete(cookieName);
+      });
+      
+      return response;
+    }
+    
+    // For non-auth errors, fail open (let the request through)
     return supabaseResponse;
   }
 }
