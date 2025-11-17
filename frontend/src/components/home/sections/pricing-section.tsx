@@ -203,13 +203,18 @@ function PricingTier({
   // Handle subscription/trial start
   const handleSubscribe = async (planStripePriceId: string) => {
     if (!isAuthenticated) {
-      // Store the selected plan and billing period in localStorage
-      localStorage.setItem('pendingPlanSelection', JSON.stringify({
+      // Store the selected plan in both localStorage AND cookie (for middleware)
+      const planData = {
         priceId: planStripePriceId,
         billingPeriod,
         tierName: tier.name,
         timestamp: Date.now()
-      }));
+      };
+      localStorage.setItem('pendingPlanSelection', JSON.stringify(planData));
+      
+      // Set cookie for middleware to read (expires in 15 minutes)
+      document.cookie = `pendingPurchase=true; path=/; max-age=900; SameSite=Lax`;
+      
       window.location.href = '/auth?mode=signup&intent=purchase';
       return;
     }
@@ -626,6 +631,9 @@ export function PricingSection({
           // Only use if less than 15 minutes old
           if (Date.now() - planData.timestamp < 15 * 60 * 1000) {
             localStorage.removeItem('pendingPlanSelection');
+            // Clear the cookie
+            document.cookie = 'pendingPurchase=; path=/; max-age=0';
+            
             // Trigger checkout automatically
             const tier = siteConfig.cloudPricingItems.find(t => t.name === planData.tierName);
             if (tier) {
@@ -647,15 +655,20 @@ export function PricingSection({
                   console.error('Checkout error:', error);
                   toast.error('Failed to start checkout. Please try again.');
                   setPlanLoadingStates({});
+                  // Clear cookie on error too
+                  document.cookie = 'pendingPurchase=; path=/; max-age=0';
                 }
               }, 100);
             }
           } else {
             localStorage.removeItem('pendingPlanSelection');
+            // Clear expired cookie
+            document.cookie = 'pendingPurchase=; path=/; max-age=0';
           }
         } catch (e) {
           console.error('Failed to parse pending plan:', e);
           localStorage.removeItem('pendingPlanSelection');
+          document.cookie = 'pendingPurchase=; path=/; max-age=0';
         }
       }
     }
