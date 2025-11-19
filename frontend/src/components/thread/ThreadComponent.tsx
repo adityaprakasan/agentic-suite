@@ -99,6 +99,7 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [selectedCharts, setSelectedCharts] = useState<string[]>([]);
   const [selectedOutputFormat, setSelectedOutputFormat] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   // Refs - simplified for flex-column-reverse
   const latestMessageRef = useRef<HTMLDivElement>(null);
@@ -1107,6 +1108,7 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
               onModeDeselect={() => setSelectedMode(null)}
               selectedCharts={selectedCharts}
               selectedOutputFormat={selectedOutputFormat}
+              selectedTemplate={selectedTemplate}
             />
           </div>
         </div>
@@ -1132,6 +1134,8 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
               onChartsChange={setSelectedCharts}
               selectedOutputFormat={selectedOutputFormat}
               onOutputFormatChange={setSelectedOutputFormat}
+              selectedTemplate={selectedTemplate}
+              onTemplateChange={setSelectedTemplate}
             />
           </div>
         </div>

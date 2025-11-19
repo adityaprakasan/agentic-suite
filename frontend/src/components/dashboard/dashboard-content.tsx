@@ -38,6 +38,7 @@ import { useDashboardTour } from '@/hooks/use-dashboard-tour';
 import { TourConfirmationDialog } from '@/components/tour/TourConfirmationDialog';
 import { Calendar, MessageSquare, Plus, Sparkles, Zap } from 'lucide-react';
 import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
+import { useSunaModesPersistence } from '@/hooks/utils/use-suna-modes-persistence';
 
 const PENDING_PROMPT_KEY = 'pendingAgentPrompt';
 
@@ -72,10 +73,19 @@ export function DashboardContent() {
   const [configAgentId, setConfigAgentId] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'super-worker' | 'worker-templates'>('super-worker');
-  const [selectedCharts, setSelectedCharts] = useState<string[]>([]);
-  const [selectedOutputFormat, setSelectedOutputFormat] = useState<string | null>(null);
+  
+  // Use centralized Suna modes persistence hook
+  const {
+    selectedMode,
+    selectedCharts,
+    selectedOutputFormat,
+    selectedTemplate,
+    setSelectedMode,
+    setSelectedCharts,
+    setSelectedOutputFormat,
+    setSelectedTemplate,
+  } = useSunaModesPersistence();
   
   // Reset data selections when mode changes
   React.useEffect(() => {
@@ -442,6 +452,7 @@ export function DashboardContent() {
                           animatePlaceholder={true}
                           selectedCharts={selectedCharts}
                           selectedOutputFormat={selectedOutputFormat}
+                          selectedTemplate={selectedTemplate}
                         />
                       </div>
                     </div>
@@ -459,6 +470,8 @@ export function DashboardContent() {
                         onChartsChange={setSelectedCharts}
                         selectedOutputFormat={selectedOutputFormat}
                         onOutputFormatChange={setSelectedOutputFormat}
+                        selectedTemplate={selectedTemplate}
+                        onTemplateChange={setSelectedTemplate}
                       />
                     </div>
                   </div>

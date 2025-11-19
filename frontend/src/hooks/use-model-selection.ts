@@ -38,16 +38,24 @@ const getDefaultModel = (models: ModelOption[], hasActiveSubscription: boolean):
 
 export const useModelSelection = () => {
   // Fetch models directly in this hook
-  const { data: modelsData, isLoading } = useQuery({
+  const { data: modelsData, isLoading, refetch } = useQuery({
     queryKey: ['models', 'available'],
     queryFn: getAvailableModels,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000, // 1 minute (reduced from 5min for faster tier change updates)
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
     retry: 2,
   });
 
   const { data: subscriptionData } = useSubscriptionData();
   const { selectedModel, setSelectedModel } = useModelStore();
+  
+  // Refetch models when subscription tier changes
+  useEffect(() => {
+    if (subscriptionData?.tier?.name) {
+      // Invalidate and refetch models when tier changes
+      refetch();
+    }
+  }, [subscriptionData?.tier?.name, refetch]);
 
   // Transform API data to ModelOption format
   const availableModels = useMemo<ModelOption[]>(() => {

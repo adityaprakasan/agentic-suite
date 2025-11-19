@@ -2,10 +2,10 @@ export const clearUserLocalStorage = () => {
   if (typeof window === 'undefined') return;
 
   try {
-    // Note: Preserve model preference on logout - user choice should persist
-    // localStorage.removeItem('suna-preferred-model-v3');
+    // Clear model selection so new users start with tier-appropriate model
+    localStorage.removeItem('suna-model-selection-v3');
+    localStorage.removeItem('suna-model-selection-v2'); // Legacy
     localStorage.removeItem('customModels');
-    localStorage.removeItem('suna-model-selection-v2');
     localStorage.removeItem('agent-selection-storage');
     localStorage.removeItem('auth-tracking-storage');
     localStorage.removeItem('pendingAgentPrompt');
