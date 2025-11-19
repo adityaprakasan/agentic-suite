@@ -122,7 +122,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Starter (Legacy)',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=100
+        project_limit=100,
+        thread_limit=100,
+        concurrent_runs=3,
+        custom_workers_limit=5,
+        scheduled_triggers_limit=10,
+        app_triggers_limit=25
     ),
     'tier_6_50': Tier(
         name='tier_6_50',
@@ -135,7 +140,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Professional (Legacy)',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=500
+        project_limit=500,
+        thread_limit=500,
+        concurrent_runs=5,
+        custom_workers_limit=10,
+        scheduled_triggers_limit=25,
+        app_triggers_limit=50
     ),
     'tier_12_100': Tier(
         name='tier_12_100',
@@ -147,7 +157,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Team',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=1000
+        project_limit=1000,
+        thread_limit=1000,
+        concurrent_runs=5,
+        custom_workers_limit=10,
+        scheduled_triggers_limit=25,
+        app_triggers_limit=50
     ),
     'tier_25_200': Tier(
         name='tier_25_200',
@@ -160,7 +175,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Business',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=2500
+        project_limit=2500,
+        thread_limit=2500,
+        concurrent_runs=10,
+        custom_workers_limit=25,
+        scheduled_triggers_limit=50,
+        app_triggers_limit=100
     ),
     'tier_50_400': Tier(
         name='tier_50_400',
@@ -172,7 +192,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Enterprise',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=5000
+        project_limit=5000,
+        thread_limit=5000,
+        concurrent_runs=20,
+        custom_workers_limit=50,
+        scheduled_triggers_limit=100,
+        app_triggers_limit=200
     ),
     'tier_125_800': Tier(
         name='tier_125_800',
@@ -184,7 +209,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Enterprise Plus',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=10000
+        project_limit=10000,
+        thread_limit=10000,
+        concurrent_runs=50,
+        custom_workers_limit=100,
+        scheduled_triggers_limit=200,
+        app_triggers_limit=500
     ),
     'tier_200_1000': Tier(
         name='tier_200_1000',
@@ -196,7 +226,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Ultimate',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=25000
+        project_limit=25000,
+        thread_limit=25000,
+        concurrent_runs=100,
+        custom_workers_limit=200,
+        scheduled_triggers_limit=500,
+        app_triggers_limit=1000
     ),
 }
 
