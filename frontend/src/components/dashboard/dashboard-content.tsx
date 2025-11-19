@@ -38,7 +38,7 @@ import { useDashboardTour } from '@/hooks/use-dashboard-tour';
 import { TourConfirmationDialog } from '@/components/tour/TourConfirmationDialog';
 import { Calendar, MessageSquare, Plus, Sparkles, Zap } from 'lucide-react';
 import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
-import { useSunaModesPersistence } from '@/hooks/utils/use-suna-modes-persistence';
+import { useSunaModePersistence } from '@/hooks/utils/use-suna-modes-persistence';
 
 const PENDING_PROMPT_KEY = 'pendingAgentPrompt';
 
@@ -85,7 +85,7 @@ export function DashboardContent() {
     setSelectedCharts,
     setSelectedOutputFormat,
     setSelectedTemplate,
-  } = useSunaModesPersistence();
+  } = useSunaModePersistence();
   
   // Reset data selections when mode changes
   React.useEffect(() => {
