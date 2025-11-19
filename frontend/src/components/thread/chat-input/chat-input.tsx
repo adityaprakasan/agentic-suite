@@ -655,7 +655,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                       </div>
                       <div className="space-y-0.5 px-2">
                         {quickIntegrations.map((integration) => (
-                          <SpotlightCard key={integration.id} className="transition-colors cursor-pointer bg-transparent">
+                          <div key={integration.id} className="transition-colors cursor-pointer bg-transparent">
                             <div
                               className="flex items-center gap-3 text-sm cursor-pointer px-1 py-1"
                               onClick={() => {
@@ -677,9 +677,9 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                               <span className="flex-1 truncate font-medium">{integration.name}</span>
                               <span className="text-xs text-muted-foreground">Connect</span>
                             </div>
-                          </SpotlightCard>
+                          </div>
                         ))}
-                        <SpotlightCard className="transition-colors cursor-pointer bg-transparent">
+                        <div className="transition-colors cursor-pointer bg-transparent">
                           <div
                             className="flex items-center gap-3 text-sm cursor-pointer px-1 py-1 min-h-[40px]"
                             onClick={() => {
@@ -689,7 +689,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                           >
                             <span className="text-muted-foreground font-medium">+ See all integrations</span>
                           </div>
-                        </SpotlightCard>
+                        </div>
                       </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
