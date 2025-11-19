@@ -277,8 +277,8 @@ async def get_presentation_template_pdf(template_name: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error serving template PDF for {template_name}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        logger.error(f"Error serving template PDF: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @api_router.get("/health", summary="Health Check", operation_id="health_check", tags=["system"])
 async def health_check():
