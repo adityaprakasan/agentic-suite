@@ -1108,22 +1108,31 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
               selectedCharts={selectedCharts}
               selectedOutputFormat={selectedOutputFormat}
             />
-            
-            {/* Modes Panel - Below chat input - Available for all agents */}
-            <div className="px-4 pb-8 pt-4">
-              <div className="max-w-3xl mx-auto">
-                <SunaModesPanel
-                  selectedMode={selectedMode}
-                  onModeSelect={setSelectedMode}
-                  onSelectPrompt={setNewMessage}
-                  isMobile={isMobile}
-                  selectedCharts={selectedCharts}
-                  onChartsChange={setSelectedCharts}
-                  selectedOutputFormat={selectedOutputFormat}
-                  onOutputFormatChange={setSelectedOutputFormat}
-                />
-              </div>
-            </div>
+          </div>
+        </div>
+        
+        {/* Modes Panel - Below chat input, doesn't affect its position */}
+        <div className={cn(
+          'fixed bottom-0 z-[9] px-4 pb-8',
+          leftSidebarState === 'expanded'
+            ? 'left-[72px] md:left-[256px]'
+            : 'left-[40px]',
+          isSidePanelOpen && !isMobile
+            ? 'right-[90%] sm:right-[450px] md:right-[500px] lg:right-[550px] xl:right-[650px]'
+            : 'right-0',
+          isMobile ? 'left-0 right-0' : '',
+        )}>
+          <div className={cn('mx-auto', isMobile ? 'w-full' : 'max-w-3xl')}>
+            <SunaModesPanel
+              selectedMode={selectedMode}
+              onModeSelect={setSelectedMode}
+              onSelectPrompt={setNewMessage}
+              isMobile={isMobile}
+              selectedCharts={selectedCharts}
+              onChartsChange={setSelectedCharts}
+              selectedOutputFormat={selectedOutputFormat}
+              onOutputFormatChange={setSelectedOutputFormat}
+            />
           </div>
         </div>
       </ThreadLayout>

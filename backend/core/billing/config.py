@@ -12,7 +12,7 @@ TOKEN_PRICE_MULTIPLIER = Decimal('2.0')
 MINIMUM_CREDIT_FOR_RUN = Decimal('0.01')
 DEFAULT_TOKEN_COST = Decimal('0.000002')
 
-FREE_TIER_INITIAL_CREDITS = Decimal('5.00')
+FREE_TIER_INITIAL_CREDITS = Decimal('2.00')
 
 @dataclass
 class Tier:
@@ -23,6 +23,11 @@ class Tier:
     can_purchase_credits: bool
     models: List[str]
     project_limit: int
+    thread_limit: int
+    concurrent_runs: int
+    custom_workers_limit: int
+    scheduled_triggers_limit: int
+    app_triggers_limit: int
 
 TIERS: Dict[str, Tier] = {
     'none': Tier(
@@ -32,16 +37,26 @@ TIERS: Dict[str, Tier] = {
         display_name='No Plan',
         can_purchase_credits=False,
         models=[],
-        project_limit=0
+        project_limit=0,
+        thread_limit=0,
+        concurrent_runs=0,
+        custom_workers_limit=0,
+        scheduled_triggers_limit=0,
+        app_triggers_limit=0
     ),
     'free': Tier(
         name='free',
-        price_ids=[],
-        monthly_credits=Decimal('0.00'),
-        display_name='Free Tier (Discontinued)',
+        price_ids=[config.STRIPE_FREE_TIER_ID],
+        monthly_credits=FREE_TIER_INITIAL_CREDITS,
+        display_name='Basic',
         can_purchase_credits=False,
-        models=[],
-        project_limit=0
+        models=['haiku'],
+        project_limit=1,
+        thread_limit=1,
+        concurrent_runs=1,
+        custom_workers_limit=1,
+        scheduled_triggers_limit=1,
+        app_triggers_limit=1
     ),
     # New pricing tiers (Basic/Plus/Ultra)
     'tier_basic': Tier(
@@ -54,7 +69,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Basic',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=100
+        project_limit=100,
+        thread_limit=100,
+        concurrent_runs=3,
+        custom_workers_limit=5,
+        scheduled_triggers_limit=10,
+        app_triggers_limit=25
     ),
     'tier_plus': Tier(
         name='tier_plus',
@@ -66,7 +86,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Plus',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=500
+        project_limit=500,
+        thread_limit=500,
+        concurrent_runs=5,
+        custom_workers_limit=10,
+        scheduled_triggers_limit=25,
+        app_triggers_limit=50
     ),
     'tier_ultra': Tier(
         name='tier_ultra',
@@ -78,7 +103,12 @@ TIERS: Dict[str, Tier] = {
         display_name='Ultra',
         can_purchase_credits=True,
         models=['all'],
-        project_limit=2500
+        project_limit=2500,
+        thread_limit=2500,
+        concurrent_runs=10,
+        custom_workers_limit=25,
+        scheduled_triggers_limit=50,
+        app_triggers_limit=100
     ),
     # Legacy tiers (kept for existing customers - never used but kept for safety)
     'tier_2_20': Tier(

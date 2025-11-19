@@ -43,7 +43,7 @@ class Configuration:
     
     
     # Subscription tier IDs - Production
-    STRIPE_FREE_TIER_ID_PROD: str = 'price_1RILb4G6l1KZGqIrK4QLrx9i'
+    STRIPE_FREE_TIER_ID_PROD: str = 'price_1SVAm6RvmWhX18sjkr9zi3x3'
     
     # Basic tier (was tier_2_20) - $49/month
     STRIPE_TIER_BASIC_ID_PROD: str = 'price_1SUQyvRvmWhX18sj9bAT3z4s'
