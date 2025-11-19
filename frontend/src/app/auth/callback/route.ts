@@ -38,16 +38,20 @@ export async function GET(request: NextRequest) {
           .eq('personal_account', true)
           .single();
 
-        if (accountData) {
-          const { data: creditAccount } = await supabase
-            .from('credit_accounts')
-            .select('tier, stripe_subscription_id')
-            .eq('account_id', accountData.id)
-            .single();
+        // New user without account yet - send to setup
+        if (!accountData) {
+          return NextResponse.redirect(`${baseUrl}/setting-up`);
+        }
 
-          if (creditAccount && (creditAccount.tier === 'none' || !creditAccount.stripe_subscription_id)) {
-            return NextResponse.redirect(`${baseUrl}/setting-up`);
-          }
+        const { data: creditAccount } = await supabase
+          .from('credit_accounts')
+          .select('tier, stripe_subscription_id')
+          .eq('account_id', accountData.id)
+          .single();
+
+        // No credit account or no active subscription - send to setup
+        if (!creditAccount || creditAccount.tier === 'none' || !creditAccount.stripe_subscription_id) {
+          return NextResponse.redirect(`${baseUrl}/setting-up`);
         }
       }
 

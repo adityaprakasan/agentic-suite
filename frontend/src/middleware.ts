@@ -19,6 +19,7 @@ const PUBLIC_ROUTES = [
 
 // Routes that require authentication but are related to billing/trials
 const BILLING_ROUTES = [
+  '/setting-up',
   '/activate-trial',
   '/subscription',
 ];
@@ -109,61 +110,33 @@ export async function middleware(request: NextRequest) {
 
       if (!accounts) {
         const url = request.nextUrl.clone();
-        url.pathname = '/activate-trial';
+        url.pathname = '/setting-up';
         return NextResponse.redirect(url);
       }
 
       const accountId = accounts.id;
       const { data: creditAccount } = await supabase
         .from('credit_accounts')
-        .select('tier, trial_status, trial_ends_at')
+        .select('tier, stripe_subscription_id')
         .eq('account_id', accountId)
         .single();
 
-      const { data: trialHistory } = await supabase
-        .from('trial_history')
-        .select('id')
-        .eq('account_id', accountId)
-        .single();
-
-      const hasUsedTrial = !!trialHistory;
-
-      if (!creditAccount) {
-        if (hasUsedTrial) {
-          const url = request.nextUrl.clone();
-          url.pathname = '/subscription';
-          return NextResponse.redirect(url);
-        } else {
-          const url = request.nextUrl.clone();
-          url.pathname = '/activate-trial';
-          return NextResponse.redirect(url);
-        }
+      // If no credit account or no subscription, redirect to setup
+      if (!creditAccount || creditAccount.tier === 'none' || !creditAccount.stripe_subscription_id) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/setting-up';
+        return NextResponse.redirect(url);
       }
 
-      const hasTier = creditAccount.tier && creditAccount.tier !== 'none' && creditAccount.tier !== 'free';
-      const hasActiveTrial = creditAccount.trial_status === 'active';
-      const trialExpired = creditAccount.trial_status === 'expired' || creditAccount.trial_status === 'cancelled';
-      const trialConverted = creditAccount.trial_status === 'converted';
-      
-      if (hasTier && (trialConverted || !trialExpired)) {
+      // Allow access if user has free tier or any paid tier
+      if (creditAccount.tier && creditAccount.tier !== 'none' && creditAccount.stripe_subscription_id) {
         return supabaseResponse;
       }
 
-      if (!hasTier && !hasActiveTrial && !trialConverted) {
-        if (hasUsedTrial || trialExpired || creditAccount.trial_status === 'cancelled') {
-          const url = request.nextUrl.clone();
-          url.pathname = '/subscription';
-          return NextResponse.redirect(url);
-        } else {
-          const url = request.nextUrl.clone();
-          url.pathname = '/activate-trial';
-          return NextResponse.redirect(url);
-        }
-      } else if ((trialExpired || trialConverted) && !hasTier) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/subscription';
-        return NextResponse.redirect(url);
-      }
+      // Fallback: redirect to setup
+      const url = request.nextUrl.clone();
+      url.pathname = '/setting-up';
+      return NextResponse.redirect(url);
     }
 
     return supabaseResponse;

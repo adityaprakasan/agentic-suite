@@ -161,12 +161,11 @@ export const usePostSubscriptionOnboarding = () => {
                                  subscriptionData.subscription.status === 'active' &&
                                  !subscriptionData.subscription.cancel_at_period_end;
     
-    const hasActiveTrial = subscriptionData?.trial_status === 'active';
+    // User has a valid tier (free or paid)
     const hasActiveTier = subscriptionData?.tier && 
-                         subscriptionData.tier.name !== 'none' && 
-                         subscriptionData.tier.name !== 'free';
+                         subscriptionData.tier.name !== 'none';
     
-    return (hasActiveSubscription && hasActiveTier) || (hasActiveTrial && hasActiveTier);
+    return hasActiveSubscription && hasActiveTier;
   };
   
   const triggerPostSubscriptionOnboarding = () => {

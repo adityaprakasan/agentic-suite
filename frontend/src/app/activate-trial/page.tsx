@@ -34,9 +34,9 @@ export default function ActivateTrialPage() {
                            trialStatus.trial_status === 'expired' || 
                            trialStatus.trial_status === 'cancelled' ||
                            trialStatus.trial_status === 'converted';
+      // Check for any active tier (free or paid)
       const hasActiveSubscription = subscription.tier && 
-                                   subscription.tier.name !== 'none' && 
-                                   subscription.tier.name !== 'free';
+                                   subscription.tier.name !== 'none';
       
       if (hasActiveTrial || hasActiveSubscription) {
         router.push('/dashboard');

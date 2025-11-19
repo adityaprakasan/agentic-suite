@@ -34,12 +34,11 @@ export default function SubscriptionRequiredPage() {
                                    response.data.subscription.status === 'active' &&
                                    !response.data.subscription.cancel_at_period_end;
       
-      const hasActiveTrial = response.data.trial_status === 'active';
+      // User has a valid tier (free or paid) with active subscription
       const hasActiveTier = response.data.tier && 
-                           response.data.tier.name !== 'none' && 
-                           response.data.tier.name !== 'free';
+                           response.data.tier.name !== 'none';
       
-      if ((hasActiveSubscription && hasActiveTier) || (hasActiveTrial && hasActiveTier)) {
+      if (hasActiveSubscription && hasActiveTier) {
         router.push('/dashboard');
       }
     } catch (error) {
