@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useInitializeAccount } from '@/hooks/account';
-import { KortixLogo } from '@/components/sidebar/kortix-logo';
+import { AdenticLogo } from '@/components/sidebar/kortix-logo';
 import { KortixLoader } from '@/components/ui/kortix-loader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ export default function SettingUpPage() {
       <div className="relative flex flex-col items-center w-full px-4 sm:px-6 min-h-screen justify-center">
 
         <div className="relative z-10 w-full max-w-[456px] flex flex-col items-center gap-8">
-          <KortixLogo size={32} />
+          <AdenticLogo size={32} />
 
           {status === 'initializing' && (
             <>

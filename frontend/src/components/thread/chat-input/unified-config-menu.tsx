@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Cpu, Search, Check, ChevronDown, Plus, ExternalLink, Loader2, Plug, Brain, LibraryBig, Zap, Workflow, Lock } from 'lucide-react';
 import { useAgents } from '@/hooks/react-query/agents/use-agents';
-import { KortixLogo } from '@/components/sidebar/kortix-logo';
+import { AdenticLogo } from '@/components/sidebar/kortix-logo';
 import type { ModelOption } from '@/hooks/react-query/agents';
 import { ModelProviderIcon } from '@/lib/model-provider-icons';
 // SpotlightCard not needed
@@ -495,9 +495,9 @@ const GuestMenu: React.FC<UnifiedConfigMenuProps> = memo(function GuestMenu() {
                         >
                             <div className="flex items-center gap-2 min-w-0 max-w-[180px]">
                                 <div className="flex-shrink-0">
-                                    <KortixLogo size={20} />
+                                    <AdenticLogo size={20} />
                                 </div>
-                                <span className="truncate text-sm font-medium">Suna</span>
+                                <span className="truncate text-sm font-medium">Adentic</span>
                                 <ChevronDown size={12} className="opacity-60 flex-shrink-0" />
                             </div>
                         </Button>
