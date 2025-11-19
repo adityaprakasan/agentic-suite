@@ -1109,23 +1109,21 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
               selectedOutputFormat={selectedOutputFormat}
             />
             
-            {/* Modes Panel - Below chat input */}
-            {isAdenticAgent(agents) && (
-              <div className="px-4 pb-8 pt-4">
-                <div className="max-w-3xl mx-auto">
-                  <SunaModesPanel
-                    selectedMode={selectedMode}
-                    onModeSelect={setSelectedMode}
-                    onSelectPrompt={setNewMessage}
-                    isMobile={isMobile}
-                    selectedCharts={selectedCharts}
-                    onChartsChange={setSelectedCharts}
-                    selectedOutputFormat={selectedOutputFormat}
-                    onOutputFormatChange={setSelectedOutputFormat}
-                  />
-                </div>
+            {/* Modes Panel - Below chat input - Available for all agents */}
+            <div className="px-4 pb-8 pt-4">
+              <div className="max-w-3xl mx-auto">
+                <SunaModesPanel
+                  selectedMode={selectedMode}
+                  onModeSelect={setSelectedMode}
+                  onSelectPrompt={setNewMessage}
+                  isMobile={isMobile}
+                  selectedCharts={selectedCharts}
+                  onChartsChange={setSelectedCharts}
+                  selectedOutputFormat={selectedOutputFormat}
+                  onOutputFormatChange={setSelectedOutputFormat}
+                />
               </div>
-            )}
+            </div>
           </div>
         </div>
       </ThreadLayout>
