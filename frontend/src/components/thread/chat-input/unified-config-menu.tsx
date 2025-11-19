@@ -15,9 +15,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Cpu, Search, Check, ChevronDown, Plus, ExternalLink, Loader2, Plug, Brain, LibraryBig, Zap, Workflow, Lock } from 'lucide-react';
-import { useAgents } from '@/hooks/react-query/agents/use-agents';
-import { AdenticLogo } from '@/components/sidebar/kortix-logo';
-import type { ModelOption } from '@/hooks/use-model-selection';
+import { useAgents } from '@/hooks/agents/use-agents';
+import { KortixLogo } from '@/components/sidebar/kortix-logo';
+import type { ModelOption } from '@/hooks/agents';
 import { ModelProviderIcon } from '@/lib/model-provider-icons';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
 
@@ -26,14 +26,14 @@ export type SubscriptionStatus = 'no_subscription' | 'active';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { IntegrationsRegistry } from '@/components/agents/integrations-registry';
-import { useComposioToolkitIcon } from '@/hooks/react-query/composio/use-composio';
+import { useComposioToolkitIcon } from '@/hooks/composio/use-composio';
 import { Skeleton } from '@/components/ui/skeleton';
-// import { useTranslations } from 'next-intl'; // Disabled - not using i18n
+import { useTranslations } from 'next-intl';
 import { NewAgentDialog } from '@/components/agents/new-agent-dialog';
 import { AgentAvatar } from '@/components/thread/content/agent-avatar';
 import { AgentModelSelector } from '@/components/agents/config/model-selector';
 import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
-// import { usePricingModalStore } from '@/stores/pricing-modal-store'; // Disabled - using BillingModal instead
+import { usePricingModalStore } from '@/stores/pricing-modal-store';
 
 type UnifiedConfigMenuProps = {
     isLoggedIn?: boolean;
@@ -61,7 +61,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
     canAccessModel,
     subscriptionStatus,
 }) {
-    // const t = useTranslations('thread'); // Disabled i18n
+    const t = useTranslations('thread');
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -199,7 +199,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                             <div className="flex items-center gap-2 min-w-0 max-w-[180px]">
                                 {renderAgentIcon(displayAgent)}
                                 <span className="truncate text-sm font-medium">
-                                    {displayAgent?.name || 'Adentic'}
+                                    {displayAgent?.name || t('superWorker')}
                                 </span>
                                 <ChevronDown size={12} className="opacity-60 flex-shrink-0" />
                             </div>
@@ -371,11 +371,10 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                                                     setIsOpen(false);
                                                                 } else {
                                                                     setIsOpen(false);
-                                                                    // TODO: Show upgrade modal
-                                                                    // usePricingModalStore.getState().openPricingModal({ 
-                                                                    //     isAlert: true, 
-                                                                    //     alertTitle: 'Upgrade to access this AI model' 
-                                                                    // });
+                                                                    usePricingModalStore.getState().openPricingModal({ 
+                                                                        isAlert: true, 
+                                                                        alertTitle: 'Upgrade to access this AI model' 
+                                                                    });
                                                                 }
                                                             }}
                                                         >
