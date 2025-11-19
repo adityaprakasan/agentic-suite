@@ -14,8 +14,9 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { useAgentStream } from '@/hooks/useAgentStream';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { isLocalMode } from '@/lib/config';
+import { isLocalMode, isStagingMode } from '@/lib/config';
 import { ThreadContent } from '@/components/thread/content/ThreadContent';
+import { SunaModesPanel } from '@/components/dashboard/suna-modes-panel';
 import { ThreadSkeleton } from '@/components/thread/content/ThreadSkeleton';
 import { useAddUserMessageMutation } from '@/hooks/react-query/threads/use-messages';
 import {
@@ -93,6 +94,11 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
     runningCount: number;
     runningThreadIds: string[];
   } | null>(null);
+  
+  // Modes panel state
+  const [selectedMode, setSelectedMode] = useState<string | null>(null);
+  const [selectedCharts, setSelectedCharts] = useState<string[]>([]);
+  const [selectedOutputFormat, setSelectedOutputFormat] = useState<string | null>(null);
 
   // Refs - simplified for flex-column-reverse
   const latestMessageRef = useRef<HTMLDivElement>(null);
@@ -1097,7 +1103,29 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
               defaultShowSnackbar="tokens"
               showScrollToBottomIndicator={showScrollToBottom}
               onScrollToBottom={scrollToBottom}
+              selectedMode={selectedMode}
+              onModeDeselect={() => setSelectedMode(null)}
+              selectedCharts={selectedCharts}
+              selectedOutputFormat={selectedOutputFormat}
             />
+            
+            {/* Modes Panel - Below chat input */}
+            {(isStagingMode() || isLocalMode()) && isAdenticAgent && (
+              <div className="px-4 pb-8 pt-4">
+                <div className="max-w-3xl mx-auto">
+                  <SunaModesPanel
+                    selectedMode={selectedMode}
+                    onModeSelect={setSelectedMode}
+                    onSelectPrompt={setNewMessage}
+                    isMobile={isMobile}
+                    selectedCharts={selectedCharts}
+                    onChartsChange={setSelectedCharts}
+                    selectedOutputFormat={selectedOutputFormat}
+                    onOutputFormatChange={setSelectedOutputFormat}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </ThreadLayout>
