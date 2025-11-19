@@ -624,7 +624,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
               isAgentRunning={isAgentRunning}
               isUploading={isUploading}
               sandboxId={sandboxId}
-              projectId={projectId}
               setPendingFiles={setPendingFiles}
               setUploadedFiles={setUploadedFiles}
               setIsUploading={setIsUploading}
