@@ -15,25 +15,25 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Cpu, Search, Check, ChevronDown, Plus, ExternalLink, Loader2, Plug, Brain, LibraryBig, Zap, Workflow, Lock } from 'lucide-react';
-import { useAgents } from '@/hooks/agents/use-agents';
+import { useAgents } from '@/hooks/react-query/agents/use-agents';
 import { KortixLogo } from '@/components/sidebar/kortix-logo';
-import type { ModelOption } from '@/hooks/agents';
+import type { ModelOption } from '@/hooks/react-query/agents';
 import { ModelProviderIcon } from '@/lib/model-provider-icons';
-import { SpotlightCard } from '@/components/ui/spotlight-card';
+// SpotlightCard not needed
 
 export type SubscriptionStatus = 'no_subscription' | 'active';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { IntegrationsRegistry } from '@/components/agents/integrations-registry';
-import { useComposioToolkitIcon } from '@/hooks/composio/use-composio';
+import { useComposioToolkitIcon } from '@/hooks/react-query/composio/use-composio';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTranslations } from 'next-intl';
+// import { useTranslations } from 'next-intl'; // Not installed
 import { NewAgentDialog } from '@/components/agents/new-agent-dialog';
 import { AgentAvatar } from '@/components/thread/content/agent-avatar';
 import { AgentModelSelector } from '@/components/agents/config/model-selector';
 import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
-import { usePricingModalStore } from '@/stores/pricing-modal-store';
+// import { usePricingModalStore } from '@/stores/pricing-modal-store'; // Not using this
 
 type UnifiedConfigMenuProps = {
     isLoggedIn?: boolean;
@@ -61,7 +61,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
     canAccessModel,
     subscriptionStatus,
 }) {
-    const t = useTranslations('thread');
+    // const t = useTranslations('thread'); // Not using i18n
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -199,7 +199,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                             <div className="flex items-center gap-2 min-w-0 max-w-[180px]">
                                 {renderAgentIcon(displayAgent)}
                                 <span className="truncate text-sm font-medium">
-                                    {displayAgent?.name || t('superWorker')}
+                                    {displayAgent?.name || 'Super Worker'}
                                 </span>
                                 <ChevronDown size={12} className="opacity-60 flex-shrink-0" />
                             </div>
@@ -222,13 +222,13 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                 </div>
                             </div>
                             <div className="px-2">
-                                <SpotlightCard className="transition-colors cursor-pointer bg-transparent">
+                                <div className="transition-colors cursor-pointer bg-transparent">
                                     <DropdownMenuSub>
                                         <DropdownMenuSubTrigger className="flex items-center gap-3 text-sm cursor-pointer px-1 py-1 hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent w-full">
                                             <div className="flex items-center justify-center w-8 h-8 bg-card border-[1.5px] border-border flex-shrink-0" style={{ borderRadius: '10.4px' }}>
                                                 {renderAgentIcon(displayAgent)}
                                             </div>
-                                            <span className="flex-1 truncate font-medium text-left">{displayAgent?.name || t('superWorker')}</span>
+                                            <span className="flex-1 truncate font-medium text-left">{displayAgent?.name || 'Super Worker'}</span>
                                         </DropdownMenuSubTrigger>
                                         <DropdownMenuPortal>
                                             <DropdownMenuSubContent className="w-[320px] px-0 py-3 border-[1.5px] border-border rounded-2xl max-h-[500px] overflow-hidden" sideOffset={8}>
@@ -276,7 +276,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                                             {orderedAgents.map((agent) => {
                                                                 const isActive = selectedAgentId === agent.agent_id;
                                                                 return (
-                                                                    <SpotlightCard
+                                                                    <div
                                                                         key={agent.agent_id}
                                                                         className="transition-colors cursor-pointer bg-transparent"
                                                                     >
@@ -292,7 +292,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                                                                 <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
                                                                             )}
                                                                         </div>
-                                                                    </SpotlightCard>
+                                                                    </div>
                                                                 );
                                                             })}
                                                         </div>
@@ -321,7 +321,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                             </DropdownMenuSubContent>
                                         </DropdownMenuPortal>
                                     </DropdownMenuSub>
-                                </SpotlightCard>
+                                </div>
                             </div>
                             <div className="h-px bg-border/50 -mx-3 my-3" />
                         </>
@@ -334,7 +334,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                         </div>
                     </div>
                     <div className="px-2">
-                        <SpotlightCard className="transition-colors cursor-pointer bg-transparent">
+                        <div className="transition-colors cursor-pointer bg-transparent">
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger className="flex items-center gap-3 text-sm cursor-pointer px-1 py-1 hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent w-full">
                                     <ModelProviderIcon
@@ -356,7 +356,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                                 const isActive = selectedModel === model.id;
                                                 const canAccess = canAccessModel(model.id);
                                                 const modelItem = (
-                                                    <SpotlightCard
+                                                    <div
                                                         key={model.id}
                                                         className={cn(
                                                             "transition-colors cursor-pointer bg-transparent",
@@ -371,10 +371,11 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                                                     setIsOpen(false);
                                                                 } else {
                                                                     setIsOpen(false);
-                                                                    usePricingModalStore.getState().openPricingModal({ 
-                                                                        isAlert: true, 
-                                                                        alertTitle: 'Upgrade to access this AI model' 
-                                                                    });
+                                                                    // TODO: Show billing modal
+                                                                    // usePricingModalStore.getState().openPricingModal({ 
+                                                                    //     isAlert: true, 
+                                                                    //     alertTitle: 'Upgrade to access this AI model' 
+                                                                    // });
                                                                 }
                                                             }}
                                                         >
@@ -391,7 +392,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                                                 <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
                                                             )}
                                                         </div>
-                                                    </SpotlightCard>
+                                                    </div>
                                                 );
 
                                                 if (!canAccess) {
@@ -415,7 +416,7 @@ const LoggedInMenu: React.FC<UnifiedConfigMenuProps> = memo(function LoggedInMen
                                     </DropdownMenuSubContent>
                                 </DropdownMenuPortal>
                             </DropdownMenuSub>
-                        </SpotlightCard>
+                        </div>
                     </div>
                     <div className="h-px bg-border/50 -mx-3 my-3" />
                     {onAgentSelect && (selectedAgentId || displayAgent?.agent_id) && (
