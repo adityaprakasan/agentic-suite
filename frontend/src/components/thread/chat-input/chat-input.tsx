@@ -18,8 +18,11 @@ import { handleFiles, FileUploadHandler } from './file-upload-handler';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ArrowUp, X, Image as ImageIcon, Presentation, BarChart3, FileText, Search, Users, Code2, Sparkles, Brain as BrainIcon, MessageSquare } from 'lucide-react';
+import { ArrowUp, X, Image as ImageIcon, Presentation, BarChart3, FileText, Search, Users, Code2, Sparkles, Brain as BrainIcon, MessageSquare, CornerDownLeft, Plug } from 'lucide-react';
+import { KortixLoader } from '@/components/ui/kortix-loader';
 import { VoiceRecorder } from './voice-recorder';
+import { useTheme } from 'next-themes';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UnifiedConfigMenu } from './unified-config-menu';
 import { AttachmentGroup } from '../attachment-group';
 import { cn } from '@/lib/utils';
@@ -38,6 +41,8 @@ import { useSubscriptionData } from '@/contexts/SubscriptionContext';
 import { isStagingMode, isLocalMode } from '@/lib/config';
 import { BillingModal } from '@/components/billing/billing-modal';
 import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
+import { ContextUsageIndicator } from '../ContextUsageIndicator';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 
 import posthog from 'posthog-js';
 
@@ -112,6 +117,9 @@ export interface ChatInputProps {
   animatePlaceholder?: boolean;
   selectedCharts?: string[];
   selectedOutputFormat?: string | null;
+  selectedTemplate?: string | null;
+  threadId?: string | null;
+  projectId?: string;
 }
 
 export interface UploadedFile {
@@ -161,30 +169,44 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
       animatePlaceholder = false,
       selectedCharts = [],
       selectedOutputFormat = null,
+      selectedTemplate = null,
+      threadId = null,
+      projectId,
     },
     ref,
   ) => {
+    // Use local state by default for better performance (avoids parent re-renders on every keystroke)
+    // Only use controlled value if explicitly provided
     const isControlled =
       controlledValue !== undefined && controlledOnChange !== undefined;
 
-    const [uncontrolledValue, setUncontrolledValue] = useState('');
-    const value = isControlled ? controlledValue : uncontrolledValue;
+    const [localValue, setLocalValue] = useState('');
+
+    // For controlled mode, sync local value with controlled value when it changes externally
+    // (e.g., when clearing after submit)
+    useEffect(() => {
+      if (isControlled && controlledValue !== localValue) {
+        setLocalValue(controlledValue);
+      }
+    }, [isControlled, controlledValue, localValue]);
+
+    const value = localValue;
 
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isDraggingOver, setIsDraggingOver] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
 
     const [registryDialogOpen, setRegistryDialogOpen] = useState(false);
+    const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
     const [showSnackbar, setShowSnackbar] = useState(defaultShowSnackbar);
     const [userDismissedUsage, setUserDismissedUsage] = useState(false);
     const [billingModalOpen, setBillingModalOpen] = useState(false);
     const [agentConfigDialog, setAgentConfigDialog] = useState<{ open: boolean; tab: 'instructions' | 'knowledge' | 'triggers' | 'tools' | 'integrations' }>({ open: false, tab: 'instructions' });
     const [mounted, setMounted] = useState(false);
     const [animatedPlaceholder, setAnimatedPlaceholder] = useState('');
-    const [isModeDismissing, setIsModeDismissing] = useState(false);
-    
-    // Adentic Agent Modes feature flag
+    const [isModeDismissing, setIsModeDismissing] = useState(false);    // Suna Agent Modes feature flag
     const ENABLE_SUNA_AGENT_MODES = false;
     const [sunaAgentModes, setSunaAgentModes] = useState<'adaptive' | 'autonomous' | 'chat'>('adaptive');
 
@@ -201,19 +223,36 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
     const { data: subscriptionData } = useSubscriptionData();
     const deleteFileMutation = useFileDelete();
     const queryClient = useQueryClient();
+    
+    // Chat input button has inverted background from theme
+    // Dark theme → light button → needs black loader
+    // Light theme → dark button → needs white loader
+    const { resolvedTheme } = useTheme();
+    const buttonLoaderVariant = (resolvedTheme === 'dark' ? 'black' : 'white') as 'black' | 'white';
 
-    // Fetch integration icons only when logged in and advanced config UI is in use
-    const shouldFetchIcons = isLoggedIn && !!enableAdvancedConfig;
-    const { data: googleDriveIcon } = useComposioToolkitIcon('googledrive', { enabled: shouldFetchIcons });
-    const { data: slackIcon } = useComposioToolkitIcon('slack', { enabled: shouldFetchIcons });
-    const { data: notionIcon } = useComposioToolkitIcon('notion', { enabled: shouldFetchIcons });
+    // Define quick integrations
+    const quickIntegrations = useMemo(() => [
+      { id: 'googledrive', name: 'Google Drive', slug: 'googledrive' },
+      { id: 'slack', name: 'Slack', slug: 'slack' },
+      { id: 'notion', name: 'Notion', slug: 'notion' },
+    ], []);
 
-    // Show usage preview logic:
+    // Fetch integration icons when logged in
+    const { data: googleDriveIcon } = useComposioToolkitIcon('googledrive', { enabled: isLoggedIn });
+    const { data: slackIcon } = useComposioToolkitIcon('slack', { enabled: isLoggedIn });
+    const { data: notionIcon } = useComposioToolkitIcon('notion', { enabled: isLoggedIn });
+
+    // Map icons to integrations
+    const integrationIcons = useMemo(() => ({
+      'googledrive': googleDriveIcon?.icon_url,
+      'slack': slackIcon?.icon_url,
+      'notion': notionIcon?.icon_url,
+    }), [googleDriveIcon, slackIcon, notionIcon]);    // Show usage preview logic:
     // - Always show to free users when showToLowCreditUsers is true
     // - For paid users, only show when they're at 70% or more of their cost limit (30% or below remaining)
     const shouldShowUsage = useMemo(() => {
       if (!subscriptionData || !showToLowCreditUsers || isLocalMode()) return false;
-      
+
       // Free users: always show
       if (subscriptionStatus === 'no_subscription') {
         return true;
@@ -295,22 +334,31 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
       if (selectedMode !== 'data' || (selectedCharts.length === 0 && !selectedOutputFormat)) {
         return '';
       }
-      
+
       let markdown = '\n\n----\n\n**Data Visualization Requirements:**\n';
-      
+
       if (selectedOutputFormat) {
         markdown += `\n- **Output Format:** ${selectedOutputFormat}`;
       }
-      
+
       if (selectedCharts.length > 0) {
         markdown += '\n- **Preferred Charts:**';
         selectedCharts.forEach(chartId => {
           markdown += `\n  - ${chartId}`;
         });
       }
-      
+
       return markdown;
     }, [selectedMode, selectedCharts, selectedOutputFormat]);
+
+    // Generate Markdown for selected slides template
+    const generateSlidesTemplateMarkdown = useCallback(() => {
+      if (selectedMode !== 'slides' || !selectedTemplate) {
+        return '';
+      }
+      
+      return `\n\n----\n\n**Presentation Template:** ${selectedTemplate}`;
+    }, [selectedMode, selectedTemplate]);
 
     // Handle mode deselection with animation
     const handleModeDeselect = useCallback(() => {
@@ -350,6 +398,19 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
       }
     }, [autoFocus]);
 
+    // Clear input when agent starts running (stream connected)
+    useEffect(() => {
+      if (isAgentRunning) {
+        setLocalValue('');
+        setHasSubmitted(false);
+        
+        // Notify parent in controlled mode
+        if (isControlled && controlledOnChange) {
+          controlledOnChange('');
+        }
+      }
+    }, [isAgentRunning, isControlled, controlledOnChange]);
+
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
       e.preventDefault();
       if (
@@ -365,6 +426,9 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
         return;
       }
 
+      // Mark as submitted to disable input immediately
+      setHasSubmitted(true);
+
       let message = value;
 
       if (uploadedFiles.length > 0) {
@@ -373,35 +437,42 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
           .join('\n');
         message = message ? `${message}\n\n${fileInfo}` : fileInfo;
       }
-      
+
       // Append Markdown for data visualization options
       const dataOptionsMarkdown = generateDataOptionsMarkdown();
       if (dataOptionsMarkdown) {
         message = message + dataOptionsMarkdown;
       }
 
-      const baseModelName = getActualModelId(selectedModel);
+      // Append Markdown for slides template
+      const slidesTemplateMarkdown = generateSlidesTemplateMarkdown();
+      if (slidesTemplateMarkdown) {
+        message = message + slidesTemplateMarkdown;
+      }
+
+      const baseModelName = selectedModel ? getActualModelId(selectedModel) : undefined;
 
       posthog.capture("task_prompt_submitted", { message });
 
       onSubmit(message, {
         agent_id: selectedAgentId,
-        model_name: baseModelName,
+        model_name: baseModelName && baseModelName.trim() ? baseModelName.trim() : undefined,
       });
 
-      if (!isControlled) {
-        setUncontrolledValue('');
-      }
+      // TODO: Clear input after agent stream connects
+      // For now, keep the text visible until stream starts
 
       setUploadedFiles([]);
-    }, [value, uploadedFiles, loading, disabled, isAgentRunning, isUploading, onStopAgent, generateDataOptionsMarkdown, getActualModelId, selectedModel, onSubmit, selectedAgentId, isControlled]);
+    }, [value, uploadedFiles, loading, disabled, isAgentRunning, isUploading, onStopAgent, generateDataOptionsMarkdown, generateSlidesTemplateMarkdown, getActualModelId, selectedModel, onSubmit, selectedAgentId, isControlled, controlledOnChange]);
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newValue = e.target.value;
-      if (isControlled) {
+      // Always update local state immediately for responsive typing
+      setLocalValue(newValue);
+
+      // Only notify parent if in controlled mode (but this won't cause lag since we update local state first)
+      if (isControlled && controlledOnChange) {
         controlledOnChange(newValue);
-      } else {
-        setUncontrolledValue(newValue);
       }
     }, [isControlled, controlledOnChange]);
 
@@ -434,6 +505,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
         handleFiles(
           imageFiles,
           sandboxId,
+          projectId,
           setPendingFiles,
           setUploadedFiles,
           setIsUploading,
@@ -444,15 +516,16 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
     };
 
     const handleTranscription = useCallback((transcribedText: string) => {
-      const currentValue = isControlled ? controlledValue : uncontrolledValue;
-      const newValue = currentValue ? `${currentValue} ${transcribedText}` : transcribedText;
+      const newValue = localValue ? `${localValue} ${transcribedText}` : transcribedText;
 
-      if (isControlled) {
+      // Update local state
+      setLocalValue(newValue);
+
+      // Notify parent in controlled mode
+      if (isControlled && controlledOnChange) {
         controlledOnChange(newValue);
-      } else {
-        setUncontrolledValue(newValue);
       }
-    }, [isControlled, controlledValue, uncontrolledValue, controlledOnChange]);
+    }, [localValue, isControlled, controlledOnChange]);
 
     const removeUploadedFile = useCallback(async (index: number) => {
       const fileToRemove = uploadedFiles[index];
@@ -508,7 +581,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
       }
       // Unified compact menu for both logged and non-logged (non-logged shows only models subset via menu trigger)
       return (
-        <div className="flex items-center gap-2" data-tour="agent-selector">
+        <div className="flex items-center gap-2">
           <UnifiedConfigMenu
             isLoggedIn={isLoggedIn}
             selectedAgentId={!hideAgentSelection ? selectedAgentId : undefined}
@@ -537,11 +610,11 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
             'w-full bg-transparent dark:bg-transparent border-none shadow-none focus-visible:ring-0 px-0.5 pb-6 pt-4 !text-[15px] min-h-[72px] max-h-[200px] overflow-y-auto resize-none',
             isDraggingOver ? 'opacity-40' : '',
           )}
-          disabled={loading || (disabled && !isAgentRunning)}
+          disabled={disabled && !isAgentRunning}
           rows={1}
         />
       </div>
-    ), [value, handleChange, handleKeyDown, handlePaste, animatedPlaceholder, isDraggingOver, loading, disabled, isAgentRunning]);
+    ), [value, handleChange, handleKeyDown, handlePaste, animatedPlaceholder, isDraggingOver, loading, disabled, isAgentRunning, hasSubmitted]);
 
     const renderControls = useMemo(() => (
       <div className="flex items-center justify-between mt-0 mb-1 px-2">
@@ -554,6 +627,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
               isAgentRunning={isAgentRunning}
               isUploading={isUploading}
               sandboxId={sandboxId}
+              projectId={projectId}
               setPendingFiles={setPendingFiles}
               setUploadedFiles={setUploadedFiles}
               setIsUploading={setIsUploading}
@@ -561,7 +635,74 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
               isLoggedIn={isLoggedIn}
             />
           )}
-          
+
+          {isLoggedIn && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 bg-transparent border border-border rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/50 flex items-center justify-center cursor-pointer"
+                        disabled={loading || (disabled && !isAgentRunning)}
+                      >
+                        <Plug className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[320px] px-0 py-3 border-[1.5px] border-border rounded-2xl" sideOffset={6}>
+                      <div className="px-3 mb-3">
+                        <span className="text-xs font-medium text-muted-foreground pl-1">Integrations</span>
+                      </div>
+                      <div className="space-y-0.5 px-2">
+                        {quickIntegrations.map((integration) => (
+                          <SpotlightCard key={integration.id} className="transition-colors cursor-pointer bg-transparent">
+                            <div
+                              className="flex items-center gap-3 text-sm cursor-pointer px-1 py-1"
+                              onClick={() => {
+                                setSelectedIntegration(integration.slug);
+                                setRegistryDialogOpen(true);
+                              }}
+                            >
+                              <div className="flex items-center justify-center w-8 h-8 bg-card border-[1.5px] border-border flex-shrink-0" style={{ borderRadius: '10.4px' }}>
+                                {integrationIcons[integration.id as keyof typeof integrationIcons] ? (
+                                  <img
+                                    src={integrationIcons[integration.id as keyof typeof integrationIcons]}
+                                    alt={integration.name}
+                                    className="h-4 w-4"
+                                  />
+                                ) : (
+                                  <div className="h-4 w-4 bg-muted rounded" />
+                                )}
+                              </div>
+                              <span className="flex-1 truncate font-medium">{integration.name}</span>
+                              <span className="text-xs text-muted-foreground">Connect</span>
+                            </div>
+                          </SpotlightCard>
+                        ))}
+                        <SpotlightCard className="transition-colors cursor-pointer bg-transparent">
+                          <div
+                            className="flex items-center gap-3 text-sm cursor-pointer px-1 py-1 min-h-[40px]"
+                            onClick={() => {
+                              setSelectedIntegration(null);
+                              setRegistryDialogOpen(true);
+                            }}
+                          >
+                            <span className="text-muted-foreground font-medium">+ See all integrations</span>
+                          </div>
+                        </SpotlightCard>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Connect integrations</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           {/* Agent Mode Switcher - Only for Suna */}
           {ENABLE_SUNA_AGENT_MODES && (isStagingMode() || isLocalMode()) && isSunaAgent && (
             <TooltipProvider>
@@ -634,7 +775,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
               </div>
             </TooltipProvider>
           )}
-          
+
           {(selectedMode || isModeDismissing) && onModeDeselect && (
             <Button
               variant="outline"
@@ -661,9 +802,9 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
 
         <div className='flex items-center gap-2'>
           {renderConfigDropdown}
-          <BillingModal
-            open={billingModalOpen}
-            onOpenChange={setBillingModalOpen}
+          <PlanSelectionModal
+            open={planModalOpen}
+            onOpenChange={setPlanSelectionModalOpen}
             returnUrl={typeof window !== 'undefined' ? window.location.href : '/'}
           />
 
@@ -672,50 +813,49 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
             disabled={loading || (disabled && !isAgentRunning)}
           />}
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="submit"
-                  onClick={isAgentRunning && onStopAgent ? onStopAgent : handleSubmit}
-                  size="sm"
-                  className={cn(
-                    'w-8 h-8 flex-shrink-0 self-end rounded-xl',
-                    (!value.trim() && uploadedFiles.length === 0 && !isAgentRunning) ||
+          <div className="relative">
+            {/* Context Usage Indicator - disabled by default */}
+            {/* {threadId && <ContextUsageIndicator threadId={threadId} modelName={selectedModel} />} */}
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="submit"
+                    onClick={isAgentRunning && onStopAgent ? onStopAgent : handleSubmit}
+                    size="sm"
+                    className={cn(
+                      "w-8 h-8 flex-shrink-0 self-end rounded-xl relative z-10",
+                      // Override disabled opacity when loading/uploading to keep loader fully visible
+                      (loading || isUploading) && "opacity-100 [&[disabled]]:opacity-100"
+                    )}
+                    disabled={
+                      (!value.trim() && uploadedFiles.length === 0 && !isAgentRunning) ||
                       loading ||
                       (disabled && !isAgentRunning) ||
                       isUploading
-                      ? 'opacity-50'
-                      : '',
-                  )}
-                  disabled={
-                    (!value.trim() && uploadedFiles.length === 0 && !isAgentRunning) ||
-                    loading ||
-                    (disabled && !isAgentRunning) ||
-                    isUploading
-                  }
-                >
-                  {loading || isUploading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : isAgentRunning ? (
-                    <div className="min-h-[14px] min-w-[14px] w-[14px] h-[14px] rounded-sm bg-current" />
-                  ) : (
-                    <ArrowUp className="h-5 w-5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              {isUploading && (
-                <TooltipContent side="top">
-                  <p>Uploading {pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''}...</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+                    }
+                  >
+                    {((loading || isUploading) && !isAgentRunning) ? (
+                      <KortixLoader size="small" customSize={20} variant={buttonLoaderVariant} />
+                    ) : isAgentRunning ? (
+                      <div className="min-h-[14px] min-w-[14px] w-[14px] h-[14px] rounded-sm bg-current" />
+                    ) : (
+                      <CornerDownLeft className="h-5 w-5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                {isUploading && (
+                  <TooltipContent side="top">
+                    <p>Uploading {pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''}...</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
-    ), [hideAttachments, loading, disabled, isAgentRunning, isUploading, sandboxId, messages, isLoggedIn, renderConfigDropdown, billingModalOpen, setBillingModalOpen, handleTranscription, onStopAgent, handleSubmit, value, uploadedFiles, selectedMode, onModeDeselect, handleModeDeselect, isModeDismissing, isSunaAgent, sunaAgentModes, pendingFiles]);
-
-
+    ), [hideAttachments, loading, disabled, isAgentRunning, isUploading, sandboxId, projectId, messages, isLoggedIn, renderConfigDropdown, billingModalOpen, setBillingModalOpen, handleTranscription, onStopAgent, handleSubmit, value, uploadedFiles, selectedMode, onModeDeselect, handleModeDeselect, isModeDismissing, isSunaAgent, sunaAgentModes, pendingFiles, threadId, selectedModel, googleDriveIcon, slackIcon, notionIcon, buttonLoaderVariant]);
 
     return (
       <div className="mx-auto w-full max-w-4xl relative">
@@ -729,7 +869,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
             showUsagePreview={showSnackbar}
             subscriptionData={subscriptionData}
             onCloseUsage={() => { setShowSnackbar(false); setUserDismissedUsage(true); }}
-            onOpenUpgrade={() => setBillingModalOpen(true)}
+            onOpenUpgrade={() => setPlanSelectionModalOpen(true)}
             isVisible={showToolPreview || !!showSnackbar}
           />
 
@@ -757,6 +897,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                 handleFiles(
                   files,
                   sandboxId,
+                  projectId,
                   setPendingFiles,
                   setUploadedFiles,
                   setIsUploading,
@@ -781,7 +922,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                     {isUploading && pendingFiles.length > 0 && (
                       <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-xl flex items-center justify-center">
                         <div className="flex items-center gap-2 bg-background/90 px-3 py-2 rounded-lg border border-border">
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <KortixLoader size="small" customSize={16} variant="auto" />
                           <span className="text-sm">Uploading {pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''}...</span>
                         </div>
                       </div>
@@ -805,32 +946,26 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                     className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-all duration-200 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/30 flex-shrink-0 cursor-pointer relative pointer-events-auto"
                   >
                     <div className="flex items-center -space-x-0.5">
-                      {googleDriveIcon?.icon_url && slackIcon?.icon_url && notionIcon?.icon_url ? (
+                      {quickIntegrations.every(int => integrationIcons[int.id as keyof typeof integrationIcons]) ? (
                         <>
-                          <div className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={googleDriveIcon.icon_url} className="w-2.5 h-2.5" alt="Google Drive" />
-                          </div>
-                          <div className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={slackIcon.icon_url} className="w-2.5 h-2.5" alt="Slack" />
-                          </div>
-                          <div className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={notionIcon.icon_url} className="w-2.5 h-2.5" alt="Notion" />
-                          </div>
+                          {quickIntegrations.map((integration) => (
+                            <div key={integration.id} className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={integrationIcons[integration.id as keyof typeof integrationIcons]}
+                                className="w-2.5 h-2.5"
+                                alt={integration.name}
+                              />
+                            </div>
+                          ))}
                         </>
                       ) : (
                         <>
-                          <div className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
-                            <Skeleton className="w-2.5 h-2.5 rounded" />
-                          </div>
-                          <div className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
-                            <Skeleton className="w-2.5 h-2.5 rounded" />
-                          </div>
-                          <div className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
-                            <Skeleton className="w-2.5 h-2.5 rounded" />
-                          </div>
+                          {quickIntegrations.map((integration) => (
+                            <div key={integration.id} className="w-4 h-4 bg-white dark:bg-muted border border-border rounded-full flex items-center justify-center shadow-sm">
+                              <Skeleton className="w-2.5 h-2.5 rounded" />
+                            </div>
+                          ))}
                         </>
                       )}
                     </div>
@@ -842,7 +977,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                   >
                     <Wrench className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="text-xs font-medium">Tools</span>
-                  </button>                  
+                  </button>
                   <button
                     onClick={() => setAgentConfigDialog({ open: true, tab: 'instructions' })}
                     className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-all duration-200 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/30 flex-shrink-0 cursor-pointer relative pointer-events-auto"
@@ -870,7 +1005,12 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
             </div>
           )}
 
-          <Dialog open={registryDialogOpen} onOpenChange={setRegistryDialogOpen}>
+          <Dialog open={registryDialogOpen} onOpenChange={(open) => {
+            setRegistryDialogOpen(open);
+            if (!open) {
+              setSelectedIntegration(null);
+            }
+          }}>
             <DialogContent className="p-0 max-w-6xl h-[90vh] overflow-hidden">
               <DialogHeader className="sr-only">
                 <DialogTitle>Integrations</DialogTitle>
@@ -881,6 +1021,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                 onAgentChange={onAgentSelect}
                 onToolsSelected={(profileId, selectedTools, appName, appSlug) => {
                 }}
+                initialSelectedApp={selectedIntegration}
               />
             </DialogContent>
           </Dialog>
