@@ -1110,7 +1110,7 @@ export function ThreadComponent({ projectId, threadId, compact = false, configur
             />
             
             {/* Modes Panel - Below chat input */}
-            {(isStagingMode() || isLocalMode()) && isAdenticAgent && (
+            {isAdenticAgent(agents) && (
               <div className="px-4 pb-8 pt-4">
                 <div className="max-w-3xl mx-auto">
                   <SunaModesPanel
