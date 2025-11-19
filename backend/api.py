@@ -3,7 +3,8 @@ load_dotenv()
 
 from fastapi import FastAPI, Request, HTTPException, Response, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+import os
 from core.services import redis
 import sentry
 from contextlib import asynccontextmanager

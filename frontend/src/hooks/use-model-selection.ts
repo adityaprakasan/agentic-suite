@@ -49,14 +49,6 @@ export const useModelSelection = () => {
   const { data: subscriptionData } = useSubscriptionData();
   const { selectedModel, setSelectedModel } = useModelStore();
   
-  // Refetch models when subscription tier changes
-  useEffect(() => {
-    if (subscriptionData?.tier?.name) {
-      // Invalidate and refetch models when tier changes
-      refetch();
-    }
-  }, [subscriptionData?.tier?.name, refetch]);
-
   // Transform API data to ModelOption format
   const availableModels = useMemo<ModelOption[]>(() => {
     if (!modelsData?.models) return [];
@@ -82,6 +74,27 @@ export const useModelSelection = () => {
     const hasActiveSubscription = subscriptionData?.status === 'active' || subscriptionData?.status === 'trialing';
     return availableModels.filter(model => hasActiveSubscription || !model.requiresSubscription);
   }, [availableModels, subscriptionData]);
+
+  // Refetch models and reset selection when subscription tier changes
+  useEffect(() => {
+    if (subscriptionData?.tier?.name) {
+      // Invalidate and refetch models when tier changes
+      refetch();
+      
+      // Immediately reset model if current selection is not accessible
+      if (selectedModel && accessibleModels.length > 0 && !accessibleModels.some(m => m.id === selectedModel)) {
+        const hasActiveSubscription = subscriptionData?.status === 'active' || subscriptionData?.status === 'trialing';
+        const defaultModelId = getDefaultModel(availableModels, hasActiveSubscription);
+        const finalModel = accessibleModels.some(m => m.id === defaultModelId) 
+          ? defaultModelId 
+          : accessibleModels[0]?.id;
+        if (finalModel) {
+          console.log('🔧 useModelSelection: Resetting model due to tier change:', finalModel);
+          setSelectedModel(finalModel);
+        }
+      }
+    }
+  }, [subscriptionData?.tier?.name, refetch, selectedModel, accessibleModels, availableModels, setSelectedModel]);
 
   // Initialize selected model when data loads
   useEffect(() => {
