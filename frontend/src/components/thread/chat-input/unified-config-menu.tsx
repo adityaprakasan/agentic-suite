@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { Cpu, Search, Check, ChevronDown, Plus, ExternalLink, Loader2, Plug, Brain, LibraryBig, Zap, Workflow, Lock } from 'lucide-react';
 import { useAgents } from '@/hooks/react-query/agents/use-agents';
 import { AdenticLogo } from '@/components/sidebar/kortix-logo';
-import type { ModelOption } from '@/hooks/react-query/agents';
+import type { ModelOption } from '@/hooks/use-model-selection';
 import { ModelProviderIcon } from '@/lib/model-provider-icons';
 // SpotlightCard not needed
 
