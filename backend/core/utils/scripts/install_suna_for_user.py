@@ -25,7 +25,7 @@ from typing import Optional, Dict, Any
 backend_dir = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from core.utils.suna_default_agent_service import AdenticDefaultAgentService
+from core.utils.suna_default_agent_service import SunaDefaultAgentService
 from core.services.supabase import DBConnection
 from core.utils.logger import logger
 
@@ -33,7 +33,7 @@ from core.utils.logger import logger
 class AdenticUserInstaller:
     def __init__(self):
         self.db = DBConnection()
-        self.service = AdenticDefaultAgentService(self.db)
+        self.service = SunaDefaultAgentService(self.db)
     
     async def initialize(self):
         await self.db.initialize()

@@ -28,14 +28,14 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from core.utils.suna_default_agent_service import AdenticDefaultAgentService
+from core.utils.suna_default_agent_service import SunaDefaultAgentService
 from core.services.supabase import DBConnection
 from core.utils.logger import logger
 
 
 class AdenticAgentManager:
     def __init__(self):
-        self.service = AdenticDefaultAgentService()
+        self.service = SunaDefaultAgentService()
     
     async def install_all_users(self):
         """Install Adentic agent for all users who don't have it"""
