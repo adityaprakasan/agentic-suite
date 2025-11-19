@@ -1011,7 +1011,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                 onAgentChange={onAgentSelect}
                 onToolsSelected={(profileId, selectedTools, appName, appSlug) => {
                 }}
-                initialSelectedApp={selectedIntegration}
+                onClose={() => setRegistryDialogOpen(false)}
               />
             </DialogContent>
           </Dialog>
