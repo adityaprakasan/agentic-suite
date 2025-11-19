@@ -5,11 +5,11 @@ from datetime import datetime, timezone
 
 
 class SunaDefaultAgentService:
-    """Simplified Suna agent management service."""
+    """Simplified default agent management service (Adentic)."""
     
     def __init__(self, db: DBConnection = None):
         self._db = db or DBConnection()
-        logger.debug("🔄 SunaDefaultAgentService initialized (simplified)")
+        logger.debug("🔄 Default agent service initialized (simplified)")
     
     async def get_suna_default_config(self) -> Dict[str, Any]:
         """Get the current Suna configuration."""
@@ -216,3 +216,7 @@ class SunaDefaultAgentService:
         except Exception as e:
             logger.error(f"Failed to delete agent {agent_id}: {e}")
             raise
+
+
+# Alias for compatibility with your existing code
+AdenticDefaultAgentService = SunaDefaultAgentService
