@@ -1135,11 +1135,10 @@ export function SunaModesPanel({
 
   // Randomize prompts when mode changes or on mount
   useEffect(() => {
-    if (selectedMode) {
-      const translatedPrompts = getTranslatedPrompts(selectedMode);
-      setRandomizedPrompts(getRandomPrompts(translatedPrompts, promptCount));
+    if (currentMode) {
+      setRandomizedPrompts(getRandomPrompts(currentMode.samplePrompts, promptCount));
     }
-  }, [selectedMode, promptCount, t]);
+  }, [selectedMode, currentMode, promptCount]);
   
   // Reset selections when mode changes
   useEffect(() => {
@@ -1150,10 +1149,9 @@ export function SunaModesPanel({
 
   // Handler for refresh button
   const handleRefreshPrompts = () => {
-    if (selectedMode) {
+    if (currentMode) {
       setIsRefreshing(true);
-      const translatedPrompts = getTranslatedPrompts(selectedMode);
-      setRandomizedPrompts(getRandomPrompts(translatedPrompts, promptCount));
+      setRandomizedPrompts(getRandomPrompts(currentMode.samplePrompts, promptCount));
       setTimeout(() => setIsRefreshing(false), 300);
     }
   };
