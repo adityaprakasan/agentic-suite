@@ -503,7 +503,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
         handleFiles(
           imageFiles,
           sandboxId,
-          projectId,
           setPendingFiles,
           setUploadedFiles,
           setIsUploading,
@@ -890,7 +889,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
                 handleFiles(
                   files,
                   sandboxId,
-                  projectId,
                   setPendingFiles,
                   setUploadedFiles,
                   setIsUploading,
