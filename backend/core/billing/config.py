@@ -50,7 +50,7 @@ TIERS: Dict[str, Tier] = {
         monthly_credits=FREE_TIER_INITIAL_CREDITS,
         display_name='Basic',
         can_purchase_credits=False,
-        models=['haiku'],
+        models=['haiku', 'xai/grok-4-fast-non-reasoning'],  # Include both free tier models
         project_limit=1,
         thread_limit=1,
         concurrent_runs=1,
@@ -268,10 +268,39 @@ def can_purchase_credits(tier_name: str) -> bool:
     return tier.can_purchase_credits if tier else False
 
 def is_model_allowed(tier_name: str, model: str) -> bool:
+    """
+    Check if a model is allowed for a given tier.
+    Resolves model aliases to actual model IDs for proper comparison.
+    """
     tier = TIERS.get(tier_name, TIERS['none'])
     if 'all' in tier.models:
         return True
-    return model in tier.models
+    
+    # Resolve the model to its actual ID using the model registry
+    try:
+        from core.ai_models import model_manager
+        resolved_model_id = model_manager.resolve_model_id(model)
+        if not resolved_model_id:
+            resolved_model_id = model  # Fallback to original if resolution fails
+    except Exception:
+        resolved_model_id = model  # Fallback to original on error
+    
+    # Check if the resolved model ID matches any tier model
+    # Also check if any tier model resolves to the same model ID
+    for tier_model in tier.models:
+        if tier_model == resolved_model_id or tier_model == model:
+            return True
+        
+        # Resolve tier model to check if it matches
+        try:
+            from core.ai_models import model_manager
+            resolved_tier_model = model_manager.resolve_model_id(tier_model)
+            if resolved_tier_model == resolved_model_id:
+                return True
+        except Exception:
+            pass
+    
+    return False
 
 def get_project_limit(tier_name: str) -> int:
     tier = TIERS.get(tier_name)

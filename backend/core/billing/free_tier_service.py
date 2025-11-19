@@ -4,7 +4,6 @@ from core.services.supabase import DBConnection
 from core.utils.config import config
 from core.utils.logger import logger
 from .config import FREE_TIER_INITIAL_CREDITS
-from core.billing.credit_manager import CreditManager
 
 class FreeTierService:
     def __init__(self):
@@ -18,32 +17,13 @@ class FreeTierService:
             logger.info(f"[FREE TIER] Auto-subscribing user {account_id} to free tier")
             
             existing_sub = await client.from_('credit_accounts').select(
-                'stripe_subscription_id, tier, balance'
+                'stripe_subscription_id, tier'
             ).eq('account_id', account_id).execute()
             
-            # If user already has subscription, check if they need credits
             if existing_sub.data and len(existing_sub.data) > 0:
                 if existing_sub.data[0].get('stripe_subscription_id'):
-                    current_balance = existing_sub.data[0].get('balance', 0)
-                    # Grant credits if balance is low (existing users who had 0 credits)
-                    if current_balance < FREE_TIER_INITIAL_CREDITS:
-                        logger.info(f"[FREE TIER] User {account_id} already has subscription but low balance ({current_balance}), granting credits")
-                        credit_manager = CreditManager()
-                        await credit_manager.add_credits(
-                            account_id=account_id,
-                            amount=FREE_TIER_INITIAL_CREDITS,
-                            is_expiring=True,
-                            description='Welcome to Adentic! Free tier initial credits',
-                            type='tier_grant'
-                        )
-                        return {
-                            'success': True,
-                            'subscription_id': existing_sub.data[0].get('stripe_subscription_id'),
-                            'message': 'Credits granted to existing subscription'
-                        }
-                    else:
-                        logger.info(f"[FREE TIER] User {account_id} already has subscription with sufficient credits, skipping")
-                        return {'success': False, 'message': 'Already subscribed'}
+                    logger.info(f"[FREE TIER] User {account_id} already has subscription, skipping")
+                    return {'success': False, 'message': 'Already subscribed'}
             
             customer_result = await client.schema('basejump').from_('billing_customers').select(
                 'id'
@@ -105,40 +85,10 @@ class FreeTierService:
                 }
             )
             
-            # Update credit account with subscription info
-            credit_account = await client.from_('credit_accounts').select(
-                'balance, account_id'
-            ).eq('account_id', account_id).execute()
-            
             await client.from_('credit_accounts').update({
                 'tier': 'free',
                 'stripe_subscription_id': subscription.id
             }).eq('account_id', account_id).execute()
-            
-            # Grant initial credits if user has 0 or very low balance
-            if credit_account.data and len(credit_account.data) > 0:
-                current_balance = credit_account.data[0].get('balance', 0)
-                if current_balance < FREE_TIER_INITIAL_CREDITS:
-                    logger.info(f"[FREE TIER] Granting {FREE_TIER_INITIAL_CREDITS} initial credits to {account_id} (current balance: {current_balance})")
-                    credit_manager = CreditManager()
-                    await credit_manager.add_credits(
-                        account_id=account_id,
-                        amount=FREE_TIER_INITIAL_CREDITS,
-                        is_expiring=True,
-                        description='Welcome to Adentic! Free tier initial credits',
-                        type='tier_grant'
-                    )
-            else:
-                # Credit account doesn't exist, create it with initial credits
-                logger.info(f"[FREE TIER] Creating credit account with {FREE_TIER_INITIAL_CREDITS} initial credits for {account_id}")
-                credit_manager = CreditManager()
-                await credit_manager.add_credits(
-                    account_id=account_id,
-                    amount=FREE_TIER_INITIAL_CREDITS,
-                    is_expiring=True,
-                    description='Welcome to Adentic! Free tier initial credits',
-                    type='tier_grant'
-                )
             
             logger.info(f"[FREE TIER] ✅ Successfully created free tier subscription {subscription.id} for {account_id}")
             

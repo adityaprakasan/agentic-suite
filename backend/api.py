@@ -3,8 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI, Request, HTTPException, Response, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
-import os
+from fastapi.responses import JSONResponse, StreamingResponse
 from core.services import redis
 import sentry
 from contextlib import asynccontextmanager
@@ -278,8 +277,8 @@ async def get_presentation_template_pdf(template_name: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error serving template PDF: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Error serving template PDF for {template_name}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @api_router.get("/health", summary="Health Check", operation_id="health_check", tags=["system"])
 async def health_check():
