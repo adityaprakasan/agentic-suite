@@ -459,22 +459,22 @@ export function DashboardContent() {
                   </div>
 
                   {/* Modes Panel - Below chat input, doesn't affect its position */}
-                  <div className="px-4 pb-8">
-                    <div className="max-w-3xl mx-auto">
-                      <SunaModesPanel
-                        selectedMode={selectedMode}
-                        onModeSelect={setSelectedMode}
-                        onSelectPrompt={setInputValue}
-                        isMobile={isMobile}
-                        selectedCharts={selectedCharts}
-                        onChartsChange={setSelectedCharts}
-                        selectedOutputFormat={selectedOutputFormat}
-                        onOutputFormatChange={setSelectedOutputFormat}
+                    <div className="px-4 pb-8">
+                      <div className="max-w-3xl mx-auto">
+                        <SunaModesPanel
+                          selectedMode={selectedMode}
+                          onModeSelect={setSelectedMode}
+                          onSelectPrompt={setInputValue}
+                          isMobile={isMobile}
+                          selectedCharts={selectedCharts}
+                          onChartsChange={setSelectedCharts}
+                          selectedOutputFormat={selectedOutputFormat}
+                          onOutputFormatChange={setSelectedOutputFormat}
                         selectedTemplate={selectedTemplate}
                         onTemplateChange={setSelectedTemplate}
-                      />
+                        />
+                      </div>
                     </div>
-                  </div>
                 </div>
               )}
               {(viewMode === 'worker-templates') && (

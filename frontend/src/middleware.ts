@@ -123,10 +123,10 @@ export async function middleware(request: NextRequest) {
 
       // If no credit account or no subscription, redirect to setup
       if (!creditAccount || creditAccount.tier === 'none' || !creditAccount.stripe_subscription_id) {
-        const url = request.nextUrl.clone();
+          const url = request.nextUrl.clone();
         url.pathname = '/setting-up';
-        return NextResponse.redirect(url);
-      }
+          return NextResponse.redirect(url);
+        }
 
       // Allow access if user has free tier or any paid tier
       if (creditAccount.tier && creditAccount.tier !== 'none' && creditAccount.stripe_subscription_id) {
@@ -134,9 +134,9 @@ export async function middleware(request: NextRequest) {
       }
 
       // Fallback: redirect to setup
-      const url = request.nextUrl.clone();
+          const url = request.nextUrl.clone();
       url.pathname = '/setting-up';
-      return NextResponse.redirect(url);
+        return NextResponse.redirect(url);
     }
 
     return supabaseResponse;
