@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useInitializeAccount } from '@/hooks/account';
-import { AnimatedBg } from '@/components/ui/animated-bg';
 import { KortixLogo } from '@/components/sidebar/kortix-logo';
 import { KortixLoader } from '@/components/ui/kortix-loader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,9 +34,8 @@ export default function SettingUpPage() {
   }, [user, status, initializeMutation.isPending]);
 
   return (
-    <div className="w-full relative overflow-hidden min-h-screen">
+    <div className="w-full relative overflow-hidden min-h-screen bg-background">
       <div className="relative flex flex-col items-center w-full px-4 sm:px-6 min-h-screen justify-center">
-        <AnimatedBg variant="hero" />
 
         <div className="relative z-10 w-full max-w-[456px] flex flex-col items-center gap-8">
           <KortixLogo size={32} />

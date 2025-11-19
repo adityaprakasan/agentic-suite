@@ -24,7 +24,7 @@ def extract_agent_config(agent_data: Dict[str, Any], version_data: Optional[Dict
 
 def _extract_suna_agent_config(agent_data: Dict[str, Any], version_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Extract config for Adentic agents - always use central config with user customizations."""
-    from core.suna_config import SUNA_CONFIG
+    from core.suna_config import ADENTIC_CONFIG
     
     agent_id = agent_data.get('agent_id', 'Unknown')
     logger.debug(f"Using Adentic central config for agent {agent_id}")
@@ -32,11 +32,11 @@ def _extract_suna_agent_config(agent_data: Dict[str, Any], version_data: Optiona
     # Start with central Adentic config
     config = {
         'agent_id': agent_data['agent_id'],
-        'name': SUNA_CONFIG['name'],
-        'description': SUNA_CONFIG['description'],
-        'system_prompt': SUNA_CONFIG['system_prompt'],
-        'model': SUNA_CONFIG['model'],
-        'agentpress_tools': _extract_agentpress_tools_for_run(SUNA_CONFIG['agentpress_tools']),
+        'name': ADENTIC_CONFIG['name'],
+        'description': ADENTIC_CONFIG['description'],
+        'system_prompt': ADENTIC_CONFIG['system_prompt'],
+        'model': ADENTIC_CONFIG['model'],
+        'agentpress_tools': _extract_agentpress_tools_for_run(ADENTIC_CONFIG['agentpress_tools']),
         'is_default': True,
         'is_suna_default': True,
         'centrally_managed': True,

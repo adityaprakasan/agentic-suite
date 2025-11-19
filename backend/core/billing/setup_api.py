@@ -23,9 +23,9 @@ async def initialize_account(
             logger.error(f"[SETUP] Failed to create free tier for {account_id}: {result.get('error')}")
             raise HTTPException(status_code=500, detail="Failed to initialize free tier")
         
-        logger.info(f"[SETUP] Installing Suna agent for {account_id}")
-        suna_service = SunaDefaultAgentService(db)
-        await suna_service.install_suna_agent_for_user(account_id)
+        logger.info(f"[SETUP] Installing default Adentic agent for {account_id}")
+        agent_service = SunaDefaultAgentService(db)
+        await agent_service.install_suna_agent_for_user(account_id)
         
         logger.info(f"[SETUP] ✅ Account initialization complete for {account_id}")
         

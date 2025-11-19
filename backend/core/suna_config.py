@@ -1,7 +1,7 @@
 from core.prompts.prompt import SYSTEM_PROMPT
 
-# Adentic default configuration - simplified and centralized
-SUNA_CONFIG = {
+# Adentic default agent configuration - simplified and centralized
+ADENTIC_CONFIG = {
     "name": "Adentic",
     "description": "Adentic is your AI assistant with access to various tools and integrations to help you with tasks across domains.",
     "model": "claude-sonnet-4.5",

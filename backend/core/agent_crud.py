@@ -580,11 +580,11 @@ async def create_agent(
         
         try:
             version_service = await _get_version_service()
-            from .suna_config import SUNA_CONFIG
+            from .suna_config import ADENTIC_CONFIG
             from .config_helper import _get_default_agentpress_tools
             from core.ai_models import model_manager
             
-            system_prompt = SUNA_CONFIG["system_prompt"]
+            system_prompt = ADENTIC_CONFIG["system_prompt"]
             
             # Use defaults if agentpress_tools is None or empty dict
             if agent_data.agentpress_tools and len(agent_data.agentpress_tools) > 0:

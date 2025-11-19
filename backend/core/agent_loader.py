@@ -340,12 +340,12 @@ class AgentLoader:
     
     def _load_suna_config(self, agent: AgentData):
         """Load Suna central configuration."""
-        from core.suna_config import SUNA_CONFIG
+        from core.suna_config import ADENTIC_CONFIG
         from core.config_helper import _extract_agentpress_tools_for_run
         
-        agent.system_prompt = SUNA_CONFIG['system_prompt']
-        agent.model = SUNA_CONFIG['model']
-        agent.agentpress_tools = _extract_agentpress_tools_for_run(SUNA_CONFIG['agentpress_tools'])
+        agent.system_prompt = ADENTIC_CONFIG['system_prompt']
+        agent.model = ADENTIC_CONFIG['model']
+        agent.agentpress_tools = _extract_agentpress_tools_for_run(ADENTIC_CONFIG['agentpress_tools'])
         agent.configured_mcps = []
         agent.custom_mcps = []
         agent.triggers = []

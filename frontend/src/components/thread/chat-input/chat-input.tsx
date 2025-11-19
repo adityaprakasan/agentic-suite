@@ -10,8 +10,8 @@ import React, {
   useMemo,
   memo,
 } from 'react';
-import { useAgents } from '@/hooks/agents/use-agents';
-import { useAgentSelection } from '@/stores/agent-selection-store';
+import { useAgents } from '@/hooks/react-query/agents/use-agents';
+import { useAgentSelection } from '@/lib/stores/agent-selection-store';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { handleFiles, FileUploadHandler } from './file-upload-handler';
@@ -26,23 +26,21 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { UnifiedConfigMenu } from './unified-config-menu';
 import { AttachmentGroup } from '../attachment-group';
 import { cn } from '@/lib/utils';
-import { useModelSelection } from '@/hooks/agents';
-import { useFileDelete } from '@/hooks/files';
+import { useModelSelection } from '@/hooks/use-model-selection';
+import { useFileDelete } from '@/hooks/react-query/files';
 import { useQueryClient } from '@tanstack/react-query';
 import { ToolCallInput } from './floating-tool-preview';
 import { ChatSnack } from './chat-snack';
 import { Brain, Zap, Database, ArrowDown, Wrench } from 'lucide-react';
-import { useComposioToolkitIcon } from '@/hooks/composio/use-composio';
+import { useComposioToolkitIcon } from '@/hooks/react-query/composio/use-composio';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { IntegrationsRegistry } from '@/components/agents/integrations-registry';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useSubscriptionData } from '@/stores/subscription-store';
+import { useSubscriptionData } from '@/contexts/SubscriptionContext';
 import { isStagingMode, isLocalMode } from '@/lib/config';
-import { PlanSelectionModal } from '@/components/billing/pricing';
+import { BillingModal } from '@/components/billing/billing-modal';
 import { AgentConfigurationDialog } from '@/components/agents/agent-configuration-dialog';
-import { ContextUsageIndicator } from '../ContextUsageIndicator';
-import { SpotlightCard } from '@/components/ui/spotlight-card';
 
 import posthog from 'posthog-js';
 
@@ -202,7 +200,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
     const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
     const [showSnackbar, setShowSnackbar] = useState(defaultShowSnackbar);
     const [userDismissedUsage, setUserDismissedUsage] = useState(false);
-    const [planModalOpen, setPlanSelectionModalOpen] = useState(false);
+    const [billingModalOpen, setBillingModalOpen] = useState(false);
     const [agentConfigDialog, setAgentConfigDialog] = useState<{ open: boolean; tab: 'instructions' | 'knowledge' | 'triggers' | 'tools' | 'integrations' }>({ open: false, tab: 'instructions' });
     const [mounted, setMounted] = useState(false);
     const [animatedPlaceholder, setAnimatedPlaceholder] = useState('');
@@ -802,11 +800,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
 
         <div className='flex items-center gap-2'>
           {renderConfigDropdown}
-          <PlanSelectionModal
-            open={planModalOpen}
-            onOpenChange={setPlanSelectionModalOpen}
-            returnUrl={typeof window !== 'undefined' ? window.location.href : '/'}
-          />
 
           {isLoggedIn && <VoiceRecorder
             onTranscription={handleTranscription}
@@ -855,7 +848,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
           </div>
         </div>
       </div>
-    ), [hideAttachments, loading, disabled, isAgentRunning, isUploading, sandboxId, projectId, messages, isLoggedIn, renderConfigDropdown, planModalOpen, setPlanSelectionModalOpen, handleTranscription, onStopAgent, handleSubmit, value, uploadedFiles, selectedMode, onModeDeselect, handleModeDeselect, isModeDismissing, isSunaAgent, sunaAgentModes, pendingFiles, threadId, selectedModel, googleDriveIcon, slackIcon, notionIcon, buttonLoaderVariant]);
+    ), [hideAttachments, loading, disabled, isAgentRunning, isUploading, sandboxId, projectId, messages, isLoggedIn, renderConfigDropdown, billingModalOpen, setBillingModalOpen, handleTranscription, onStopAgent, handleSubmit, value, uploadedFiles, selectedMode, onModeDeselect, handleModeDeselect, isModeDismissing, isSunaAgent, sunaAgentModes, pendingFiles, threadId, selectedModel, googleDriveIcon, slackIcon, notionIcon, buttonLoaderVariant]);
 
     return (
       <div className="mx-auto w-full max-w-4xl relative">
@@ -869,7 +862,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
             showUsagePreview={showSnackbar}
             subscriptionData={subscriptionData}
             onCloseUsage={() => { setShowSnackbar(false); setUserDismissedUsage(true); }}
-            onOpenUpgrade={() => setPlanSelectionModalOpen(true)}
+            onOpenUpgrade={() => setBillingModalOpen(true)}
             isVisible={showToolPreview || !!showSnackbar}
           />
 
@@ -1025,9 +1018,9 @@ export const ChatInput = memo(forwardRef<ChatInputHandles, ChatInputProps>(
               />
             </DialogContent>
           </Dialog>
-          <PlanSelectionModal
-            open={planModalOpen}
-            onOpenChange={setPlanSelectionModalOpen}
+          <BillingModal
+            open={billingModalOpen}
+            onOpenChange={setBillingModalOpen}
           />
           {selectedAgentId && agentConfigDialog.open && (
             <AgentConfigurationDialog
