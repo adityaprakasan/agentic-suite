@@ -702,12 +702,15 @@ async def create_composio_trigger(req: CreateComposioTriggerRequest, current_use
 
         url = f"{COMPOSIO_API_BASE}/api/v3/trigger_instances/{req.slug}/upsert"
         headers = {"x-api-key": api_key, "Content-Type": "application/json"}
-        base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
+        base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000").rstrip("/")
         secret = os.getenv("COMPOSIO_WEBHOOK_SECRET", "")
         webhook_headers = {"X-Composio-Secret": secret} if secret else {}
         vercel_bypass = os.getenv("VERCEL_PROTECTION_BYPASS_KEY", "")
         if vercel_bypass:
             webhook_headers["X-Vercel-Protection-Bypass"] = vercel_bypass
+
+        # Build webhook URL for Composio - this tells Composio where to send webhooks
+        webhook_url = req.webhook_url or f"{base_url}/api/composio/webhook"
 
         coerced_config = dict(req.trigger_config or {})
         try:
@@ -750,6 +753,7 @@ async def create_composio_trigger(req: CreateComposioTriggerRequest, current_use
         body = {
             "user_id": composio_user_id,
             "trigger_config": coerced_config,
+            "webhook_url": webhook_url,  # Tell Composio where to send webhooks
         }
         if req.connected_account_id:
             body["connected_account_id"] = req.connected_account_id
@@ -844,9 +848,6 @@ async def create_composio_trigger(req: CreateComposioTriggerRequest, current_use
 
         # Immediately sync triggers to the current version config
         await sync_triggers_to_version_config(req.agent_id)
-
-        base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
-        webhook_url = f"{base_url}/api/composio/webhook"
 
         return {
             "success": True,
