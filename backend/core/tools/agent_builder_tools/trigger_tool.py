@@ -499,15 +499,10 @@ class TriggerTool(AgentBuilderBaseTool):
                 logger.warning(f"Failed to fetch trigger schema: {e}")
                 pass
 
-            # Build webhook URL for Composio
-            base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000").rstrip("/")
-            webhook_url = f"{base_url}/api/composio/webhook"
-
             # Build request body (simplified like in API)
             body = {
                 "user_id": composio_user_id,
                 "trigger_config": coerced_config,
-                "webhook_url": webhook_url,  # Tell Composio where to send webhooks
             }
             if connected_account_id:
                 body["connected_account_id"] = connected_account_id

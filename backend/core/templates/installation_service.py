@@ -700,22 +700,18 @@ class InstallationService:
             url = f"{api_base}/api/v3/trigger_instances/{trigger_slug}/upsert"
             headers = {"x-api-key": api_key, "Content-Type": "application/json"}
 
-            base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000").rstrip("/")
+            base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
             secret = os.getenv("COMPOSIO_WEBHOOK_SECRET", "")
             webhook_headers: Dict[str, Any] = {"X-Composio-Secret": secret} if secret else {}
             vercel_bypass = os.getenv("VERCEL_PROTECTION_BYPASS_KEY", "")
             if vercel_bypass:
                 webhook_headers["X-Vercel-Protection-Bypass"] = vercel_bypass
 
-            # Build webhook URL for Composio
-            webhook_url = f"{base_url}/api/composio/webhook"
-
             logger.info(f"Creating trigger {trigger_slug} with config: {trigger_specific_config}")
             
             body = {
                 "user_id": composio_user_id,
                 "trigger_config": trigger_specific_config or {},
-                "webhook_url": webhook_url,  # Tell Composio where to send webhooks
             }
             
             if connected_account_id:
