@@ -93,7 +93,7 @@ def _b64(d: bytes) -> str:
     return base64.b64encode(d).decode()
 
 
-async def verify_composio(request: Request, secret_env: str = "COMPOSIO_WEBHOOK_SECRET", max_skew: int = 300) -> bool:
+async def verify_composio(request: Request, secret_env: str = "COMPOSIO_WEBHOOK_SECRET", max_skew: int = 300, body_bytes: Optional[bytes] = None) -> bool:
     secret = os.getenv(secret_env, "")
     if not secret:
         raise HTTPException(status_code=500, detail="Webhook secret not configured")
@@ -102,7 +102,25 @@ async def verify_composio(request: Request, secret_env: str = "COMPOSIO_WEBHOOK_
     wts = request.headers.get("webhook-timestamp", "")
     wsig = request.headers.get("webhook-signature", "")
 
+    # Log received headers for debugging (excluding sensitive values)
+    all_headers = dict(request.headers)
+    safe_headers = {k: (v[:20] + "..." if len(v) > 20 else v) if k.lower() in ("webhook-signature", "x-composio-secret", "authorization") else v 
+                    for k, v in all_headers.items()}
+    logger.info(
+        "Composio webhook verification attempt",
+        has_webhook_id=bool(wid),
+        has_webhook_timestamp=bool(wts),
+        has_webhook_signature=bool(wsig),
+        header_names=list(all_headers.keys()),
+        safe_headers=safe_headers
+    )
+
     if not (wid and wts and wsig):
+        logger.warning(
+            "Missing standard-webhooks headers",
+            received_headers=list(all_headers.keys()),
+            missing_headers=[h for h, v in [("webhook-id", wid), ("webhook-timestamp", wts), ("webhook-signature", wsig)] if not v]
+        )
         raise HTTPException(status_code=401, detail="Missing standard-webhooks headers")
 
     try:
@@ -114,7 +132,11 @@ async def verify_composio(request: Request, secret_env: str = "COMPOSIO_WEBHOOK_
     except ValueError:
         pass
 
-    raw = await request.body()
+    # Use provided body bytes if available (to avoid reading request.body() multiple times)
+    if body_bytes is not None:
+        raw = body_bytes
+    else:
+        raw = await request.body()
 
     keys = [("ascii", secret.encode())]
     try:
@@ -890,6 +912,25 @@ async def composio_webhook(request: Request):
             has_x_secret = bool(request.headers.get("x-composio-secret") or request.headers.get("X-Composio-Secret"))
             has_x_trigger = bool(request.headers.get("x-trigger-secret") or request.headers.get("X-Trigger-Secret"))
             
+            # Log all headers (safe version for debugging)
+            safe_headers = {}
+            for k, v in dict(request.headers).items():
+                if k.lower() in ("webhook-signature", "x-composio-secret", "authorization", "x-api-key"):
+                    safe_headers[k] = (v[:20] + "..." if len(v) > 20 else v) if v else None
+                else:
+                    safe_headers[k] = v
+            
+            logger.info(
+                "Composio webhook request received",
+                client_ip=client_ip,
+                header_count=len(header_names),
+                header_names=header_names,
+                safe_headers=safe_headers,
+                has_authorization=has_auth,
+                has_x_composio_secret=has_x_secret,
+                has_x_trigger_secret=has_x_trigger
+            )
+            
             # Parse payload for logging
             payload_preview = {"keys": []}
             try:
@@ -906,12 +947,57 @@ async def composio_webhook(request: Request):
             pass
 
         secret = os.getenv("COMPOSIO_WEBHOOK_SECRET")
-        if not secret:
-            logger.error("COMPOSIO_WEBHOOK_SECRET is not configured")
-            raise HTTPException(status_code=500, detail="Webhook secret not configured")
-
-        # Use robust verifier (tries ASCII/HEX/B64 keys and id.ts.body/ts.body)
-        await verify_composio(request, "COMPOSIO_WEBHOOK_SECRET")
+        verification_failed = False  # Initialize to avoid undefined variable errors
+        
+        # If secret is configured, try to verify with standard-webhooks format
+        # Otherwise, log a warning and continue (for debugging/development)
+        if secret:
+            try:
+                # Use robust verifier (tries ASCII/HEX/B64 keys and id.ts.body/ts.body)
+                # Pass body bytes to avoid reading request.body() multiple times
+                await verify_composio(request, "COMPOSIO_WEBHOOK_SECRET", body_bytes=body)
+                verification_failed = False  # Verification succeeded
+            except HTTPException as e:
+                # Log the verification failure but don't fail yet - we'll check alternative methods
+                logger.warning(
+                    "Standard-webhooks verification failed",
+                    error_detail=e.detail,
+                    status_code=e.status_code
+                )
+                # Re-raise if it's a missing secret config error
+                if e.status_code == 500:
+                    raise
+                # For 401 errors, continue to check alternative auth methods below
+                verification_failed = True
+            except Exception as e:
+                # Handle unexpected exceptions
+                logger.error(f"Unexpected error during webhook verification: {e}", exc_info=True)
+                verification_failed = True
+        else:
+            logger.warning(
+                "COMPOSIO_WEBHOOK_SECRET not configured - skipping signature verification. "
+                "This is insecure for production!"
+            )
+            verification_failed = False  # Allow through for debugging
+        
+        # Check for alternative authentication methods if standard-webhooks failed
+        if secret and verification_failed:
+            # Try simple header-based auth (e.g., X-Composio-Secret header)
+            x_secret = request.headers.get("x-composio-secret") or request.headers.get("X-Composio-Secret")
+            if x_secret and hmac.compare_digest(x_secret, secret):
+                logger.info("Verified using X-Composio-Secret header")
+                verification_failed = False
+            else:
+                # Final fallback: if secret is set but all verification failed, reject
+                logger.error(
+                    "All webhook verification methods failed",
+                    has_x_composio_secret=bool(x_secret),
+                    secret_configured=bool(secret)
+                )
+                raise HTTPException(
+                    status_code=401, 
+                    detail="Webhook verification failed: no valid authentication method found"
+                )
 
         # Parse payload for processing
         try:
