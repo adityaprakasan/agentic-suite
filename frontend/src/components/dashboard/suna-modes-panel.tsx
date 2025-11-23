@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   Image as ImageIcon,
@@ -16,10 +17,17 @@ import {
   Table,
   LayoutDashboard,
   FileBarChart,
+  X,
+  Eye,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { getPdfUrl } from '@/components/thread/tool-views/utils/presentation-utils';
+import { useTranslations } from 'next-intl';
+import { PromptExamples } from '@/components/shared/prompt-examples';
 
 interface SunaModesPanelProps {
   selectedMode: string | null;
@@ -30,6 +38,8 @@ interface SunaModesPanelProps {
   onChartsChange?: (charts: string[]) => void;
   selectedOutputFormat?: string | null;
   onOutputFormatChange?: (format: string | null) => void;
+  selectedTemplate?: string | null;
+  onTemplateChange?: (template: string | null) => void;
 }
 
 type ModeType = 'image' | 'slides' | 'data' | 'docs' | 'people' | 'research';
@@ -120,22 +130,24 @@ const modes: Mode[] = [
     options: {
       title: 'Choose a template',
       items: [
-        { id: 'modern', name: 'Modern', description: 'Clean and professional' },
-        { id: 'bold', name: 'Bold', description: 'High impact design' },
-        { id: 'elegant', name: 'Elegant', description: 'Sophisticated style' },
-        { id: 'tech', name: 'Tech', description: 'Technology focused' },
-        { id: 'creative', name: 'Creative', description: 'Artistic and unique' },
-        { id: 'minimal', name: 'Minimal', description: 'Simple and clear' },
-        { id: 'corporate', name: 'Corporate', description: 'Business standard' },
-        { id: 'vibrant', name: 'Vibrant', description: 'Colorful and energetic' },
-        { id: 'startup', name: 'Startup', description: 'Dynamic and innovative' },
-        { id: 'professional', name: 'Professional', description: 'Polished and refined' },
-        { id: 'dark', name: 'Dark', description: 'Dark mode aesthetic' },
-        { id: 'playful', name: 'Playful', description: 'Fun and engaging' },
-        { id: 'sophisticated', name: 'Sophisticated', description: 'Premium luxury feel' },
-        { id: 'gradient', name: 'Gradient', description: 'Modern gradients' },
-        { id: 'monochrome', name: 'Monochrome', description: 'Black and white' },
-        { id: 'futuristic', name: 'Futuristic', description: 'Cutting-edge design' },
+        { id: 'minimalist', name: 'Minimalist', description: 'Clean and simple design', image: '/images/presentation-templates/minimalist-min.png' },
+        { id: 'minimalist_2', name: 'Minimalist 2', description: 'Alternative minimal style', image: '/images/presentation-templates/minimalist_2-min.png' },
+        { id: 'black_and_white_clean', name: 'Black & White', description: 'Classic monochrome', image: '/images/presentation-templates/black_and_white_clean-min.png' },
+        { id: 'colorful', name: 'Colorful', description: 'Vibrant and energetic', image: '/images/presentation-templates/colorful-min.png' },
+        { id: 'startup', name: 'Startup', description: 'Dynamic and innovative', image: '/images/presentation-templates/startup-min.png' },
+        { id: 'elevator_pitch', name: 'Elevator Pitch', description: 'Quick and impactful', image: '/images/presentation-templates/elevator_pitch-min.png' },
+        { id: 'portfolio', name: 'Portfolio', description: 'Showcase your work', image: '/images/presentation-templates/portfolio-min.png' },
+        { id: 'textbook', name: 'Textbook', description: 'Educational and structured', image: '/images/presentation-templates/textbook-min.png' },
+        { id: 'architect', name: 'Architect', description: 'Professional and precise', image: '/images/presentation-templates/architect-min.png' },
+        { id: 'hipster', name: 'Hipster', description: 'Modern and trendy', image: '/images/presentation-templates/hipster-min.png' },
+        { id: 'green', name: 'Green', description: 'Nature-inspired design', image: '/images/presentation-templates/green-min.png' },
+        { id: 'premium_black', name: 'Premium Black', description: 'Luxury dark theme', image: '/images/presentation-templates/premium_black-min.png' },
+        { id: 'premium_green', name: 'Premium Green', description: 'Sophisticated green', image: '/images/presentation-templates/premium_green-min.png' },
+        { id: 'professor_gray', name: 'Professor Gray', description: 'Academic and scholarly', image: '/images/presentation-templates/professor_gray-min.png' },
+        { id: 'gamer_gray', name: 'Gamer Gray', description: 'Gaming-inspired design', image: '/images/presentation-templates/gamer_gray-min.png' },
+        { id: 'competitor_analysis_blue', name: 'Analysis Blue', description: 'Business analysis focused', image: '/images/presentation-templates/competitor_analysis_blue-min.png' },
+        { id: 'numbers_clean', name: 'Numbers Clean', description: 'Clean data visualization', image: '/images/presentation-templates/numbers_clean-min.png' },
+        { id: 'numbers_colorful', name: 'Numbers Colorful', description: 'Vibrant data presentation', image: '/images/presentation-templates/numbers_colorful-min.png' },
       ],
     },
   },
@@ -1091,14 +1103,51 @@ export function SunaModesPanel({
   selectedCharts: controlledSelectedCharts,
   onChartsChange,
   selectedOutputFormat: controlledSelectedOutputFormat,
-  onOutputFormatChange
+  onOutputFormatChange,
+  selectedTemplate: controlledSelectedTemplate,
+  onTemplateChange
 }: SunaModesPanelProps) {
+  const t = useTranslations('suna');
   const currentMode = selectedMode ? modes.find((m) => m.id === selectedMode) : null;
   const promptCount = isMobile ? 2 : 4;
+  
+  // Get translated prompts for a mode
+  const getTranslatedPrompts = (modeId: string): string[] => {
+    const prompts: string[] = [];
+    let index = 0;
+    const maxPrompts = 20; // Safety limit
+    
+    while (index < maxPrompts) {
+      try {
+        const key = `prompts.${modeId}.${index}`;
+        const prompt = t(key);
+        // Check if translation exists (next-intl returns the key if missing)
+        if (!prompt || prompt === `suna.${key}` || prompt.startsWith('suna.prompts.')) {
+          break;
+        }
+        prompts.push(prompt);
+        index++;
+      } catch {
+        break;
+      }
+    }
+    
+    // Fallback to hardcoded prompts if no translations found
+    if (prompts.length === 0 && currentMode) {
+      return currentMode.samplePrompts;
+    }
+    return prompts;
+  };
   
   // State to track current random selection of prompts
   const [randomizedPrompts, setRandomizedPrompts] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // State for PDF preview modal
+  const [selectedTemplate, setSelectedTemplate] = useState<{id: string, name: string} | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [preloadedTemplates, setPreloadedTemplates] = useState<Set<string>>(new Set());
   
   // State for multi-select charts (use controlled state if provided)
   const [uncontrolledSelectedCharts, setUncontrolledSelectedCharts] = useState<string[]>([]);
@@ -1110,24 +1159,32 @@ export function SunaModesPanel({
   const selectedOutputFormat = controlledSelectedOutputFormat ?? uncontrolledSelectedOutputFormat;
   const setSelectedOutputFormat = onOutputFormatChange ?? setUncontrolledSelectedOutputFormat;
 
+  // State for selected template (use controlled state if provided)
+  const [uncontrolledSelectedTemplateId, setUncontrolledSelectedTemplateId] = useState<string | null>(null);
+  const selectedTemplateId = controlledSelectedTemplate ?? uncontrolledSelectedTemplateId;
+  const setSelectedTemplateId = onTemplateChange ?? setUncontrolledSelectedTemplateId;
+
   // Randomize prompts when mode changes or on mount
   useEffect(() => {
-    if (currentMode) {
-      setRandomizedPrompts(getRandomPrompts(currentMode.samplePrompts, promptCount));
+    if (selectedMode) {
+      const translatedPrompts = getTranslatedPrompts(selectedMode);
+      setRandomizedPrompts(getRandomPrompts(translatedPrompts, promptCount));
     }
-  }, [selectedMode, currentMode, promptCount]);
+  }, [selectedMode, promptCount, t]);
   
   // Reset selections when mode changes
   useEffect(() => {
     setSelectedCharts([]);
     setSelectedOutputFormat(null);
-  }, [selectedMode, setSelectedCharts, setSelectedOutputFormat]);
+    setSelectedTemplateId(null);
+  }, [selectedMode, setSelectedCharts, setSelectedOutputFormat, setSelectedTemplateId]);
 
   // Handler for refresh button
   const handleRefreshPrompts = () => {
-    if (currentMode) {
+    if (selectedMode) {
       setIsRefreshing(true);
-      setRandomizedPrompts(getRandomPrompts(currentMode.samplePrompts, promptCount));
+      const translatedPrompts = getTranslatedPrompts(selectedMode);
+      setRandomizedPrompts(getRandomPrompts(translatedPrompts, promptCount));
       setTimeout(() => setIsRefreshing(false), 300);
     }
   };
@@ -1149,6 +1206,34 @@ export function SunaModesPanel({
   // Handler for prompt selection - just pass through without modification
   const handlePromptSelect = (prompt: string) => {
     onSelectPrompt(prompt);
+  };
+
+  // Handler for template selection (only stores the template ID)
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+  };
+
+  // Handler to preload PDF on hover
+  const handlePreloadPdf = (templateId: string) => {
+    // Only preload if not already preloaded
+    if (preloadedTemplates.has(templateId)) return;
+
+    // Create a prefetch link
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = getPdfUrl(templateId);
+    link.as = 'document';
+    document.head.appendChild(link);
+
+    // Track this template as preloaded
+    setPreloadedTemplates(prev => new Set(prev).add(templateId));
+  };
+
+  // Handler for PDF preview
+  const handlePdfPreview = (templateId: string, templateName: string) => {
+    setSelectedTemplate({id: templateId, name: templateName});
+    setIsPdfLoading(true);
+    setIsPdfModalOpen(true);
   };
 
   const displayedPrompts = randomizedPrompts;
@@ -1177,9 +1262,9 @@ export function SunaModesPanel({
 
       {/* Sample Prompts - Google List Style (for research, people) */}
       {selectedMode && displayedPrompts && ['research', 'people'].includes(selectedMode) && (
-        <div className="space-y-2 animate-in fade-in-0 zoom-in-95 duration-300">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sample prompts</h3>
+        <div className="animate-in fade-in-0 zoom-in-95 duration-300">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <span></span>
             <Button
               variant="ghost"
               size="sm"
@@ -1194,37 +1279,21 @@ export function SunaModesPanel({
               </motion.div>
             </Button>
           </div>
-          <div className="space-y-1">
-            {displayedPrompts.map((prompt, index) => (
-              <motion.div
-                key={`${prompt}-${index}`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  duration: 0.2,
-                  delay: index * 0.03,
-                  ease: "easeOut"
-                }}
-                className="group cursor-pointer rounded-lg hover:bg-accent/50 transition-colors duration-150"
-                onClick={() => handlePromptSelect(prompt)}
-              >
-                <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <p className="text-sm text-foreground/70 group-hover:text-foreground transition-colors leading-relaxed flex-1">
-                    {prompt}
-                  </p>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground/60 shrink-0 transition-all duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <PromptExamples
+            prompts={displayedPrompts.map(p => ({ text: p }))}
+            onPromptClick={handlePromptSelect}
+            title={t('samplePrompts')}
+            variant="text"
+            showTitle={true}
+          />
         </div>
       )}
 
       {/* Sample Prompts - Card Grid Style (for image, slides, data, docs) */}
       {selectedMode && displayedPrompts && !['research', 'people'].includes(selectedMode) && (
-        <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">Sample prompts</h3>
+        <div className="animate-in fade-in-0 zoom-in-95 duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <span></span>
             <Button
               variant="ghost"
               size="sm"
@@ -1239,30 +1308,14 @@ export function SunaModesPanel({
               </motion.div>
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {displayedPrompts.map((prompt, index) => (
-              <motion.div
-                key={`${prompt}-${index}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  duration: 0.3,
-                  delay: index * 0.05,
-                  ease: "easeOut"
-                }}
-              >
-                <Card
-                  className="p-4 cursor-pointer hover:bg-primary/5 transition-all duration-200 group border border-border rounded-xl"
-                  onClick={() => handlePromptSelect(prompt)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm text-foreground/80 leading-relaxed">{prompt}</p>
-                    <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors duration-200" />
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+          <PromptExamples
+            prompts={displayedPrompts.map(p => ({ text: p }))}
+            onPromptClick={handlePromptSelect}
+            title={t('samplePrompts')}
+            variant="card"
+            columns={2}
+            showTitle={true}
+          />
         </div>
       )}
 
@@ -1270,7 +1323,10 @@ export function SunaModesPanel({
       {selectedMode && currentMode?.options && (
         <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300 delay-75">
           <h3 className="text-sm font-medium text-muted-foreground">
-            {currentMode.options.title}
+            {currentMode.options.title === 'Choose a style' ? t('chooseStyle') :
+             currentMode.options.title === 'Choose a template' ? t('chooseTemplate') :
+             currentMode.options.title === 'Choose output format' ? t('chooseOutputFormat') :
+             currentMode.options.title}
           </h3>
           
           {selectedMode === 'image' && (
@@ -1284,17 +1340,20 @@ export function SunaModesPanel({
                   >
                     <div className="w-full aspect-square bg-gradient-to-br from-muted/50 to-muted rounded-lg border border-border/50 group-hover:border-primary/50 group-hover:scale-105 transition-all duration-200 flex items-center justify-center overflow-hidden relative">
                       {item.image ? (
-                        <img 
+                        <Image 
                           src={item.image} 
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
+                          className="object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <ImageIcon className="w-8 h-8 text-muted-foreground/50 group-hover:text-primary/70 transition-colors duration-200" />
                       )}
                     </div>
                     <span className="text-xs text-center text-foreground/70 group-hover:text-foreground transition-colors duration-200 font-medium">
-                      {item.name}
+                      {t(`styles.${item.id}`) || item.name}
                     </span>
                   </Card>
                 ))}
@@ -1309,26 +1368,51 @@ export function SunaModesPanel({
                 {currentMode.options.items.map((item) => (
                   <Card
                     key={item.id}
-                    className="flex flex-col gap-2 cursor-pointer group p-3 hover:bg-primary/5 transition-all duration-200 border border-border rounded-xl"
-                    onClick={() =>
-                      handlePromptSelect(
-                        `Create a presentation using the ${item.name} template about ${item.description}`
-                      )
-                    }
+                    className={cn(
+                      "flex flex-col gap-2 cursor-pointer group p-2 hover:bg-primary/5 transition-all duration-200 border rounded-xl relative",
+                      selectedTemplateId === item.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border"
+                    )}
+                    onClick={() => handleTemplateSelect(item.id)}
                   >
-                    <div className="w-full aspect-[4/3] bg-gradient-to-br from-muted/50 to-muted rounded-lg border border-border/50 flex items-center justify-center p-3">
-                      <SlideTemplateIcon 
-                        type={item.id} 
-                        className="text-foreground/50 group-hover:text-primary/70 transition-colors duration-200" 
-                      />
+                    <div className="w-full bg-transparent rounded-lg border border-border/50 group-hover:border-primary/50 group-hover:scale-105 transition-all duration-200 overflow-hidden relative aspect-[4/3]">
+                      {item.image ? (
+                        <Image 
+                          src={item.image} 
+                          alt={item.name}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                          className="object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <SlideTemplateIcon 
+                          type={item.id} 
+                          className="text-foreground/50 group-hover:text-primary/70 transition-colors duration-200" 
+                        />
+                      )}
+                      {/* Preview button overlay */}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="absolute top-2 right-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 hover:bg-white dark:bg-zinc-800/90 dark:hover:bg-zinc-800 shadow-md"
+                        onMouseEnter={() => handlePreloadPdf(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePdfPreview(item.id, item.name);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                        {item.name}
+                        {t(`templates.${item.id}.name`) || item.name}
                       </p>
                       {item.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {item.description}
+                          {t(`templates.${item.id}.description`) || item.description}
                         </p>
                       )}
                     </div>
@@ -1360,11 +1444,11 @@ export function SunaModesPanel({
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                        {item.name}
+                        {t(`templates.${item.id}.name`) || item.name}
                       </p>
                       {item.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {item.description}
+                          {t(`templates.${item.id}.description`) || item.description}
                         </p>
                       )}
                     </div>
@@ -1427,11 +1511,11 @@ export function SunaModesPanel({
                             ? "text-primary" 
                             : "text-foreground/80 group-hover:text-primary"
                         )}>
-                          {item.name}
+                          {t(`outputFormats.${item.id}.name`) || item.name}
                         </p>
                         {item.description && (
                           <p className="text-xs text-muted-foreground">
-                            {item.description}
+                            {t(`outputFormats.${item.id}.description`) || item.description}
                           </p>
                         )}
                       </div>
@@ -1448,7 +1532,7 @@ export function SunaModesPanel({
       {selectedMode === 'data' && currentMode?.chartTypes && (
         <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300 delay-150">
           <h3 className="text-sm font-medium text-muted-foreground">
-            {currentMode.chartTypes.title}
+            {t('preferredCharts')}
           </h3>
           <ScrollArea className="w-full">
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 pb-2">
@@ -1504,7 +1588,7 @@ export function SunaModesPanel({
                           ? "text-primary" 
                           : "text-foreground/70 group-hover:text-foreground"
                       )}>
-                        {chart.name}
+                        {t(`charts.${chart.id}`) || chart.name}
                       </span>
                     </Card>
                   </motion.div>
@@ -1515,6 +1599,38 @@ export function SunaModesPanel({
           </ScrollArea>
         </div>
       )}
+
+      {/* PDF Preview Modal */}
+      <Dialog open={isPdfModalOpen} onOpenChange={setIsPdfModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle>
+              Template Preview: {selectedTemplate?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 pt-0">
+            {selectedTemplate && (
+              <div className="relative">
+                {/* Loading overlay */}
+                {isPdfLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg z-10">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Loading preview...</p>
+                    </div>
+                  </div>
+                )}
+                <iframe
+                  src={getPdfUrl(selectedTemplate.id)}
+                  className="w-full h-[70vh] border rounded-lg"
+                  title={`${selectedTemplate.name} template preview`}
+                  onLoad={() => setIsPdfLoading(false)}
+                />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

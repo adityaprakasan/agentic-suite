@@ -196,6 +196,71 @@ api_router.include_router(google_slides_router)
 from core.google.google_docs_api import router as google_docs_router
 api_router.include_router(google_docs_router)
 
+from core.agent_setup import router as agent_setup_router
+api_router.include_router(agent_setup_router)
+
+import os
+from fastapi.responses import FileResponse
+
+@api_router.get("/presentation-templates/{template_name}/image.png", summary="Get Presentation Template Image", tags=["presentations"])
+async def get_presentation_template_image(template_name: str):
+    """Serve presentation template preview images"""
+    try:
+        image_path = os.path.join(
+            os.path.dirname(__file__),
+            "core",
+            "templates",
+            "presentations",
+            template_name,
+            "image.png"
+        )
+        image_path = os.path.abspath(image_path)
+        templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "core", "templates", "presentations"))
+        
+        if not image_path.startswith(templates_dir) or not os.path.exists(image_path):
+            raise HTTPException(status_code=404, detail="Image not found or access denied")
+        
+        return FileResponse(image_path, media_type="image/png")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving template image: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@api_router.get("/presentation-templates/{template_name}/pdf", summary="Get Presentation Template PDF", tags=["presentations"])
+async def get_presentation_template_pdf(template_name: str):
+    """Serve presentation template PDF files"""
+    try:
+        pdf_folder = os.path.join(
+            os.path.dirname(__file__),
+            "core",
+            "templates",
+            "presentations",
+            template_name,
+            "pdf"
+        )
+        pdf_folder = os.path.abspath(pdf_folder)
+        templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "core", "templates", "presentations"))
+        
+        if not pdf_folder.startswith(templates_dir) or not os.path.exists(pdf_folder):
+            raise HTTPException(status_code=404, detail="PDF folder not found or access denied")
+
+        # Assuming there's only one PDF file per template's pdf folder
+        pdf_files = [f for f in os.listdir(pdf_folder) if f.endswith('.pdf')]
+        if not pdf_files:
+            raise HTTPException(status_code=404, detail="No PDF file found in template folder")
+        
+        pdf_path = os.path.join(pdf_folder, pdf_files[0])
+        
+        return FileResponse(pdf_path, media_type="application/pdf")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving template PDF: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @api_router.get("/health", summary="Health Check", operation_id="health_check", tags=["system"])
 async def health_check():
     logger.debug("Health check endpoint called")
