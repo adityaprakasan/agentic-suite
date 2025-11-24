@@ -1148,7 +1148,7 @@ export function SunaModesPanel({
       const translatedPrompts = getTranslatedPrompts(selectedMode);
       setRandomizedPrompts(getRandomPrompts(translatedPrompts, promptCount));
     }
-  }, [selectedMode, promptCount, t]);
+  }, [selectedMode, promptCount]);
   
   // Reset selections when mode changes
   useEffect(() => {
@@ -1260,7 +1260,7 @@ export function SunaModesPanel({
           <PromptExamples
             prompts={displayedPrompts.map(p => ({ text: p }))}
             onPromptClick={handlePromptSelect}
-            title={t('samplePrompts')}
+            title="Sample Prompts"
             variant="text"
             showTitle={true}
           />
@@ -1289,7 +1289,7 @@ export function SunaModesPanel({
           <PromptExamples
             prompts={displayedPrompts.map(p => ({ text: p }))}
             onPromptClick={handlePromptSelect}
-            title={t('samplePrompts')}
+            title="Sample Prompts"
             variant="card"
             columns={2}
             showTitle={true}
@@ -1301,10 +1301,7 @@ export function SunaModesPanel({
       {selectedMode && currentMode?.options && (
         <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300 delay-75">
           <h3 className="text-sm font-medium text-muted-foreground">
-            {currentMode.options.title === 'Choose a style' ? t('chooseStyle') :
-             currentMode.options.title === 'Choose a template' ? t('chooseTemplate') :
-             currentMode.options.title === 'Choose output format' ? t('chooseOutputFormat') :
-             currentMode.options.title}
+            {currentMode.options.title}
           </h3>
           
           {selectedMode === 'image' && (
@@ -1331,7 +1328,7 @@ export function SunaModesPanel({
                       )}
                     </div>
                     <span className="text-xs text-center text-foreground/70 group-hover:text-foreground transition-colors duration-200 font-medium">
-                      {t(`styles.${item.id}`) || item.name}
+                      {item.name}
                     </span>
                   </Card>
                 ))}
@@ -1386,11 +1383,11 @@ export function SunaModesPanel({
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                        {t(`templates.${item.id}.name`) || item.name}
+                        {item.name}
                       </p>
                       {item.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {t(`templates.${item.id}.description`) || item.description}
+                          {item.description || ''}
                         </p>
                       )}
                     </div>
@@ -1422,11 +1419,11 @@ export function SunaModesPanel({
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                        {t(`templates.${item.id}.name`) || item.name}
+                        {item.name}
                       </p>
                       {item.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {t(`templates.${item.id}.description`) || item.description}
+                          {item.description || ''}
                         </p>
                       )}
                     </div>
@@ -1489,11 +1486,11 @@ export function SunaModesPanel({
                             ? "text-primary" 
                             : "text-foreground/80 group-hover:text-primary"
                         )}>
-                          {t(`outputFormats.${item.id}.name`) || item.name}
+                          {item.name}
                         </p>
                         {item.description && (
                           <p className="text-xs text-muted-foreground">
-                            {t(`outputFormats.${item.id}.description`) || item.description}
+                            {item.description || ''}
                           </p>
                         )}
                       </div>
@@ -1510,7 +1507,7 @@ export function SunaModesPanel({
       {selectedMode === 'data' && currentMode?.chartTypes && (
         <div className="space-y-3 animate-in fade-in-0 zoom-in-95 duration-300 delay-150">
           <h3 className="text-sm font-medium text-muted-foreground">
-            {t('preferredCharts')}
+            Preferred Charts
           </h3>
           <ScrollArea className="w-full">
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 pb-2">
@@ -1566,7 +1563,7 @@ export function SunaModesPanel({
                           ? "text-primary" 
                           : "text-foreground/70 group-hover:text-foreground"
                       )}>
-                        {t(`charts.${chart.id}`) || chart.name}
+                        {chart.name}
                       </span>
                     </Card>
                   </motion.div>
