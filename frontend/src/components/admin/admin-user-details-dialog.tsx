@@ -24,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   User,
@@ -39,6 +40,10 @@ import {
   Infinity,
   MessageSquare,
   ExternalLink,
+  Shield,
+  Link as LinkIcon,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useAdminUserDetails, useAdminUserThreads, useAdminUserActivity } from '@/hooks/react-query/admin/use-admin-users';
 import {
@@ -46,6 +51,9 @@ import {
   useAdjustCredits,
   useProcessRefund,
   useAdminUserTransactions,
+  useSetUserTier,
+  useGenerateCustomerLink,
+  useLinkSubscription,
 } from '@/hooks/react-query/admin/use-admin-billing';
 import type { UserSummary } from '@/hooks/react-query/admin/use-admin-users';
 
@@ -72,6 +80,15 @@ export function AdminUserDetailsDialog({
   const [transactionsPage, setTransactionsPage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
 
+  // New tier management state
+  const [selectedTier, setSelectedTier] = useState('tier_basic');
+  const [tierReason, setTierReason] = useState('');
+  const [grantCredits, setGrantCredits] = useState(true);
+  const [generatedLink, setGeneratedLink] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkTier, setLinkTier] = useState('tier_ultra');
+  const [subscriptionId, setSubscriptionId] = useState('');
+
   const { data: userDetails, isLoading } = useAdminUserDetails(user?.id || null);
   const { data: billingSummary, refetch: refetchBilling } = useUserBillingSummary(user?.id || null);
   const { data: userThreads, isLoading: threadsLoading } = useAdminUserThreads({
@@ -91,6 +108,9 @@ export function AdminUserDetailsDialog({
   });
   const adjustCreditsMutation = useAdjustCredits();
   const processRefundMutation = useProcessRefund();
+  const setTierMutation = useSetUserTier();
+  const generateLinkMutation = useGenerateCustomerLink();
+  const linkSubscriptionMutation = useLinkSubscription();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -162,6 +182,96 @@ export function AdminUserDetailsDialog({
       setRefundIsExpiring(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to process refund');
+    }
+  };
+
+  const handleSetTier = async () => {
+    if (!user || !selectedTier || !tierReason) {
+      toast.error('Please select a tier and provide a reason');
+      return;
+    }
+
+    try {
+      const result = await setTierMutation.mutateAsync({
+        account_id: user.id,
+        tier_name: selectedTier,
+        grant_credits: grantCredits,
+        reason: tierReason,
+      });
+
+      toast.success(
+        `Tier updated to ${result.tier_display_name}. ${
+          result.credits_granted > 0
+            ? `Granted $${result.credits_granted}. `
+            : ''
+        }New balance: ${formatCurrency(result.new_balance)}`
+      );
+
+      refetchBilling();
+      onRefresh?.();
+
+      setTierReason('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to set tier');
+    }
+  };
+
+  const handleGenerateLink = async () => {
+    if (!user || !linkTier) {
+      toast.error('Please select a tier');
+      return;
+    }
+
+    try {
+      const result = await generateLinkMutation.mutateAsync({
+        account_id: user.id,
+        tier_name: linkTier,
+      });
+
+      setGeneratedLink(result.checkout_url);
+      toast.success('Payment link generated! Copy and send to customer.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate link');
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(generatedLink);
+    setLinkCopied(true);
+    toast.success('Link copied to clipboard!');
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleLinkSubscription = async () => {
+    if (!user || !subscriptionId) {
+      toast.error('Please enter a Stripe subscription ID');
+      return;
+    }
+
+    if (!subscriptionId.startsWith('sub_')) {
+      toast.error('Invalid subscription ID format (should start with sub_)');
+      return;
+    }
+
+    try {
+      const result = await linkSubscriptionMutation.mutateAsync({
+        account_id: user.id,
+        stripe_subscription_id: subscriptionId,
+        skip_credit_grant: false,
+      });
+
+      toast.success(
+        `Subscription linked! Tier: ${result.tier_display_name}, Balance: ${formatCurrency(
+          result.new_balance
+        )}`
+      );
+
+      refetchBilling();
+      onRefresh?.();
+
+      setSubscriptionId('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to link subscription');
     }
   };
 
@@ -549,6 +659,219 @@ export function AdminUserDetailsDialog({
             </TabsContent>
             <TabsContent value="actions" className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
+                {/* Set Subscription Tier Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Set Subscription Tier
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-3 border border-blue-200 dark:border-blue-950 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          Manually set the user's subscription tier. Use for manual onboarding
+                          or special cases when payment is pending.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="current-tier">Current Tier</Label>
+                      <div className="mt-1">
+                        <Badge variant="outline" className="capitalize text-sm">
+                          {user?.tier || 'none'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="tier-select">New Tier</Label>
+                      <Select value={selectedTier} onValueChange={setSelectedTier}>
+                        <SelectTrigger id="tier-select">
+                          <SelectValue placeholder="Select tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tier_basic">Basic - $49/month</SelectItem>
+                          <SelectItem value="tier_plus">Plus - $199/month</SelectItem>
+                          <SelectItem value="tier_ultra">Ultra - $499/month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+                      <Label htmlFor="grant-credits" className="cursor-pointer">
+                        <span className="font-medium">Grant Monthly Credits</span>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Give user credits for this tier immediately
+                        </p>
+                      </Label>
+                      <Switch
+                        id="grant-credits"
+                        checked={grantCredits}
+                        onCheckedChange={setGrantCredits}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tier-reason">Reason (Required)</Label>
+                      <Textarea
+                        id="tier-reason"
+                        placeholder="e.g., Manual onboarding - boss paying later"
+                        value={tierReason}
+                        onChange={(e) => setTierReason(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                    <Button
+                      onClick={handleSetTier}
+                      disabled={setTierMutation.isPending || !tierReason}
+                      className="w-full"
+                    >
+                      {setTierMutation.isPending ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Updating Tier...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-4 h-4 mr-2" />
+                          Update Tier
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Generate Customer Payment Link Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      Generate Customer Payment Link
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-3 border border-green-200 dark:border-green-950 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          Create a customer-specific payment link. When they pay, the subscription
+                          will automatically link to this account via webhook.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="link-tier-select">Select Plan</Label>
+                      <Select value={linkTier} onValueChange={setLinkTier}>
+                        <SelectTrigger id="link-tier-select">
+                          <SelectValue placeholder="Select tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tier_basic">Basic - $49/month</SelectItem>
+                          <SelectItem value="tier_plus">Plus - $199/month</SelectItem>
+                          <SelectItem value="tier_ultra">Ultra - $499/month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      onClick={handleGenerateLink}
+                      disabled={generateLinkMutation.isPending}
+                      className="w-full"
+                    >
+                      {generateLinkMutation.isPending ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <LinkIcon className="w-4 h-4 mr-2" />
+                          Generate Payment Link
+                        </>
+                      )}
+                    </Button>
+                    {generatedLink && (
+                      <div className="space-y-2">
+                        <Label>Generated Link</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={generatedLink}
+                            readOnly
+                            className="font-mono text-xs"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCopyLink}
+                            className="flex-shrink-0"
+                          >
+                            {linkCopied ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Send this link to the customer. Payment will automatically link to this account.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Link Existing Subscription Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      Link Existing Subscription
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-3 border border-orange-200 dark:border-orange-950 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5" />
+                        <p className="text-sm text-orange-700 dark:text-orange-300">
+                          Use this when someone paid via a generic link. Enter the Stripe
+                          subscription ID to link it to this account.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="subscription-id">Stripe Subscription ID</Label>
+                      <Input
+                        id="subscription-id"
+                        placeholder="sub_xxxxxxxxxxxxx"
+                        value={subscriptionId}
+                        onChange={(e) => setSubscriptionId(e.target.value)}
+                        className="font-mono"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Find this in your Stripe Dashboard under the customer's subscription
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleLinkSubscription}
+                      disabled={linkSubscriptionMutation.isPending || !subscriptionId}
+                      className="w-full"
+                      variant="secondary"
+                    >
+                      {linkSubscriptionMutation.isPending ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Linking...
+                        </>
+                      ) : (
+                        <>
+                          <LinkIcon className="w-4 h-4 mr-2" />
+                          Link Subscription
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Existing Refund Card */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">

@@ -18,6 +18,59 @@ interface RefundRequest {
   payment_intent_id?: string;
 }
 
+interface SetTierRequest {
+  account_id: string;
+  tier_name: string;
+  grant_credits: boolean;
+  reason: string;
+}
+
+interface SetTierResponse {
+  success: boolean;
+  account_id: string;
+  old_tier: string;
+  new_tier: string;
+  tier_display_name: string;
+  credits_granted: number;
+  new_balance: number;
+  monthly_credits: number;
+}
+
+interface GenerateCustomerLinkRequest {
+  account_id: string;
+  price_id?: string;
+  tier_name?: string;
+  success_url?: string;
+  cancel_url?: string;
+}
+
+interface GenerateCustomerLinkResponse {
+  success: boolean;
+  checkout_url: string;
+  session_id: string;
+  account_id: string;
+  price_id: string;
+}
+
+interface LinkSubscriptionRequest {
+  account_id: string;
+  stripe_subscription_id: string;
+  skip_credit_grant?: boolean;
+}
+
+interface LinkSubscriptionResponse {
+  success: boolean;
+  account_id: string;
+  subscription_id: string;
+  customer_id: string;
+  tier: string;
+  tier_display_name: string;
+  status: string;
+  credits_granted: number;
+  new_balance: number;
+  current_period_end: string;
+}
+
 export function useUserBillingSummary(userId: string | null) {
   return useQuery({
     queryKey: ['admin', 'billing', 'user', userId],
@@ -77,6 +130,42 @@ export function useProcessRefund() {
   return useMutation({
     mutationFn: async (request: RefundRequest) => {
       const response = await backendApi.post('/admin/billing/refund', request);
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      return response.data;
+    },
+  });
+}
+
+export function useSetUserTier() {
+  return useMutation<SetTierResponse, Error, SetTierRequest>({
+    mutationFn: async (request: SetTierRequest) => {
+      const response = await backendApi.post('/admin/billing/set-tier', request);
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      return response.data;
+    },
+  });
+}
+
+export function useGenerateCustomerLink() {
+  return useMutation<GenerateCustomerLinkResponse, Error, GenerateCustomerLinkRequest>({
+    mutationFn: async (request: GenerateCustomerLinkRequest) => {
+      const response = await backendApi.post('/admin/billing/generate-customer-link', request);
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      return response.data;
+    },
+  });
+}
+
+export function useLinkSubscription() {
+  return useMutation<LinkSubscriptionResponse, Error, LinkSubscriptionRequest>({
+    mutationFn: async (request: LinkSubscriptionRequest) => {
+      const response = await backendApi.post('/admin/billing/link-subscription', request);
       if (response.error) {
         throw new Error(response.error.message);
       }
