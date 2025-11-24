@@ -288,8 +288,17 @@ async def set_user_tier(
         db = DBConnection()
         client = await db.client
         
-        # Check if credit account exists
-        credit_check = await client.from_('credit_accounts').select('account_id, tier, balance').eq('account_id', request.account_id).execute()
+        # Note: credit_accounts.account_id actually references auth.users(id), not basejump.accounts(id)
+        # We need to get the primary_owner_user_id from the basejump.accounts table
+        account_result = await client.schema('basejump').from_('accounts').select('primary_owner_user_id').eq('id', request.account_id).execute()
+        
+        if not account_result.data:
+            raise HTTPException(status_code=404, detail="Account not found")
+        
+        user_id = account_result.data[0]['primary_owner_user_id']
+        
+        # Check if credit account exists (using user_id, not account_id)
+        credit_check = await client.from_('credit_accounts').select('account_id, tier, balance').eq('account_id', user_id).execute()
         
         old_tier = credit_check.data[0]['tier'] if credit_check.data else 'none'
         old_balance = credit_check.data[0]['balance'] if credit_check.data else 0
@@ -299,10 +308,10 @@ async def set_user_tier(
             await client.from_('credit_accounts').update({
                 'tier': request.tier_name,
                 'updated_at': datetime.now(timezone.utc).isoformat()
-            }).eq('account_id', request.account_id).execute()
+            }).eq('account_id', user_id).execute()
         else:
             await client.from_('credit_accounts').insert({
-                'account_id': request.account_id,
+                'account_id': user_id,  # This is actually the user_id from auth.users
                 'tier': request.tier_name,
                 'balance': 0,
                 'expiring_credits': 0,
@@ -315,10 +324,10 @@ async def set_user_tier(
         new_balance = old_balance
         credits_granted = Decimal('0')
         
-        # Grant credits if requested
+        # Grant credits if requested (credit_manager expects account_id which is basejump.accounts.id)
         if request.grant_credits and tier.monthly_credits > 0:
             result = await credit_manager.add_credits(
-                account_id=request.account_id,
+                account_id=request.account_id,  # credit_manager will handle the user_id lookup
                 amount=tier.monthly_credits,
                 is_expiring=True,
                 description=f"Admin tier grant: {tier.display_name} - {request.reason}",
@@ -479,6 +488,14 @@ async def link_stripe_subscription(
         db = DBConnection()
         client = await db.client
         
+        # Get the primary_owner_user_id from the basejump.accounts table
+        account_result = await client.schema('basejump').from_('accounts').select('primary_owner_user_id').eq('id', request.account_id).execute()
+        
+        if not account_result.data:
+            raise HTTPException(status_code=404, detail="Account not found")
+        
+        user_id = account_result.data[0]['primary_owner_user_id']
+        
         # Get or create billing customer
         customer_id = subscription.customer if isinstance(subscription.customer, str) else subscription.customer.id
         
@@ -489,7 +506,7 @@ async def link_stripe_subscription(
             customer_email = subscription.customer.email if hasattr(subscription.customer, 'email') else None
             await client.schema('basejump').from_('billing_customers').insert({
                 'id': customer_id,
-                'account_id': request.account_id,
+                'account_id': request.account_id,  # This correctly references basejump.accounts(id)
                 'email': customer_email,
                 'active': True,
                 'provider': 'stripe'
@@ -500,11 +517,11 @@ async def link_stripe_subscription(
                 'account_id': request.account_id
             }).eq('id', customer_id).execute()
         
-        # Update credit_accounts
+        # Update credit_accounts (remember: credit_accounts.account_id actually references auth.users)
         billing_anchor = datetime.fromtimestamp(subscription.current_period_start, tz=timezone.utc)
         next_grant = datetime.fromtimestamp(subscription.current_period_end, tz=timezone.utc)
         
-        credit_check = await client.from_('credit_accounts').select('*').eq('account_id', request.account_id).execute()
+        credit_check = await client.from_('credit_accounts').select('*').eq('account_id', user_id).execute()
         
         update_data = {
             'tier': tier_info.name,
@@ -515,9 +532,9 @@ async def link_stripe_subscription(
         }
         
         if credit_check.data:
-            await client.from_('credit_accounts').update(update_data).eq('account_id', request.account_id).execute()
+            await client.from_('credit_accounts').update(update_data).eq('account_id', user_id).execute()
         else:
-            update_data['account_id'] = request.account_id
+            update_data['account_id'] = user_id  # This is auth.users(id), not basejump.accounts(id)
             update_data['balance'] = 0
             update_data['expiring_credits'] = 0
             update_data['non_expiring_credits'] = 0
@@ -547,13 +564,13 @@ async def link_stripe_subscription(
         else:
             await client.schema('basejump').from_('billing_subscriptions').insert(billing_sub_data).execute()
         
-        # Grant credits if not skipped
+        # Grant credits if not skipped (credit_manager expects basejump.accounts.id)
         credits_granted = Decimal('0')
         new_balance = 0
         
         if not request.skip_credit_grant and tier_info.monthly_credits > 0:
             result = await credit_manager.add_credits(
-                account_id=request.account_id,
+                account_id=request.account_id,  # credit_manager will handle the user_id lookup
                 amount=tier_info.monthly_credits,
                 is_expiring=True,
                 description=f"Subscription linked: {tier_info.display_name}",
@@ -563,7 +580,7 @@ async def link_stripe_subscription(
             credits_granted = tier_info.monthly_credits
             new_balance = result.get('total_balance', 0)
         else:
-            balance_info = await credit_manager.get_balance(request.account_id)
+            balance_info = await credit_manager.get_balance(request.account_id)  # credit_manager handles lookup
             new_balance = balance_info.get('total', 0)
         
         # Create audit log
