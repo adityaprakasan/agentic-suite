@@ -466,13 +466,14 @@ export function DashboardContent() {
                           animatePlaceholder={true}
                           selectedCharts={selectedCharts}
                           selectedOutputFormat={selectedOutputFormat}
+                          selectedTemplate={selectedTemplate}
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Modes Panel - Below chat input, doesn't affect its position */}
-                  {(isStagingMode() || isLocalMode()) && isAdenticAgent && (
+                  {isAdenticAgent && (
                     <div className="px-4 pb-8">
                       <div className="max-w-3xl mx-auto">
                         <SunaModesPanel
@@ -484,6 +485,8 @@ export function DashboardContent() {
                           onChartsChange={setSelectedCharts}
                           selectedOutputFormat={selectedOutputFormat}
                           onOutputFormatChange={setSelectedOutputFormat}
+                          selectedTemplate={selectedTemplate}
+                          onTemplateChange={setSelectedTemplate}
                         />
                       </div>
                     </div>
