@@ -191,6 +191,44 @@ export function AdminUserDetailsDialog({
       return;
     }
 
+    const tierNames: Record<string, string> = {
+      tier_basic: 'Basic',
+      tier_plus: 'Plus',
+      tier_ultra: 'Ultra',
+      none: 'None',
+    };
+
+    const currentTierName = tierNames[user.tier || 'none'] || user.tier || 'None';
+    const newTierName = tierNames[selectedTier] || selectedTier;
+
+    // CRITICAL: Different warnings for SAME tier vs CHANGING tier
+    if (user.tier === selectedTier && grantCredits) {
+      // Setting SAME tier again - likely accidental duplicate
+      const confirm = window.confirm(
+        `⚠️ DUPLICATE WARNING:\n\n` +
+        `User is already on "${currentTierName}".\n\n` +
+        `If you click "OK", they will get ANOTHER set of credits on top of their existing balance.\n\n` +
+        `This is usually NOT what you want unless you're manually adding a bonus.\n\n` +
+        `Options:\n` +
+        `- Click "Cancel" and uncheck "Grant Credits" if you just want to update tier metadata\n` +
+        `- Click "OK" ONLY if you intentionally want to add duplicate credits\n\n` +
+        `Continue?`
+      );
+      if (!confirm) return;
+    } else if (user.tier && user.tier !== 'none' && user.tier !== selectedTier && grantCredits) {
+      // CHANGING tier - this is legitimate but confirm
+      const confirm = window.confirm(
+        `✅ TIER CHANGE:\n\n` +
+        `Current tier: ${currentTierName}\n` +
+        `New tier: ${newTierName}\n\n` +
+        `This will:\n` +
+        `1. Update tier from ${currentTierName} to ${newTierName}\n` +
+        `2. Grant credits for ${newTierName}\n\n` +
+        `Continue?`
+      );
+      if (!confirm) return;
+    }
+
     try {
       const result = await setTierMutation.mutateAsync({
         account_id: user.id,
@@ -199,8 +237,10 @@ export function AdminUserDetailsDialog({
         reason: tierReason,
       });
 
+      // Show appropriate success message
+      const wasChange = user.tier && user.tier !== 'none' && user.tier !== selectedTier;
       toast.success(
-        `Tier updated to ${result.tier_display_name}. ${
+        `${wasChange ? 'Tier changed' : 'Tier updated'} to ${result.tier_display_name}. ${
           result.credits_granted > 0
             ? `Granted $${result.credits_granted}. `
             : ''
@@ -211,6 +251,7 @@ export function AdminUserDetailsDialog({
       onRefresh?.();
 
       setTierReason('');
+      setGrantCredits(true); // Reset to default
     } catch (error: any) {
       toast.error(error.message || 'Failed to set tier');
     }
@@ -220,6 +261,23 @@ export function AdminUserDetailsDialog({
     if (!user || !linkTier) {
       toast.error('Please select a tier');
       return;
+    }
+
+    // VALIDATION: Warn if link tier doesn't match current tier
+    if (user.tier && user.tier !== 'none' && user.tier !== linkTier) {
+      const tierNames: Record<string, string> = {
+        tier_basic: 'Basic',
+        tier_plus: 'Plus',
+        tier_ultra: 'Ultra',
+      };
+      const confirm = window.confirm(
+        `⚠️ MISMATCH WARNING:\n\n` +
+        `User's current tier: ${tierNames[user.tier] || user.tier}\n` +
+        `Payment link tier: ${tierNames[linkTier] || linkTier}\n\n` +
+        `When they pay, they'll get credits for ${tierNames[linkTier]}, which may be different from what you manually set.\n\n` +
+        `Continue anyway?`
+      );
+      if (!confirm) return;
     }
 
     try {
@@ -235,11 +293,30 @@ export function AdminUserDetailsDialog({
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(generatedLink);
-    setLinkCopied(true);
-    toast.success('Link copied to clipboard!');
-    setTimeout(() => setLinkCopied(false), 2000);
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      setLinkCopied(true);
+      toast.success('Link copied to clipboard!');
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = generatedLink;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setLinkCopied(true);
+        toast.success('Link copied to clipboard!');
+        setTimeout(() => setLinkCopied(false), 2000);
+      } catch (err) {
+        toast.error('Failed to copy link. Please copy manually.');
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleLinkSubscription = async () => {
@@ -688,10 +765,16 @@ export function AdminUserDetailsDialog({
                     <div className="p-3 border border-blue-200 dark:border-blue-950 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
                       <div className="flex items-start gap-2">
                         <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5" />
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                          <strong>Give immediate access:</strong> Set tier and grant credits now.
-                          User can start using the platform while you wait for payment.
-                        </p>
+                        <div className="text-sm text-blue-700 dark:text-blue-300">
+                          <p className="mb-2">
+                            <strong>Give immediate access:</strong> Set tier and grant credits now.
+                            User can start using the platform while you wait for payment.
+                          </p>
+                          <p className="text-xs font-medium text-orange-700 dark:text-orange-300">
+                            ⚠️ This is NOT a recurring subscription yet. It only sets tier + grants credits once.
+                            Use Step 2 to generate payment link for recurring billing.
+                          </p>
+                        </div>
                       </div>
                     </div>
                     <div>
@@ -788,6 +871,11 @@ export function AdminUserDetailsDialog({
                           <SelectItem value="tier_ultra">Ultra - $499/month</SelectItem>
                         </SelectContent>
                       </Select>
+                      {user?.tier && user.tier !== 'none' && user.tier !== linkTier && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 font-medium">
+                          ⚠️ Warning: User's current tier ({user.tier}) doesn't match selected tier. This may cause issues.
+                        </p>
+                      )}
                     </div>
                     <Button
                       onClick={handleGenerateLink}

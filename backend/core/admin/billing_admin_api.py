@@ -325,7 +325,33 @@ async def set_user_tier(
         credits_granted = Decimal('0')
         
         # Grant credits if requested (credit_manager expects account_id which is basejump.accounts.id)
-        if request.grant_credits and tier.monthly_credits > 0:
+        should_grant_credits = request.grant_credits and tier.monthly_credits > 0
+        
+        if should_grant_credits:
+            # CRITICAL: Prevent duplicate grants of the SAME tier within a short window
+            # This allows legitimate tier CHANGES (pro -> ultra) but blocks accidental double-clicks
+            if old_tier == request.tier_name:
+                # Same tier being set again - check if it was VERY recent (last 10 minutes)
+                recent_admin_actions = await client.table('admin_actions_log').select('*').eq(
+                    'target_user_id', user_id
+                ).eq('action_type', 'set_tier').gte(
+                    'created_at', (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+                ).execute()
+                
+                if recent_admin_actions.data:
+                    last_action = recent_admin_actions.data[0]
+                    last_tier = last_action.get('details', {}).get('new_tier')
+                    credits_granted_last = last_action.get('details', {}).get('credits_granted', 0)
+                    
+                    if last_tier == request.tier_name and credits_granted_last > 0:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Tier '{request.tier_name}' with credits was already set {(datetime.now(timezone.utc) - datetime.fromisoformat(last_action['created_at'].replace('Z', '+00:00'))).seconds // 60} minutes ago. To prevent accidental duplicates, please wait 10 minutes or uncheck 'Grant Credits' if you only need to update the tier."
+                        )
+            else:
+                # Tier is CHANGING (e.g., pro -> ultra) - this is legitimate, allow it
+                logger.info(f"[ADMIN] Tier change detected: {old_tier} -> {request.tier_name} for account {request.account_id}. Granting new tier credits.")
+            
             result = await credit_manager.add_credits(
                 account_id=request.account_id,  # credit_manager will handle the user_id lookup
                 amount=tier.monthly_credits,
@@ -334,8 +360,15 @@ async def set_user_tier(
                 expires_at=datetime.now(timezone.utc) + timedelta(days=30),
                 type='admin_grant'
             )
-            new_balance = result.get('total_balance', old_balance)
-            credits_granted = tier.monthly_credits
+            
+            # Check if duplicate was prevented by credit_manager
+            if result.get('duplicate_prevented'):
+                logger.info(f"[ADMIN] Duplicate credit grant prevented for {request.account_id}")
+                new_balance = old_balance
+                credits_granted = Decimal('0')
+            else:
+                new_balance = result.get('total_balance', old_balance)
+                credits_granted = tier.monthly_credits
         
         # Create audit log (table is admin_actions_log, not admin_audit_log)
         await client.table('admin_actions_log').insert({
@@ -401,6 +434,23 @@ async def generate_customer_payment_link(
         
         if not price_id:
             raise HTTPException(status_code=400, detail="Must provide either price_id or tier_name")
+        
+        # CRITICAL VALIDATION: Check if user's current tier matches the link tier
+        db = DBConnection()
+        client = await db.client
+        
+        account_result = await client.schema('basejump').from_('accounts').select('primary_owner_user_id').eq('id', request.account_id).execute()
+        if account_result.data:
+            user_id = account_result.data[0]['primary_owner_user_id']
+            credit_check = await client.from_('credit_accounts').select('tier').eq('account_id', user_id).execute()
+            
+            if credit_check.data:
+                current_tier = credit_check.data[0].get('tier', 'none')
+                link_tier_info = get_tier_by_price_id(price_id)
+                
+                if link_tier_info and current_tier != 'none' and current_tier != link_tier_info.name:
+                    logger.warning(f"[ADMIN] TIER MISMATCH: User has tier '{current_tier}' but generating link for '{link_tier_info.name}'. This may cause duplicate credits!")
+                    # Don't block, but log heavily for tracking
         
         # Default URLs if not provided (use SUPABASE_URL as base if FRONTEND_URL not available)
         frontend_url = getattr(config, 'FRONTEND_URL', None) or config.SUPABASE_URL.replace('supabase.co', 'vercel.app')
@@ -497,6 +547,17 @@ async def link_stripe_subscription(
             raise HTTPException(status_code=404, detail="Account not found")
         
         user_id = account_result.data[0]['primary_owner_user_id']
+        
+        # CRITICAL: Check if account already has a subscription
+        existing_sub_check = await client.from_('credit_accounts').select('stripe_subscription_id, tier').eq('account_id', user_id).execute()
+        
+        if existing_sub_check.data and existing_sub_check.data[0].get('stripe_subscription_id'):
+            existing_sub_id = existing_sub_check.data[0]['stripe_subscription_id']
+            if existing_sub_id and existing_sub_id != request.stripe_subscription_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Account already has subscription {existing_sub_id}. Cannot link another subscription. Cancel existing subscription first or contact support."
+                )
         
         # Get or create billing customer
         customer_id = subscription.customer if isinstance(subscription.customer, str) else subscription.customer.id
