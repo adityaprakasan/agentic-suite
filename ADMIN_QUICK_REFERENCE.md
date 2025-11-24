@@ -1,5 +1,11 @@
 # Admin Tier Management - Quick Reference Card
 
+⚠️ **IMPORTANT:** If you got 500 errors before, they've been fixed! See `FIX_APPLIED.md` for details.
+
+✅ **Status:** All endpoints working correctly after schema fix (Nov 24, 2025)
+
+---
+
 ## 🚀 Onboard User Immediately (Today)
 
 ```

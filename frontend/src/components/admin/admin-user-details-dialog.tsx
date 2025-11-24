@@ -659,21 +659,38 @@ export function AdminUserDetailsDialog({
             </TabsContent>
             <TabsContent value="actions" className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
+                {/* Workflow explanation */}
+                <div className="p-4 border border-purple-200 dark:border-purple-950 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">
+                        Manual Onboarding Workflow
+                      </p>
+                      <p className="text-sm text-purple-700 dark:text-purple-300">
+                        <strong>Step 1:</strong> Set tier below to give immediate access<br />
+                        <strong>Step 2:</strong> Generate payment link to send to payer<br />
+                        <strong>Step 3:</strong> When paid, subscription auto-links via webhook
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Set Subscription Tier Card */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Shield className="h-4 w-4" />
-                      Set Subscription Tier
+                      Step 1: Set Subscription Tier
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="p-3 border border-blue-200 dark:border-blue-950 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                        <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5" />
                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                          Manually set the user's subscription tier. Use for manual onboarding
-                          or special cases when payment is pending.
+                          <strong>Give immediate access:</strong> Set tier and grant credits now.
+                          User can start using the platform while you wait for payment.
                         </p>
                       </div>
                     </div>
@@ -746,16 +763,16 @@ export function AdminUserDetailsDialog({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <LinkIcon className="h-4 w-4" />
-                      Generate Customer Payment Link
+                      Step 2: Generate Payment Link
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="p-3 border border-green-200 dark:border-green-950 bg-green-50 dark:bg-green-950/20 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                        <LinkIcon className="h-4 w-4 text-green-600 mt-0.5" />
                         <p className="text-sm text-green-700 dark:text-green-300">
-                          Create a customer-specific payment link. When they pay, the subscription
-                          will automatically link to this account via webhook.
+                          <strong>Send to payer:</strong> Generate a link pre-linked to this account.
+                          When they pay, webhook automatically connects the subscription. <strong>Do this AFTER</strong> setting tier.
                         </p>
                       </div>
                     </div>
@@ -824,7 +841,7 @@ export function AdminUserDetailsDialog({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <LinkIcon className="h-4 w-4" />
-                      Link Existing Subscription
+                      Alternative: Link Existing Subscription
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -832,8 +849,8 @@ export function AdminUserDetailsDialog({
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5" />
                         <p className="text-sm text-orange-700 dark:text-orange-300">
-                          Use this when someone paid via a generic link. Enter the Stripe
-                          subscription ID to link it to this account.
+                          <strong>Only use if</strong> they already paid via a generic link.
+                          Enter Stripe subscription ID to manually link it to this account.
                         </p>
                       </div>
                     </div>

@@ -337,12 +337,13 @@ async def set_user_tier(
             new_balance = result.get('total_balance', old_balance)
             credits_granted = tier.monthly_credits
         
-        # Create audit log
-        await client.table('admin_audit_log').insert({
-            'admin_account_id': admin['user_id'],
-            'action': 'set_tier',
-            'target_account_id': request.account_id,
+        # Create audit log (table is admin_actions_log, not admin_audit_log)
+        await client.table('admin_actions_log').insert({
+            'admin_user_id': admin['user_id'],
+            'action_type': 'set_tier',
+            'target_user_id': user_id,
             'details': {
+                'account_id': request.account_id,
                 'old_tier': old_tier,
                 'new_tier': request.tier_name,
                 'credits_granted': float(credits_granted),
@@ -401,9 +402,10 @@ async def generate_customer_payment_link(
         if not price_id:
             raise HTTPException(status_code=400, detail="Must provide either price_id or tier_name")
         
-        # Default URLs if not provided
-        success_url = request.success_url or f"{config.FRONTEND_URL}/billing?success=true"
-        cancel_url = request.cancel_url or f"{config.FRONTEND_URL}/billing?canceled=true"
+        # Default URLs if not provided (use SUPABASE_URL as base if FRONTEND_URL not available)
+        frontend_url = getattr(config, 'FRONTEND_URL', None) or config.SUPABASE_URL.replace('supabase.co', 'vercel.app')
+        success_url = request.success_url or f"{frontend_url}/billing?success=true"
+        cancel_url = request.cancel_url or f"{frontend_url}/billing?canceled=true"
         
         # Create checkout session
         checkout_session = await subscription_service.create_checkout_session(
@@ -416,11 +418,11 @@ async def generate_customer_payment_link(
         db = DBConnection()
         client = await db.client
         
-        # Create audit log
-        await client.table('admin_audit_log').insert({
-            'admin_account_id': admin['user_id'],
-            'action': 'generate_customer_link',
-            'target_account_id': request.account_id,
+        # Create audit log (table is admin_actions_log, not admin_audit_log)
+        await client.table('admin_actions_log').insert({
+            'admin_user_id': admin['user_id'],
+            'action_type': 'generate_customer_link',
+            'target_user_id': request.account_id,
             'details': {
                 'price_id': price_id,
                 'checkout_session_id': checkout_session.get('session_id'),
@@ -583,12 +585,13 @@ async def link_stripe_subscription(
             balance_info = await credit_manager.get_balance(request.account_id)  # credit_manager handles lookup
             new_balance = balance_info.get('total', 0)
         
-        # Create audit log
-        await client.table('admin_audit_log').insert({
-            'admin_account_id': admin['user_id'],
-            'action': 'link_subscription',
-            'target_account_id': request.account_id,
+        # Create audit log (table is admin_actions_log, not admin_audit_log)
+        await client.table('admin_actions_log').insert({
+            'admin_user_id': admin['user_id'],
+            'action_type': 'link_subscription',
+            'target_user_id': user_id,
             'details': {
+                'account_id': request.account_id,
                 'subscription_id': subscription.id,
                 'customer_id': customer_id,
                 'tier': tier_info.name,
