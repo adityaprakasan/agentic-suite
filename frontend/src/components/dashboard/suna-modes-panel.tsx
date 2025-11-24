@@ -26,7 +26,6 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getPdfUrl } from '@/components/thread/tool-views/utils/presentation-utils';
-import { useTranslations } from 'next-intl';
 import { PromptExamples } from '@/components/shared/prompt-examples';
 
 interface SunaModesPanelProps {
@@ -1107,36 +1106,15 @@ export function SunaModesPanel({
   selectedTemplate: controlledSelectedTemplate,
   onTemplateChange
 }: SunaModesPanelProps) {
-  const t = useTranslations('suna');
   const currentMode = selectedMode ? modes.find((m) => m.id === selectedMode) : null;
   const promptCount = isMobile ? 2 : 4;
   
-  // Get translated prompts for a mode
+  // Get prompts for a mode (using hardcoded sample prompts)
   const getTranslatedPrompts = (modeId: string): string[] => {
-    const prompts: string[] = [];
-    let index = 0;
-    const maxPrompts = 20; // Safety limit
-    
-    while (index < maxPrompts) {
-      try {
-        const key = `prompts.${modeId}.${index}`;
-        const prompt = t(key);
-        // Check if translation exists (next-intl returns the key if missing)
-        if (!prompt || prompt === `suna.${key}` || prompt.startsWith('suna.prompts.')) {
-          break;
-        }
-        prompts.push(prompt);
-        index++;
-      } catch {
-        break;
-      }
-    }
-    
-    // Fallback to hardcoded prompts if no translations found
-    if (prompts.length === 0 && currentMode) {
+    if (currentMode) {
       return currentMode.samplePrompts;
     }
-    return prompts;
+    return [];
   };
   
   // State to track current random selection of prompts
