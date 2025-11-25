@@ -2,10 +2,11 @@ from typing import Dict, List, Optional, Set
 from .ai_models import Model, ModelProvider, ModelCapability, ModelPricing, ModelConfig
 from core.utils.config import config, EnvMode
 
-FREE_MODEL_ID = "xai/grok-4-fast-non-reasoning"  # Fast, reliable for triggers
-PREMIUM_MODEL_ID = "xai/grok-4-fast-non-reasoning"  # Using Grok 4 Fast for all tiers
-
 is_local = config.ENV_MODE == EnvMode.LOCAL
+
+# Default model IDs - Bedrock Haiku 4.5
+FREE_MODEL_ID = "bedrock/converse/arn:aws:bedrock:us-west-2:905357846920:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0"
+PREMIUM_MODEL_ID = "bedrock/converse/arn:aws:bedrock:us-west-2:905357846920:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 class ModelRegistry:
     def __init__(self):
