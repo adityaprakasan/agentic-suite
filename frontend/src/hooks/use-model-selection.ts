@@ -20,9 +20,12 @@ export interface ModelOption {
 // Helper function to get default model from API data
 const getDefaultModel = (models: ModelOption[], hasActiveSubscription: boolean): string => {
   if (hasActiveSubscription) {
-    // For premium users, find the first recommended model
-    const recommendedModel = models.find(m => m.recommended);
-    if (recommendedModel) return recommendedModel.id;
+    // For premium users, find the recommended model with highest priority
+    const recommendedModels = models.filter(m => m.recommended);
+    if (recommendedModels.length > 0) {
+      const sortedRecommended = recommendedModels.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      return sortedRecommended[0].id;
+    }
   }
   
   // For free users, find the first non-subscription model with highest priority

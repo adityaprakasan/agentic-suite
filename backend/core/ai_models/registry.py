@@ -109,7 +109,7 @@ class ModelRegistry:
                 output_cost_per_million_tokens=4.00
             ),
             tier_availability=["free", "paid"],
-            priority=97,
+            priority=98,  # Higher priority than Grok (96) to ensure it's selected as default
             recommended=True,
             enabled=True
         ))
