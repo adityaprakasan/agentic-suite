@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 export interface PromptExample {
   text: string;
+  fullText?: string; // Optional full/long version of the prompt (used if different from text)
   icon?: React.ComponentType<{ className?: string }>;
 }
 
@@ -55,7 +56,7 @@ export function PromptExamples({
                 ease: 'easeOut',
               }}
               className="group cursor-pointer rounded-lg hover:bg-accent/50 transition-colors duration-150"
-              onClick={() => onPromptClick?.(prompt.text)}
+              onClick={() => onPromptClick?.(prompt.fullText || prompt.text)}
             >
               <div className="flex items-center justify-between gap-3 px-3 py-2.5">
                 <p className="text-sm text-foreground/70 group-hover:text-foreground transition-colors leading-relaxed flex-1">
@@ -95,7 +96,7 @@ export function PromptExamples({
           >
             <Card
               className="p-4 cursor-pointer hover:bg-primary/5 transition-all duration-200 group border border-border rounded-xl"
-              onClick={() => onPromptClick?.(prompt.text)}
+              onClick={() => onPromptClick?.(prompt.fullText || prompt.text)}
             >
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm text-foreground/80 leading-relaxed flex-1">

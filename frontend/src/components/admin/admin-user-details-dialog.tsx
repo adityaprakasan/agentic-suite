@@ -200,8 +200,9 @@ export function AdminUserDetailsDialog({
   };
 
   const handleSetPlan = async () => {
-    if (!user || !planReason) {
-      toast.error('Please provide a reason for the plan change');
+    if (!user) return;
+    if (!planReason || planReason.length < 3) {
+      toast.error('Please provide a reason (at least 3 characters)');
       return;
     }
 
@@ -236,8 +237,13 @@ export function AdminUserDetailsDialog({
   };
 
   const handleLinkSubscription = async () => {
-    if (!user || !subscriptionId || !linkReason) {
-      toast.error('Please fill in subscription ID and reason');
+    if (!user) return;
+    if (!subscriptionId) {
+      toast.error('Please provide a subscription ID');
+      return;
+    }
+    if (!linkReason || linkReason.length < 3) {
+      toast.error('Please provide a reason (at least 3 characters)');
       return;
     }
 
@@ -782,7 +788,7 @@ export function AdminUserDetailsDialog({
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="plan-reason">Reason (required)</Label>
+                      <Label htmlFor="plan-reason">Reason (min 3 characters)</Label>
                       <Textarea
                         id="plan-reason"
                         placeholder="Enterprise onboarding - boss will pay via separate invoice"
@@ -791,6 +797,9 @@ export function AdminUserDetailsDialog({
                         rows={2}
                         className="mt-1"
                       />
+                      {planReason && planReason.length < 3 && (
+                        <p className="text-xs text-orange-500 mt-1">{3 - planReason.length} more character(s) needed</p>
+                      )}
                     </div>
                     <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
                       <div className="flex items-center gap-2">
@@ -813,7 +822,7 @@ export function AdminUserDetailsDialog({
                     </div>
                     <Button
                       onClick={handleSetPlan}
-                      disabled={setUserPlanMutation.isPending || !planReason}
+                      disabled={setUserPlanMutation.isPending || !planReason || planReason.length < 3}
                       className="w-full"
                     >
                       {setUserPlanMutation.isPending ? (
