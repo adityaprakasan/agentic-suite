@@ -366,21 +366,39 @@ async def admin_set_user_plan(
         next_grant = now + timedelta(days=request.billing_period_days)
         expires_at = next_grant if request.credit_type == 'expiring' else None
         
-        # Update or create credit account
-        update_data = {
-            'tier': request.tier,
-            'billing_cycle_anchor': billing_anchor.isoformat(),
-            'next_credit_grant': next_grant.isoformat(),
-            'updated_at': now.isoformat()
-        }
-        
         credits_granted = Decimal('0')
         
+        # IMPORTANT: Create or update the account FIRST, then add credits
+        # This ensures add_credits() finds an existing account with correct tier
+        if has_account:
+            # Update existing account with new tier and billing info
+            update_data = {
+                'tier': request.tier,
+                'billing_cycle_anchor': billing_anchor.isoformat(),
+                'next_credit_grant': next_grant.isoformat(),
+                'updated_at': now.isoformat()
+            }
+            if should_grant_credits:
+                update_data['last_grant_date'] = now.isoformat()
+            await client.from_('credit_accounts').update(update_data).eq('account_id', request.account_id).execute()
+        else:
+            # Create new credit account with correct tier BEFORE adding credits
+            insert_data = {
+                'account_id': request.account_id,
+                'tier': request.tier,
+                'balance': 0,
+                'expiring_credits': 0,
+                'non_expiring_credits': 0,
+                'billing_cycle_anchor': billing_anchor.isoformat(),
+                'next_credit_grant': next_grant.isoformat(),
+                'last_grant_date': now.isoformat() if should_grant_credits else None
+            }
+            await client.from_('credit_accounts').insert(insert_data).execute()
+        
+        # Now grant credits if needed - account definitely exists at this point
         if should_grant_credits:
-            update_data['last_grant_date'] = now.isoformat()
             credits_granted = new_tier.monthly_credits
             
-            # Grant credits
             credit_result = await credit_manager.add_credits(
                 account_id=request.account_id,
                 amount=credits_granted,
@@ -392,22 +410,6 @@ async def admin_set_user_plan(
             
             if credit_result.get('duplicate_prevented'):
                 logger.warning(f"[ADMIN SET PLAN] Duplicate credit grant prevented for {request.account_id}")
-        
-        if has_account:
-            await client.from_('credit_accounts').update(update_data).eq('account_id', request.account_id).execute()
-        else:
-            # Create new credit account
-            insert_data = {
-                'account_id': request.account_id,
-                'tier': request.tier,
-                'balance': float(credits_granted) if should_grant_credits else 0,
-                'expiring_credits': float(credits_granted) if should_grant_credits and request.credit_type == 'expiring' else 0,
-                'non_expiring_credits': float(credits_granted) if should_grant_credits and request.credit_type == 'non_expiring' else 0,
-                'billing_cycle_anchor': billing_anchor.isoformat(),
-                'next_credit_grant': next_grant.isoformat(),
-                'last_grant_date': now.isoformat() if should_grant_credits else None
-            }
-            await client.from_('credit_accounts').insert(insert_data).execute()
         
         # Invalidate caches
         await Cache.invalidate(f"credit_balance:{request.account_id}")
@@ -569,21 +571,8 @@ async def admin_link_subscription(
         billing_anchor = datetime.fromtimestamp(subscription['current_period_start'], tz=timezone.utc)
         next_grant = datetime.fromtimestamp(subscription['current_period_end'], tz=timezone.utc)
         
-        # Grant credits only if this is an upgrade
-        if is_upgrade:
-            credits_granted = subscription_tier.monthly_credits
-            expires_at = next_grant
-            
-            await credit_manager.add_credits(
-                account_id=request.account_id,
-                amount=credits_granted,
-                is_expiring=True,
-                description=f"Admin link: Upgrade to {subscription_tier.display_name} ({request.reason})",
-                expires_at=expires_at,
-                type='admin_grant'
-            )
-        
-        # Update credit account
+        # IMPORTANT: Create or update the account FIRST, then add credits
+        # This ensures add_credits() finds an existing account
         update_data = {
             'tier': subscription_tier.name,
             'stripe_subscription_id': request.stripe_subscription_id,
@@ -598,15 +587,29 @@ async def admin_link_subscription(
         if account_result.data:
             await client.from_('credit_accounts').update(update_data).eq('account_id', request.account_id).execute()
         else:
-            # Create new credit account
+            # Create new credit account BEFORE adding credits
             insert_data = {
                 'account_id': request.account_id,
                 **update_data,
-                'balance': float(credits_granted) if is_upgrade else 0,
-                'expiring_credits': float(credits_granted) if is_upgrade else 0,
+                'balance': 0,
+                'expiring_credits': 0,
                 'non_expiring_credits': 0
             }
             await client.from_('credit_accounts').insert(insert_data).execute()
+        
+        # Now grant credits if this is an upgrade - account definitely exists at this point
+        if is_upgrade:
+            credits_granted = subscription_tier.monthly_credits
+            expires_at = next_grant
+            
+            await credit_manager.add_credits(
+                account_id=request.account_id,
+                amount=credits_granted,
+                is_expiring=True,
+                description=f"Admin link: Upgrade to {subscription_tier.display_name} ({request.reason})",
+                expires_at=expires_at,
+                type='admin_grant'
+            )
         
         # Invalidate caches
         await Cache.invalidate(f"credit_balance:{request.account_id}")
