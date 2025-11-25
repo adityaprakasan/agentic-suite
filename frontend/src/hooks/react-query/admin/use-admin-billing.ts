@@ -1,5 +1,5 @@
 import { backendApi } from '@/lib/api-client';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface CreditAdjustmentRequest {
   account_id: string;
@@ -18,57 +18,79 @@ interface RefundRequest {
   payment_intent_id?: string;
 }
 
-interface SetTierRequest {
+// New interfaces for plan management
+interface SetPlanRequest {
   account_id: string;
-  tier_name: string;
-  grant_credits: boolean;
+  tier: 'tier_basic' | 'tier_plus' | 'tier_ultra';
   reason: string;
+  grant_credits?: boolean;
+  credit_type?: 'expiring' | 'non_expiring';
+  billing_period_days?: number;
 }
 
-interface SetTierResponse {
+interface SetPlanResponse {
   success: boolean;
+  message: string;
   account_id: string;
-  old_tier: string;
+  previous_tier: string;
   new_tier: string;
-  tier_display_name: string;
   credits_granted: number;
-  new_balance: number;
-  monthly_credits: number;
-}
-
-interface GenerateCustomerLinkRequest {
-  account_id: string;
-  price_id?: string;
-  tier_name?: string;
-  success_url?: string;
-  cancel_url?: string;
-}
-
-interface GenerateCustomerLinkResponse {
-  success: boolean;
-  checkout_url: string;
-  session_id: string;
-  account_id: string;
-  price_id: string;
+  credit_type: string | null;
+  current_balance: number;
+  billing_cycle_anchor: string;
+  next_credit_grant: string;
+  is_upgrade: boolean;
+  is_downgrade: boolean;
 }
 
 interface LinkSubscriptionRequest {
   account_id: string;
   stripe_subscription_id: string;
-  skip_credit_grant?: boolean;
+  stripe_customer_id?: string;
+  reason: string;
 }
 
 interface LinkSubscriptionResponse {
   success: boolean;
+  message: string;
   account_id: string;
-  subscription_id: string;
-  customer_id: string;
+  stripe_subscription_id: string;
+  stripe_customer_id: string | null;
+  previous_tier: string;
+  subscription_tier: string;
+  credits_granted: number;
+  current_balance: number;
+  billing_cycle_anchor: string;
+  next_credit_grant: string;
+  is_upgrade: boolean;
+  is_same_tier: boolean;
+}
+
+interface CreateCheckoutLinkRequest {
+  account_id: string;
+  tier: 'tier_basic' | 'tier_plus' | 'tier_ultra';
+  payer_email?: string;
+  return_url: string;
+}
+
+interface CreateCheckoutLinkResponse {
+  success: boolean;
+  checkout_url: string;
+  checkout_session_id: string;
+  account_id: string;
   tier: string;
   tier_display_name: string;
-  status: string;
-  credits_granted: number;
-  new_balance: number;
-  current_period_end: string;
+  monthly_credits: number;
+  payer_email: string | null;
+  expires_at: string | null;
+}
+
+interface TierInfo {
+  name: string;
+  display_name: string;
+  monthly_credits: number;
+  project_limit: number;
+  can_purchase_credits: boolean;
 }
 
 export function useUserBillingSummary(userId: string | null) {
@@ -138,34 +160,102 @@ export function useProcessRefund() {
   });
 }
 
-export function useSetUserTier() {
-  return useMutation<SetTierResponse, Error, SetTierRequest>({
-    mutationFn: async (request: SetTierRequest) => {
-      const response = await backendApi.post('/admin/billing/set-tier', request);
+// ============================================================================
+// PLAN MANAGEMENT HOOKS
+// ============================================================================
+
+/**
+ * Fetch available tiers for admin plan management
+ */
+export function useAvailableTiers() {
+  return useQuery({
+    queryKey: ['admin', 'billing', 'tiers'],
+    queryFn: async () => {
+      const response = await backendApi.get('/admin/billing/tiers');
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      return response.data as { tiers: TierInfo[] };
+    },
+    staleTime: 60000, // Tiers don't change often
+  });
+}
+
+/**
+ * Set a user's subscription plan manually
+ * 
+ * Handles:
+ * - Fresh onboarding (none → paid tier)
+ * - Upgrades (lower → higher tier)
+ * - Downgrades (higher → lower tier, no credits)
+ * 
+ * Safeguards:
+ * - Same tier rejection
+ * - 24-hour cooldown
+ * - Downgrade = no credits
+ */
+export function useSetUserPlan() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: SetPlanRequest): Promise<SetPlanResponse> => {
+      const response = await backendApi.post('/admin/billing/set-plan', request);
       if (response.error) {
         throw new Error(response.error.message);
       }
       return response.data;
     },
-  });
-}
-
-export function useGenerateCustomerLink() {
-  return useMutation<GenerateCustomerLinkResponse, Error, GenerateCustomerLinkRequest>({
-    mutationFn: async (request: GenerateCustomerLinkRequest) => {
-      const response = await backendApi.post('/admin/billing/generate-customer-link', request);
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-      return response.data;
+    onSuccess: (data, variables) => {
+      // Invalidate user-related queries
+      queryClient.invalidateQueries({ queryKey: ['admin', 'billing', 'user', variables.account_id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'billing', 'transactions', variables.account_id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     },
   });
 }
 
+/**
+ * Link an existing Stripe subscription to a user account
+ * 
+ * Use when:
+ * - Third party paid via generic payment link
+ * - Subscription created outside normal flow
+ * 
+ * Safeguards:
+ * - Verifies subscription in Stripe
+ * - Same tier = no credits
+ * - Higher tier = upgrade with credits
+ */
 export function useLinkSubscription() {
-  return useMutation<LinkSubscriptionResponse, Error, LinkSubscriptionRequest>({
-    mutationFn: async (request: LinkSubscriptionRequest) => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (request: LinkSubscriptionRequest): Promise<LinkSubscriptionResponse> => {
       const response = await backendApi.post('/admin/billing/link-subscription', request);
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      return response.data;
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate user-related queries
+      queryClient.invalidateQueries({ queryKey: ['admin', 'billing', 'user', variables.account_id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'billing', 'transactions', variables.account_id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+  });
+}
+
+/**
+ * Create a Stripe checkout link for third-party payment
+ * 
+ * The link includes account_id in metadata so webhooks auto-link
+ * the subscription when payment completes.
+ */
+export function useCreateCheckoutLink() {
+  return useMutation({
+    mutationFn: async (request: CreateCheckoutLinkRequest): Promise<CreateCheckoutLinkResponse> => {
+      const response = await backendApi.post('/admin/billing/create-checkout-link', request);
       if (response.error) {
         throw new Error(response.error.message);
       }

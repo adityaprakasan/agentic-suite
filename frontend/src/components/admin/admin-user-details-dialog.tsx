@@ -7,7 +7,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -16,6 +15,13 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,14 +30,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   User,
   CreditCard,
-  History,
   DollarSign,
-  Calendar,
   Activity,
   AlertCircle,
   CheckCircle,
@@ -40,10 +43,11 @@ import {
   Infinity,
   MessageSquare,
   ExternalLink,
-  Shield,
-  Link as LinkIcon,
+  Link2,
+  Zap,
+  ArrowUpCircle,
+  ArrowDownCircle,
   Copy,
-  Check,
 } from 'lucide-react';
 import { useAdminUserDetails, useAdminUserThreads, useAdminUserActivity } from '@/hooks/react-query/admin/use-admin-users';
 import {
@@ -51,9 +55,10 @@ import {
   useAdjustCredits,
   useProcessRefund,
   useAdminUserTransactions,
-  useSetUserTier,
-  useGenerateCustomerLink,
+  useAvailableTiers,
+  useSetUserPlan,
   useLinkSubscription,
+  useCreateCheckoutLink,
 } from '@/hooks/react-query/admin/use-admin-billing';
 import type { UserSummary } from '@/hooks/react-query/admin/use-admin-users';
 
@@ -70,6 +75,7 @@ export function AdminUserDetailsDialog({
   onClose,
   onRefresh,
 }: AdminUserDetailsDialogProps) {
+  // Existing state
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
   const [refundAmount, setRefundAmount] = useState('');
@@ -80,14 +86,20 @@ export function AdminUserDetailsDialog({
   const [transactionsPage, setTransactionsPage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
 
-  // New tier management state
-  const [selectedTier, setSelectedTier] = useState('tier_basic');
-  const [tierReason, setTierReason] = useState('');
-  const [grantCredits, setGrantCredits] = useState(true);
-  const [generatedLink, setGeneratedLink] = useState('');
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [linkTier, setLinkTier] = useState('tier_ultra');
+  // New state for plan management
+  const [selectedTier, setSelectedTier] = useState<'tier_basic' | 'tier_plus' | 'tier_ultra'>('tier_ultra');
+  const [planReason, setPlanReason] = useState('');
+  const [planCreditType, setPlanCreditType] = useState<'expiring' | 'non_expiring'>('expiring');
+  
+  // Link subscription state
   const [subscriptionId, setSubscriptionId] = useState('');
+  const [customerId, setCustomerId] = useState('');
+  const [linkReason, setLinkReason] = useState('');
+  
+  // Checkout link state
+  const [checkoutTier, setCheckoutTier] = useState<'tier_basic' | 'tier_plus' | 'tier_ultra'>('tier_ultra');
+  const [payerEmail, setPayerEmail] = useState('');
+  const [generatedCheckoutUrl, setGeneratedCheckoutUrl] = useState('');
 
   const { data: userDetails, isLoading } = useAdminUserDetails(user?.id || null);
   const { data: billingSummary, refetch: refetchBilling } = useUserBillingSummary(user?.id || null);
@@ -106,11 +118,13 @@ export function AdminUserDetailsDialog({
     page: activityPage,
     page_size: 10,
   });
+  const { data: availableTiers } = useAvailableTiers();
+  
   const adjustCreditsMutation = useAdjustCredits();
   const processRefundMutation = useProcessRefund();
-  const setTierMutation = useSetUserTier();
-  const generateLinkMutation = useGenerateCustomerLink();
+  const setUserPlanMutation = useSetUserPlan();
   const linkSubscriptionMutation = useLinkSubscription();
+  const createCheckoutLinkMutation = useCreateCheckoutLink();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -185,148 +199,45 @@ export function AdminUserDetailsDialog({
     }
   };
 
-  const handleSetTier = async () => {
-    if (!user || !selectedTier || !tierReason) {
-      toast.error('Please select a tier and provide a reason');
+  const handleSetPlan = async () => {
+    if (!user || !planReason) {
+      toast.error('Please provide a reason for the plan change');
       return;
     }
 
-    const tierNames: Record<string, string> = {
-      tier_basic: 'Basic',
-      tier_plus: 'Plus',
-      tier_ultra: 'Ultra',
-      none: 'None',
-    };
-
-    const currentTierName = tierNames[user.tier || 'none'] || user.tier || 'None';
-    const newTierName = tierNames[selectedTier] || selectedTier;
-
-    // CRITICAL: Different warnings for SAME tier vs CHANGING tier
-    if (user.tier === selectedTier && grantCredits) {
-      // Setting SAME tier again - likely accidental duplicate
-      const confirm = window.confirm(
-        `⚠️ DUPLICATE WARNING:\n\n` +
-        `User is already on "${currentTierName}".\n\n` +
-        `If you click "OK", they will get ANOTHER set of credits on top of their existing balance.\n\n` +
-        `This is usually NOT what you want unless you're manually adding a bonus.\n\n` +
-        `Options:\n` +
-        `- Click "Cancel" and uncheck "Grant Credits" if you just want to update tier metadata\n` +
-        `- Click "OK" ONLY if you intentionally want to add duplicate credits\n\n` +
-        `Continue?`
-      );
-      if (!confirm) return;
-    } else if (user.tier && user.tier !== 'none' && user.tier !== selectedTier && grantCredits) {
-      // CHANGING tier - this is legitimate but confirm
-      const confirm = window.confirm(
-        `✅ TIER CHANGE:\n\n` +
-        `Current tier: ${currentTierName}\n` +
-        `New tier: ${newTierName}\n\n` +
-        `This will:\n` +
-        `1. Update tier from ${currentTierName} to ${newTierName}\n` +
-        `2. Grant credits for ${newTierName}\n\n` +
-        `Continue?`
-      );
-      if (!confirm) return;
-    }
-
     try {
-      const result = await setTierMutation.mutateAsync({
+      const result = await setUserPlanMutation.mutateAsync({
         account_id: user.id,
-        tier_name: selectedTier,
-        grant_credits: grantCredits,
-        reason: tierReason,
+        tier: selectedTier,
+        reason: planReason,
+        credit_type: planCreditType,
       });
 
-      // Show appropriate success message
-      const wasChange = user.tier && user.tier !== 'none' && user.tier !== selectedTier;
-      toast.success(
-        `${wasChange ? 'Tier changed' : 'Tier updated'} to ${result.tier_display_name}. ${
-          result.credits_granted > 0
-            ? `Granted $${result.credits_granted}. `
-            : ''
-        }New balance: ${formatCurrency(result.new_balance)}`
-      );
+      const tierName = availableTiers?.tiers.find(t => t.name === selectedTier)?.display_name || selectedTier;
+      
+      if (result.is_upgrade || result.credits_granted > 0) {
+        toast.success(
+          `User ${result.is_upgrade ? 'upgraded' : 'set'} to ${tierName}. Credits granted: ${formatCurrency(result.credits_granted)}. New balance: ${formatCurrency(result.current_balance)}`
+        );
+      } else if (result.is_downgrade) {
+        toast.success(
+          `User downgraded to ${tierName}. No credits granted (downgrade).`
+        );
+      } else {
+        toast.success(`User plan set to ${tierName}.`);
+      }
 
       refetchBilling();
       onRefresh?.();
-
-      setTierReason('');
-      setGrantCredits(true); // Reset to default
+      setPlanReason('');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to set tier');
-    }
-  };
-
-  const handleGenerateLink = async () => {
-    if (!user || !linkTier) {
-      toast.error('Please select a tier');
-      return;
-    }
-
-    // VALIDATION: Warn if link tier doesn't match current tier
-    if (user.tier && user.tier !== 'none' && user.tier !== linkTier) {
-      const tierNames: Record<string, string> = {
-        tier_basic: 'Basic',
-        tier_plus: 'Plus',
-        tier_ultra: 'Ultra',
-      };
-      const confirm = window.confirm(
-        `⚠️ MISMATCH WARNING:\n\n` +
-        `User's current tier: ${tierNames[user.tier] || user.tier}\n` +
-        `Payment link tier: ${tierNames[linkTier] || linkTier}\n\n` +
-        `When they pay, they'll get credits for ${tierNames[linkTier]}, which may be different from what you manually set.\n\n` +
-        `Continue anyway?`
-      );
-      if (!confirm) return;
-    }
-
-    try {
-      const result = await generateLinkMutation.mutateAsync({
-        account_id: user.id,
-        tier_name: linkTier,
-      });
-
-      setGeneratedLink(result.checkout_url);
-      toast.success('Payment link generated! Copy and send to customer.');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to generate link');
-    }
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedLink);
-      setLinkCopied(true);
-      toast.success('Link copied to clipboard!');
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch (error) {
-      // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement('textarea');
-      textArea.value = generatedLink;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        setLinkCopied(true);
-        toast.success('Link copied to clipboard!');
-        setTimeout(() => setLinkCopied(false), 2000);
-      } catch (err) {
-        toast.error('Failed to copy link. Please copy manually.');
-      }
-      document.body.removeChild(textArea);
+      toast.error(error.message || 'Failed to set plan');
     }
   };
 
   const handleLinkSubscription = async () => {
-    if (!user || !subscriptionId) {
-      toast.error('Please enter a Stripe subscription ID');
-      return;
-    }
-
-    if (!subscriptionId.startsWith('sub_')) {
-      toast.error('Invalid subscription ID format (should start with sub_)');
+    if (!user || !subscriptionId || !linkReason) {
+      toast.error('Please fill in subscription ID and reason');
       return;
     }
 
@@ -334,34 +245,89 @@ export function AdminUserDetailsDialog({
       const result = await linkSubscriptionMutation.mutateAsync({
         account_id: user.id,
         stripe_subscription_id: subscriptionId,
-        skip_credit_grant: false,
+        stripe_customer_id: customerId || undefined,
+        reason: linkReason,
       });
 
-      toast.success(
-        `Subscription linked! Tier: ${result.tier_display_name}, Balance: ${formatCurrency(
-          result.new_balance
-        )}`
-      );
+      if (result.is_upgrade) {
+        toast.success(
+          `Subscription linked and upgraded to ${result.subscription_tier}. Credits granted: ${formatCurrency(result.credits_granted)}`
+        );
+      } else if (result.is_same_tier) {
+        toast.success(
+          `Subscription linked successfully. Same tier - no credits granted.`
+        );
+      } else {
+        toast.success(`Subscription linked successfully.`);
+      }
 
       refetchBilling();
       onRefresh?.();
-
       setSubscriptionId('');
+      setCustomerId('');
+      setLinkReason('');
     } catch (error: any) {
       toast.error(error.message || 'Failed to link subscription');
     }
   };
 
+  const handleCreateCheckoutLink = async () => {
+    if (!user) {
+      toast.error('No user selected');
+      return;
+    }
+
+    try {
+      const result = await createCheckoutLinkMutation.mutateAsync({
+        account_id: user.id,
+        tier: checkoutTier,
+        payer_email: payerEmail || undefined,
+        return_url: window.location.origin + '/settings/billing',
+      });
+
+      setGeneratedCheckoutUrl(result.checkout_url);
+      toast.success(`Checkout link created for ${result.tier_display_name} plan`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create checkout link');
+    }
+  };
+
+  const copyCheckoutUrl = () => {
+    navigator.clipboard.writeText(generatedCheckoutUrl);
+    toast.success('Checkout URL copied to clipboard');
+  };
+
   const getTierBadgeVariant = (tier: string) => {
     switch (tier.toLowerCase()) {
+      case 'tier_ultra':
+        return 'default';
+      case 'tier_plus':
+        return 'secondary';
+      case 'tier_basic':
+        return 'secondary';
       case 'pro':
         return 'default';
       case 'premium':
         return 'secondary';
       case 'free':
+      case 'none':
         return 'outline';
       default:
         return 'outline';
+    }
+  };
+
+  const getTierDisplayName = (tier: string) => {
+    const tierInfo = availableTiers?.tiers.find(t => t.name === tier);
+    if (tierInfo) return tierInfo.display_name;
+    
+    switch (tier) {
+      case 'tier_ultra': return 'Ultra';
+      case 'tier_plus': return 'Plus';
+      case 'tier_basic': return 'Basic';
+      case 'none': return 'No Plan';
+      case 'free': return 'Free';
+      default: return tier;
     }
   };
 
@@ -736,230 +702,199 @@ export function AdminUserDetailsDialog({
             </TabsContent>
             <TabsContent value="actions" className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
-                {/* Workflow explanation */}
-                <div className="p-4 border border-purple-200 dark:border-purple-950 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">
-                        Manual Onboarding Workflow
-                      </p>
-                      <p className="text-sm text-purple-700 dark:text-purple-300">
-                        <strong>Step 1:</strong> Set tier below to give immediate access<br />
-                        <strong>Step 2:</strong> Generate payment link to send to payer<br />
-                        <strong>Step 3:</strong> When paid, subscription auto-links via webhook
-                      </p>
+                {/* Current Plan Status */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <User className="h-4 w-4" />
+                      Current Plan Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Current Tier</p>
+                        <Badge variant={getTierBadgeVariant(user.tier)} className="mt-1">
+                          {getTierDisplayName(user.tier)}
+                        </Badge>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Balance</p>
+                        <p className="text-lg font-bold text-green-600">{formatCurrency(user.credit_balance)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Subscription</p>
+                        <Badge variant={user.subscription_status === 'active' ? 'default' : 'outline'} className="mt-1">
+                          {user.subscription_status || 'None'}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                    {user.tier === 'none' || user.tier === 'free' ? (
+                      <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded text-xs text-yellow-700 dark:text-yellow-400">
+                        User has no active plan. Use "Set Plan" below to activate.
+                      </div>
+                    ) : !user.subscription_status || user.subscription_status === 'None' ? (
+                      <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded text-xs text-blue-700 dark:text-blue-400">
+                        User has a plan but no Stripe subscription linked. Use "Link Stripe" if payment was made separately.
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
 
-                {/* Set Subscription Tier Card */}
+                {/* Set Plan */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      Step 1: Set Subscription Tier
+                      <Zap className="h-4 w-4" />
+                      Set Plan
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="p-3 border border-blue-200 dark:border-blue-950 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                        <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
                         <div className="text-sm text-blue-700 dark:text-blue-300">
-                          <p className="mb-2">
-                            <strong>Give immediate access:</strong> Set tier and grant credits now.
-                            User can start using the platform while you wait for payment.
-                          </p>
-                          <p className="text-xs font-medium text-orange-700 dark:text-orange-300">
-                            ⚠️ This is NOT a recurring subscription yet. It only sets tier + grants credits once.
-                            Use Step 2 to generate payment link for recurring billing.
-                          </p>
+                          <p className="font-medium">Use for enterprise onboarding or manual plan changes</p>
+                          <ul className="mt-1 text-xs space-y-0.5">
+                            <li>• <span className="text-green-600">Upgrade/New:</span> Grants full tier credits</li>
+                            <li>• <span className="text-orange-600">Downgrade:</span> Changes tier only, no credits</li>
+                            <li>• <span className="text-red-600">Same tier:</span> Blocked to prevent abuse</li>
+                          </ul>
                         </div>
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="current-tier">Current Tier</Label>
-                      <div className="mt-1">
-                        <Badge variant="outline" className="capitalize text-sm">
-                          {user?.tier || 'none'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="tier-select">New Tier</Label>
-                      <Select value={selectedTier} onValueChange={setSelectedTier}>
-                        <SelectTrigger id="tier-select">
-                          <SelectValue placeholder="Select tier" />
+                      <Label htmlFor="plan-tier">Target Plan</Label>
+                      <Select value={selectedTier} onValueChange={(v) => setSelectedTier(v as any)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select a plan" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="tier_basic">Basic - $49/month</SelectItem>
-                          <SelectItem value="tier_plus">Plus - $199/month</SelectItem>
-                          <SelectItem value="tier_ultra">Ultra - $499/month</SelectItem>
+                          {availableTiers?.tiers.map((tier) => (
+                            <SelectItem key={tier.name} value={tier.name}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{tier.display_name}</span>
+                                <span className="text-muted-foreground ml-2">${tier.monthly_credits}/mo</span>
+                              </div>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="plan-reason">Reason (required)</Label>
+                      <Textarea
+                        id="plan-reason"
+                        placeholder="Enterprise onboarding - boss will pay via separate invoice"
+                        value={planReason}
+                        onChange={(e) => setPlanReason(e.target.value)}
+                        rows={2}
+                        className="mt-1"
+                      />
                     </div>
                     <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
-                      <Label htmlFor="grant-credits" className="cursor-pointer">
-                        <span className="font-medium">Grant Monthly Credits</span>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Give user credits for this tier immediately
-                        </p>
-                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="plan-credit-type" className="cursor-pointer flex items-center gap-2">
+                          {planCreditType === 'expiring' ? (
+                            <Clock className="h-4 w-4 text-orange-500" />
+                          ) : (
+                            <Infinity className="h-4 w-4 text-blue-500" />
+                          )}
+                          <span className="font-medium">
+                            {planCreditType === 'expiring' ? 'Expiring Credits' : 'Non-Expiring Credits'}
+                          </span>
+                        </Label>
+                      </div>
                       <Switch
-                        id="grant-credits"
-                        checked={grantCredits}
-                        onCheckedChange={setGrantCredits}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="tier-reason">Reason (Required)</Label>
-                      <Textarea
-                        id="tier-reason"
-                        placeholder="e.g., Manual onboarding - boss paying later"
-                        value={tierReason}
-                        onChange={(e) => setTierReason(e.target.value)}
-                        rows={2}
+                        id="plan-credit-type"
+                        checked={planCreditType === 'non_expiring'}
+                        onCheckedChange={(checked) => setPlanCreditType(checked ? 'non_expiring' : 'expiring')}
                       />
                     </div>
                     <Button
-                      onClick={handleSetTier}
-                      disabled={setTierMutation.isPending || !tierReason}
+                      onClick={handleSetPlan}
+                      disabled={setUserPlanMutation.isPending || !planReason}
                       className="w-full"
                     >
-                      {setTierMutation.isPending ? (
+                      {setUserPlanMutation.isPending ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Updating Tier...
+                          Setting Plan...
                         </>
+                      ) : user.tier === selectedTier ? (
+                        'Cannot Set Same Tier'
                       ) : (
                         <>
-                          <Shield className="w-4 h-4 mr-2" />
-                          Update Tier
+                          {selectedTier && availableTiers?.tiers.find(t => t.name === selectedTier)?.monthly_credits > 
+                           (availableTiers?.tiers.find(t => t.name === user.tier)?.monthly_credits || 0) ? (
+                            <ArrowUpCircle className="w-4 h-4 mr-2" />
+                          ) : (
+                            <ArrowDownCircle className="w-4 h-4 mr-2" />
+                          )}
+                          Set Plan to {availableTiers?.tiers.find(t => t.name === selectedTier)?.display_name}
                         </>
                       )}
                     </Button>
                   </CardContent>
                 </Card>
 
-                {/* Generate Customer Payment Link Card */}
+                {/* Link Stripe Subscription */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4" />
-                      Step 2: Generate Payment Link
+                      <Link2 className="h-4 w-4" />
+                      Link Stripe Subscription
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="p-3 border border-green-200 dark:border-green-950 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                    <div className="p-3 border border-purple-200 dark:border-purple-950 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <LinkIcon className="h-4 w-4 text-green-600 mt-0.5" />
-                        <p className="text-sm text-green-700 dark:text-green-300">
-                          <strong>Send to payer:</strong> Generate a link pre-linked to this account.
-                          When they pay, webhook automatically connects the subscription. <strong>Do this AFTER</strong> setting tier.
+                        <AlertCircle className="h-4 w-4 text-purple-600 mt-0.5" />
+                        <p className="text-sm text-purple-700 dark:text-purple-300">
+                          Use when a third party (e.g., boss) has paid via a separate Stripe payment. 
+                          Get the subscription ID from Stripe Dashboard.
                         </p>
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="link-tier-select">Select Plan</Label>
-                      <Select value={linkTier} onValueChange={setLinkTier}>
-                        <SelectTrigger id="link-tier-select">
-                          <SelectValue placeholder="Select tier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tier_basic">Basic - $49/month</SelectItem>
-                          <SelectItem value="tier_plus">Plus - $199/month</SelectItem>
-                          <SelectItem value="tier_ultra">Ultra - $499/month</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {user?.tier && user.tier !== 'none' && user.tier !== linkTier && (
-                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 font-medium">
-                          ⚠️ Warning: User's current tier ({user.tier}) doesn't match selected tier. This may cause issues.
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      onClick={handleGenerateLink}
-                      disabled={generateLinkMutation.isPending}
-                      className="w-full"
-                    >
-                      {generateLinkMutation.isPending ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <LinkIcon className="w-4 h-4 mr-2" />
-                          Generate Payment Link
-                        </>
-                      )}
-                    </Button>
-                    {generatedLink && (
-                      <div className="space-y-2">
-                        <Label>Generated Link</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={generatedLink}
-                            readOnly
-                            className="font-mono text-xs"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCopyLink}
-                            className="flex-shrink-0"
-                          >
-                            {linkCopied ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Send this link to the customer. Payment will automatically link to this account.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Link Existing Subscription Card */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4" />
-                      Alternative: Link Existing Subscription
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="p-3 border border-orange-200 dark:border-orange-950 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5" />
-                        <p className="text-sm text-orange-700 dark:text-orange-300">
-                          <strong>Only use if</strong> they already paid via a generic link.
-                          Enter Stripe subscription ID to manually link it to this account.
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="subscription-id">Stripe Subscription ID</Label>
+                      <Label htmlFor="subscription-id">Stripe Subscription ID (required)</Label>
                       <Input
                         id="subscription-id"
-                        placeholder="sub_xxxxxxxxxxxxx"
+                        placeholder="sub_1ABC123..."
                         value={subscriptionId}
                         onChange={(e) => setSubscriptionId(e.target.value)}
-                        className="font-mono"
+                        className="mt-1 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="customer-id">Stripe Customer ID (optional)</Label>
+                      <Input
+                        id="customer-id"
+                        placeholder="cus_1ABC123..."
+                        value={customerId}
+                        onChange={(e) => setCustomerId(e.target.value)}
+                        className="mt-1 font-mono"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Find this in your Stripe Dashboard under the customer's subscription
+                        Provide if you want to link the payer's Stripe customer to this account
                       </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="link-reason">Reason (required)</Label>
+                      <Textarea
+                        id="link-reason"
+                        placeholder="Boss paid via separate invoice - linking to employee account"
+                        value={linkReason}
+                        onChange={(e) => setLinkReason(e.target.value)}
+                        rows={2}
+                        className="mt-1"
+                      />
                     </div>
                     <Button
                       onClick={handleLinkSubscription}
-                      disabled={linkSubscriptionMutation.isPending || !subscriptionId}
-                      className="w-full"
+                      disabled={linkSubscriptionMutation.isPending || !subscriptionId || !linkReason}
                       variant="secondary"
+                      className="w-full"
                     >
                       {linkSubscriptionMutation.isPending ? (
                         <>
@@ -968,7 +903,7 @@ export function AdminUserDetailsDialog({
                         </>
                       ) : (
                         <>
-                          <LinkIcon className="w-4 h-4 mr-2" />
+                          <Link2 className="w-4 h-4 mr-2" />
                           Link Subscription
                         </>
                       )}
@@ -976,7 +911,103 @@ export function AdminUserDetailsDialog({
                   </CardContent>
                 </Card>
 
-                {/* Existing Refund Card */}
+                {/* Create Checkout Link */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Create Payment Link for Third Party
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-3 border border-green-200 dark:border-green-950 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          Creates a payment link that auto-links to this user when paid. 
+                          Send to boss/company to complete payment.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="checkout-tier">Plan</Label>
+                      <Select value={checkoutTier} onValueChange={(v) => setCheckoutTier(v as any)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select a plan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTiers?.tiers.map((tier) => (
+                            <SelectItem key={tier.name} value={tier.name}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{tier.display_name}</span>
+                                <span className="text-muted-foreground ml-2">${tier.monthly_credits}/mo</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="payer-email">Payer Email (optional)</Label>
+                      <Input
+                        id="payer-email"
+                        type="email"
+                        placeholder="boss@company.com"
+                        value={payerEmail}
+                        onChange={(e) => setPayerEmail(e.target.value)}
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Pre-fills the email in checkout for convenience
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleCreateCheckoutLink}
+                      disabled={createCheckoutLinkMutation.isPending}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {createCheckoutLinkMutation.isPending ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Generate Payment Link
+                        </>
+                      )}
+                    </Button>
+                    {generatedCheckoutUrl && (
+                      <div className="p-3 border rounded-lg bg-muted/50 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Generated Link</Label>
+                          <Button variant="ghost" size="sm" onClick={copyCheckoutUrl}>
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
+                        <Input
+                          value={generatedCheckoutUrl}
+                          readOnly
+                          className="font-mono text-xs"
+                        />
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => window.open(generatedCheckoutUrl, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Open Link
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Process Refund (existing) */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">

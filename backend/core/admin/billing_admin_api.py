@@ -1,18 +1,20 @@
 """
 Admin Billing API
-Handles all administrative billing operations: credits, refunds, transactions.
-User search has been moved to admin_api.py as it's user-focused, not billing-focused.
+Handles all administrative billing operations: credits, refunds, transactions, 
+plan management, and Stripe subscription linking.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Optional, List
+from typing import Optional, List, Literal
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from core.auth import require_admin, require_super_admin
 from core.billing.credit_manager import credit_manager
+from core.billing.config import TIERS, get_tier_by_name, get_tier_by_price_id
 from core.services.supabase import DBConnection
 from core.utils.logger import logger
+from core.utils.cache import Cache
 import stripe
 from core.utils.config import config
 
@@ -37,23 +39,25 @@ class RefundRequest(BaseModel):
     stripe_refund: bool = False
     payment_intent_id: Optional[str] = None
 
-class SetTierRequest(BaseModel):
+class SetPlanRequest(BaseModel):
     account_id: str
-    tier_name: str = Field(..., description="Tier name: tier_basic, tier_plus, or tier_ultra")
-    grant_credits: bool = Field(True, description="Whether to grant monthly credits for this tier")
-    reason: str = Field(..., description="Reason for manual tier change")
-
-class GenerateCustomerLinkRequest(BaseModel):
-    account_id: str
-    price_id: Optional[str] = Field(None, description="Stripe price ID (if not provided, uses tier_name)")
-    tier_name: Optional[str] = Field(None, description="Tier name to get price_id from")
-    success_url: Optional[str] = Field(None, description="Success redirect URL")
-    cancel_url: Optional[str] = Field(None, description="Cancel redirect URL")
+    tier: Literal['tier_basic', 'tier_plus', 'tier_ultra'] = Field(..., description="Target tier")
+    reason: str = Field(..., min_length=3, description="Reason for plan change")
+    grant_credits: Optional[bool] = Field(None, description="Auto: true for upgrade/new, false for downgrade")
+    credit_type: Literal['expiring', 'non_expiring'] = Field('expiring', description="Type of credits to grant")
+    billing_period_days: int = Field(30, ge=1, le=365, description="Billing period length")
 
 class LinkSubscriptionRequest(BaseModel):
     account_id: str
     stripe_subscription_id: str = Field(..., description="Stripe subscription ID (sub_xxx)")
-    skip_credit_grant: bool = Field(False, description="Skip granting credits if already granted manually")
+    stripe_customer_id: Optional[str] = Field(None, description="Stripe customer ID (cus_xxx) - optional")
+    reason: str = Field(..., min_length=3, description="Reason for linking")
+
+class CreateCheckoutLinkRequest(BaseModel):
+    account_id: str
+    tier: Literal['tier_basic', 'tier_plus', 'tier_ultra'] = Field(..., description="Target tier")
+    payer_email: Optional[str] = Field(None, description="Email of the person paying (e.g., boss)")
+    return_url: str = Field(..., description="URL to redirect after payment")
 
 # ============================================================================
 # CREDIT MANAGEMENT ENDPOINTS
@@ -260,432 +264,527 @@ async def get_user_transactions(
         raise HTTPException(status_code=500, detail="Failed to retrieve transactions")
 
 # ============================================================================
-# TIER MANAGEMENT ENDPOINTS
+# PLAN MANAGEMENT ENDPOINTS
 # ============================================================================
 
-@router.post("/set-tier")
-async def set_user_tier(
-    request: SetTierRequest,
+@router.post("/set-plan")
+async def admin_set_user_plan(
+    request: SetPlanRequest,
     admin: dict = Depends(require_admin)
 ):
     """
-    Manually set a user's subscription tier.
-    Used for manual onboarding when payment is pending or special cases.
+    Manually set a user's subscription plan.
+    
+    Use cases:
+    - Enterprise onboarding where boss pays separately
+    - Upgrading/downgrading users manually
+    - Reactivating cancelled accounts
+    
+    Safeguards:
+    - Same tier rejection: Cannot set user to their current tier
+    - 24-hour cooldown: Block if credits granted for same tier within 24h
+    - Downgrade = no credits: Downgrades only change tier
+    - Audit trail: All actions logged
     """
     try:
-        from core.billing.config import TIERS
-        from core.utils.cache import Cache
-        
-        # Validate tier
-        tier = TIERS.get(request.tier_name)
-        if not tier:
-            available_tiers = [k for k in TIERS.keys() if k not in ['none', 'free']]
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid tier '{request.tier_name}'. Available: {available_tiers}"
-            )
+        # Validate tier exists
+        new_tier = get_tier_by_name(request.tier)
+        if not new_tier:
+            raise HTTPException(status_code=400, detail=f"Invalid tier: {request.tier}")
         
         db = DBConnection()
         client = await db.client
         
-        # Note: credit_accounts.account_id actually references auth.users(id), not basejump.accounts(id)
-        # We need to get the primary_owner_user_id from the basejump.accounts table
-        account_result = await client.schema('basejump').from_('accounts').select('primary_owner_user_id').eq('id', request.account_id).execute()
+        # Get current account state
+        account_result = await client.from_('credit_accounts').select(
+            'tier, last_grant_date, stripe_subscription_id, balance, expiring_credits, non_expiring_credits'
+        ).eq('account_id', request.account_id).execute()
         
-        if not account_result.data:
-            raise HTTPException(status_code=404, detail="Account not found")
+        now = datetime.now(timezone.utc)
+        current_tier_name = 'none'
+        current_tier = TIERS.get('none')
+        last_grant_date = None
+        has_account = False
         
-        user_id = account_result.data[0]['primary_owner_user_id']
+        if account_result.data and len(account_result.data) > 0:
+            has_account = True
+            account_data = account_result.data[0]
+            current_tier_name = account_data.get('tier', 'none')
+            current_tier = get_tier_by_name(current_tier_name) or TIERS.get('none')
+            last_grant_str = account_data.get('last_grant_date')
+            if last_grant_str:
+                try:
+                    last_grant_date = datetime.fromisoformat(last_grant_str.replace('Z', '+00:00'))
+                except:
+                    pass
         
-        # Check if credit account exists (using user_id, not account_id)
-        credit_check = await client.from_('credit_accounts').select('account_id, tier, balance').eq('account_id', user_id).execute()
+        # SAFEGUARD 1: Same tier rejection
+        if current_tier_name == request.tier:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"User is already on {new_tier.display_name} plan. Cannot set to the same tier."
+            )
         
-        old_tier = credit_check.data[0]['tier'] if credit_check.data else 'none'
-        old_balance = credit_check.data[0]['balance'] if credit_check.data else 0
-        
-        # Update or create credit account with new tier
-        if credit_check.data:
-            await client.from_('credit_accounts').update({
-                'tier': request.tier_name,
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            }).eq('account_id', user_id).execute()
-        else:
-            await client.from_('credit_accounts').insert({
-                'account_id': user_id,  # This is actually the user_id from auth.users
-                'tier': request.tier_name,
-                'balance': 0,
-                'expiring_credits': 0,
-                'non_expiring_credits': 0,
-                'trial_status': 'none',
-                'created_at': datetime.now(timezone.utc).isoformat(),
-                'updated_at': datetime.now(timezone.utc).isoformat()
-            }).execute()
-        
-        new_balance = old_balance
-        credits_granted = Decimal('0')
-        
-        # Grant credits if requested (credit_manager expects account_id which is basejump.accounts.id)
-        should_grant_credits = request.grant_credits and tier.monthly_credits > 0
-        
-        if should_grant_credits:
-            # CRITICAL: Prevent duplicate grants of the SAME tier within a short window
-            # This allows legitimate tier CHANGES (pro -> ultra) but blocks accidental double-clicks
-            if old_tier == request.tier_name:
-                # Same tier being set again - check if it was VERY recent (last 10 minutes)
-                recent_admin_actions = await client.table('admin_actions_log').select('*').eq(
-                    'target_user_id', user_id
-                ).eq('action_type', 'set_tier').gte(
-                    'created_at', (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
-                ).execute()
+        # SAFEGUARD 2: 24-hour cooldown check (for same tier re-grants)
+        if last_grant_date:
+            hours_since_grant = (now - last_grant_date).total_seconds() / 3600
+            # Only block if trying to grant to a tier they were recently on
+            if hours_since_grant < 24:
+                # Check credit ledger for recent grant to this tier
+                recent_grants = await client.from_('credit_ledger').select('id, description').eq(
+                    'account_id', request.account_id
+                ).gte('created_at', (now - timedelta(hours=24)).isoformat()).execute()
                 
-                if recent_admin_actions.data:
-                    last_action = recent_admin_actions.data[0]
-                    last_tier = last_action.get('details', {}).get('new_tier')
-                    credits_granted_last = last_action.get('details', {}).get('credits_granted', 0)
-                    
-                    if last_tier == request.tier_name and credits_granted_last > 0:
+                for grant in (recent_grants.data or []):
+                    desc = grant.get('description', '')
+                    if new_tier.display_name in desc or request.tier in desc:
                         raise HTTPException(
                             status_code=400,
-                            detail=f"Tier '{request.tier_name}' with credits was already set {(datetime.now(timezone.utc) - datetime.fromisoformat(last_action['created_at'].replace('Z', '+00:00'))).seconds // 60} minutes ago. To prevent accidental duplicates, please wait 10 minutes or uncheck 'Grant Credits' if you only need to update the tier."
+                            detail=f"Credits were granted for this tier within the last 24 hours ({hours_since_grant:.1f}h ago). Please wait before granting again."
                         )
-            else:
-                # Tier is CHANGING (e.g., pro -> ultra) - this is legitimate, allow it
-                logger.info(f"[ADMIN] Tier change detected: {old_tier} -> {request.tier_name} for account {request.account_id}. Granting new tier credits.")
+        
+        # SAFEGUARD 3: Determine if this is an upgrade, downgrade, or new subscription
+        current_credits = float(current_tier.monthly_credits) if current_tier else 0
+        new_credits = float(new_tier.monthly_credits)
+        
+        is_upgrade = new_credits > current_credits
+        is_new = current_tier_name in ['none', 'free']
+        is_downgrade = new_credits < current_credits and not is_new
+        
+        # Determine whether to grant credits
+        should_grant_credits = request.grant_credits
+        if should_grant_credits is None:
+            # Auto-determine: grant for upgrade or new, not for downgrade
+            should_grant_credits = is_upgrade or is_new
+        
+        # For downgrades, never grant credits regardless of request
+        if is_downgrade:
+            should_grant_credits = False
+        
+        # Calculate billing dates
+        billing_anchor = now
+        next_grant = now + timedelta(days=request.billing_period_days)
+        expires_at = next_grant if request.credit_type == 'expiring' else None
+        
+        # Update or create credit account
+        update_data = {
+            'tier': request.tier,
+            'billing_cycle_anchor': billing_anchor.isoformat(),
+            'next_credit_grant': next_grant.isoformat(),
+            'updated_at': now.isoformat()
+        }
+        
+        credits_granted = Decimal('0')
+        
+        if should_grant_credits:
+            update_data['last_grant_date'] = now.isoformat()
+            credits_granted = new_tier.monthly_credits
             
-            result = await credit_manager.add_credits(
-                account_id=request.account_id,  # credit_manager will handle the user_id lookup
-                amount=tier.monthly_credits,
-                is_expiring=True,
-                description=f"Admin tier grant: {tier.display_name} - {request.reason}",
-                expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            # Grant credits
+            credit_result = await credit_manager.add_credits(
+                account_id=request.account_id,
+                amount=credits_granted,
+                is_expiring=(request.credit_type == 'expiring'),
+                description=f"Admin plan set: {new_tier.display_name} ({request.reason})",
+                expires_at=expires_at,
                 type='admin_grant'
             )
             
-            # Check if duplicate was prevented by credit_manager
-            if result.get('duplicate_prevented'):
-                logger.info(f"[ADMIN] Duplicate credit grant prevented for {request.account_id}")
-                new_balance = old_balance
-                credits_granted = Decimal('0')
-            else:
-                new_balance = result.get('total_balance', old_balance)
-                credits_granted = tier.monthly_credits
+            if credit_result.get('duplicate_prevented'):
+                logger.warning(f"[ADMIN SET PLAN] Duplicate credit grant prevented for {request.account_id}")
         
-        # Create audit log (table is admin_actions_log, not admin_audit_log)
-        await client.table('admin_actions_log').insert({
-            'admin_user_id': admin['user_id'],
-            'action_type': 'set_tier',
-            'target_user_id': user_id,
-            'details': {
+        if has_account:
+            await client.from_('credit_accounts').update(update_data).eq('account_id', request.account_id).execute()
+        else:
+            # Create new credit account
+            insert_data = {
                 'account_id': request.account_id,
-                'old_tier': old_tier,
-                'new_tier': request.tier_name,
-                'credits_granted': float(credits_granted),
-                'new_balance': float(new_balance),
-                'reason': request.reason
+                'tier': request.tier,
+                'balance': float(credits_granted) if should_grant_credits else 0,
+                'expiring_credits': float(credits_granted) if should_grant_credits and request.credit_type == 'expiring' else 0,
+                'non_expiring_credits': float(credits_granted) if should_grant_credits and request.credit_type == 'non_expiring' else 0,
+                'billing_cycle_anchor': billing_anchor.isoformat(),
+                'next_credit_grant': next_grant.isoformat(),
+                'last_grant_date': now.isoformat() if should_grant_credits else None
             }
-        }).execute()
+            await client.from_('credit_accounts').insert(insert_data).execute()
         
         # Invalidate caches
-        await Cache.invalidate(f"subscription_tier:{request.account_id}")
         await Cache.invalidate(f"credit_balance:{request.account_id}")
         await Cache.invalidate(f"credit_summary:{request.account_id}")
+        await Cache.invalidate(f"subscription_tier:{request.account_id}")
         
-        logger.info(f"[ADMIN] Admin {admin['user_id']} set tier for {request.account_id}: {old_tier} -> {request.tier_name}, credits: {credits_granted}")
+        # Log to audit
+        try:
+            await client.table('admin_audit_log').insert({
+                'admin_account_id': admin['user_id'],
+                'action': 'set_plan',
+                'target_account_id': request.account_id,
+                'details': {
+                    'previous_tier': current_tier_name,
+                    'new_tier': request.tier,
+                    'reason': request.reason,
+                    'credits_granted': float(credits_granted),
+                    'credit_type': request.credit_type,
+                    'is_upgrade': is_upgrade,
+                    'is_downgrade': is_downgrade,
+                    'is_new': is_new
+                }
+            }).execute()
+        except Exception as audit_error:
+            logger.warning(f"[ADMIN SET PLAN] Failed to write audit log: {audit_error}")
+        
+        action_type = "upgraded to" if is_upgrade else ("downgraded to" if is_downgrade else "set to")
+        logger.info(f"[ADMIN SET PLAN] Admin {admin['user_id']} {action_type} {request.tier} for {request.account_id}. Credits granted: ${credits_granted}")
+        
+        # Get updated balance
+        balance_info = await credit_manager.get_balance(request.account_id)
         
         return {
             'success': True,
+            'message': f"User {action_type} {new_tier.display_name} plan",
             'account_id': request.account_id,
-            'old_tier': old_tier,
-            'new_tier': request.tier_name,
-            'tier_display_name': tier.display_name,
+            'previous_tier': current_tier_name,
+            'new_tier': request.tier,
             'credits_granted': float(credits_granted),
-            'new_balance': float(new_balance),
-            'monthly_credits': float(tier.monthly_credits)
+            'credit_type': request.credit_type if should_grant_credits else None,
+            'current_balance': balance_info.get('total', 0),
+            'billing_cycle_anchor': billing_anchor.isoformat(),
+            'next_credit_grant': next_grant.isoformat(),
+            'is_upgrade': is_upgrade,
+            'is_downgrade': is_downgrade
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to set tier: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[ADMIN SET PLAN] Failed to set plan: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to set plan: {str(e)}")
 
-@router.post("/generate-customer-link")
-async def generate_customer_payment_link(
-    request: GenerateCustomerLinkRequest,
-    admin: dict = Depends(require_admin)
-):
-    """
-    Generate a customer-specific Stripe checkout link.
-    When the customer pays via this link, the webhook automatically links the subscription.
-    """
-    try:
-        from core.billing.subscription_service import SubscriptionService
-        from core.billing.config import TIERS
-        
-        subscription_service = SubscriptionService()
-        
-        # Determine price_id
-        price_id = request.price_id
-        if not price_id and request.tier_name:
-            tier = TIERS.get(request.tier_name)
-            if not tier or not tier.price_ids:
-                raise HTTPException(status_code=400, detail=f"Invalid tier or no price_id found for tier: {request.tier_name}")
-            price_id = tier.price_ids[0]  # Use first price_id (monthly by default)
-        
-        if not price_id:
-            raise HTTPException(status_code=400, detail="Must provide either price_id or tier_name")
-        
-        # CRITICAL VALIDATION: Check if user's current tier matches the link tier
-        db = DBConnection()
-        client = await db.client
-        
-        account_result = await client.schema('basejump').from_('accounts').select('primary_owner_user_id').eq('id', request.account_id).execute()
-        if account_result.data:
-            user_id = account_result.data[0]['primary_owner_user_id']
-            credit_check = await client.from_('credit_accounts').select('tier').eq('account_id', user_id).execute()
-            
-            if credit_check.data:
-                current_tier = credit_check.data[0].get('tier', 'none')
-                link_tier_info = get_tier_by_price_id(price_id)
-                
-                if link_tier_info and current_tier != 'none' and current_tier != link_tier_info.name:
-                    logger.warning(f"[ADMIN] TIER MISMATCH: User has tier '{current_tier}' but generating link for '{link_tier_info.name}'. This may cause duplicate credits!")
-                    # Don't block, but log heavily for tracking
-        
-        # Default URLs if not provided (use SUPABASE_URL as base if FRONTEND_URL not available)
-        frontend_url = getattr(config, 'FRONTEND_URL', None) or config.SUPABASE_URL.replace('supabase.co', 'vercel.app')
-        success_url = request.success_url or f"{frontend_url}/billing?success=true"
-        cancel_url = request.cancel_url or f"{frontend_url}/billing?canceled=true"
-        
-        # Create checkout session
-        checkout_session = await subscription_service.create_checkout_session(
-            account_id=request.account_id,
-            price_id=price_id,
-            success_url=success_url,
-            cancel_url=cancel_url
-        )
-        
-        db = DBConnection()
-        client = await db.client
-        
-        # Create audit log (table is admin_actions_log, not admin_audit_log)
-        await client.table('admin_actions_log').insert({
-            'admin_user_id': admin['user_id'],
-            'action_type': 'generate_customer_link',
-            'target_user_id': request.account_id,
-            'details': {
-                'price_id': price_id,
-                'checkout_session_id': checkout_session.get('session_id'),
-                'tier_name': request.tier_name
-            }
-        }).execute()
-        
-        logger.info(f"[ADMIN] Admin {admin['user_id']} generated customer link for {request.account_id}, price_id: {price_id}")
-        
-        return {
-            'success': True,
-            'checkout_url': checkout_session.get('url'),
-            'session_id': checkout_session.get('session_id'),
-            'account_id': request.account_id,
-            'price_id': price_id
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to generate customer link: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/link-subscription")
-async def link_stripe_subscription(
+async def admin_link_subscription(
     request: LinkSubscriptionRequest,
     admin: dict = Depends(require_admin)
 ):
     """
-    Manually link an existing Stripe subscription to a user account.
-    Use this when someone paid via a generic link and you need to associate it with their account.
+    Link an existing Stripe subscription to a user account.
+    
+    Use cases:
+    - Third party (boss) paid via generic payment link
+    - Subscription created outside normal flow
+    - Reconnecting orphaned subscriptions
+    
+    Safeguards:
+    - Verifies subscription exists in Stripe
+    - Same tier = no credits (just links)
+    - Higher tier = upgrade with credits
+    - Syncs billing dates with Stripe
     """
     try:
-        from core.billing.config import get_tier_by_price_id
-        from core.utils.cache import Cache
-        
         stripe.api_key = config.STRIPE_SECRET_KEY
         
-        # Fetch subscription from Stripe
+        # Verify subscription exists in Stripe
         try:
             subscription = await stripe.Subscription.retrieve_async(
                 request.stripe_subscription_id,
-                expand=['items.data.price', 'customer']
+                expand=['items.data.price']
             )
-        except Exception as e:
-            raise HTTPException(status_code=404, detail=f"Stripe subscription not found: {str(e)}")
+        except stripe.error.InvalidRequestError:
+            raise HTTPException(status_code=404, detail=f"Subscription {request.stripe_subscription_id} not found in Stripe")
         
-        # Validate subscription status
         if subscription.status not in ['active', 'trialing']:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Subscription status is '{subscription.status}'. Can only link 'active' or 'trialing' subscriptions."
+                detail=f"Subscription status is '{subscription.status}'. Only active or trialing subscriptions can be linked."
             )
         
-        # Get price_id and determine tier
-        if not subscription.items or not subscription.items.data:
-            raise HTTPException(status_code=400, detail="Subscription has no items/price")
+        # Get tier from subscription price
+        price_id = subscription['items']['data'][0]['price']['id'] if subscription.get('items') else None
+        if not price_id:
+            raise HTTPException(status_code=400, detail="Could not determine price from subscription")
         
-        price_id = subscription.items.data[0].price.id
-        tier_info = get_tier_by_price_id(price_id)
-        
-        if not tier_info:
-            raise HTTPException(status_code=400, detail=f"Could not determine tier from price_id: {price_id}")
+        subscription_tier = get_tier_by_price_id(price_id)
+        if not subscription_tier:
+            raise HTTPException(status_code=400, detail=f"Unknown price ID: {price_id}. This tier is not configured.")
         
         db = DBConnection()
         client = await db.client
         
-        # Get the primary_owner_user_id from the basejump.accounts table
-        account_result = await client.schema('basejump').from_('accounts').select('primary_owner_user_id').eq('id', request.account_id).execute()
+        # Get current account state
+        account_result = await client.from_('credit_accounts').select(
+            'tier, stripe_subscription_id, balance, last_grant_date'
+        ).eq('account_id', request.account_id).execute()
         
-        if not account_result.data:
-            raise HTTPException(status_code=404, detail="Account not found")
+        current_tier_name = 'none'
+        current_tier = TIERS.get('none')
+        existing_subscription_id = None
         
-        user_id = account_result.data[0]['primary_owner_user_id']
+        if account_result.data and len(account_result.data) > 0:
+            account_data = account_result.data[0]
+            current_tier_name = account_data.get('tier', 'none')
+            current_tier = get_tier_by_name(current_tier_name) or TIERS.get('none')
+            existing_subscription_id = account_data.get('stripe_subscription_id')
         
-        # CRITICAL: Check if account already has a subscription
-        existing_sub_check = await client.from_('credit_accounts').select('stripe_subscription_id, tier').eq('account_id', user_id).execute()
+        # Warn if replacing existing subscription
+        if existing_subscription_id and existing_subscription_id != request.stripe_subscription_id:
+            logger.warning(f"[ADMIN LINK] Replacing subscription {existing_subscription_id} with {request.stripe_subscription_id} for {request.account_id}")
         
-        if existing_sub_check.data and existing_sub_check.data[0].get('stripe_subscription_id'):
-            existing_sub_id = existing_sub_check.data[0]['stripe_subscription_id']
-            if existing_sub_id and existing_sub_id != request.stripe_subscription_id:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Account already has subscription {existing_sub_id}. Cannot link another subscription. Cancel existing subscription first or contact support."
-                )
+        # Determine credit grant
+        current_credits = float(current_tier.monthly_credits) if current_tier else 0
+        subscription_credits = float(subscription_tier.monthly_credits)
         
-        # Get or create billing customer
-        customer_id = subscription.customer if isinstance(subscription.customer, str) else subscription.customer.id
+        is_same_tier = current_tier_name == subscription_tier.name
+        is_upgrade = subscription_credits > current_credits and not is_same_tier
         
-        customer_check = await client.schema('basejump').from_('billing_customers').select('*').eq('id', customer_id).execute()
+        credits_granted = Decimal('0')
+        now = datetime.now(timezone.utc)
         
-        if not customer_check.data:
-            # Create billing customer entry
-            customer_email = subscription.customer.email if hasattr(subscription.customer, 'email') else None
-            await client.schema('basejump').from_('billing_customers').insert({
-                'id': customer_id,
-                'account_id': request.account_id,  # This correctly references basejump.accounts(id)
-                'email': customer_email,
-                'active': True,
-                'provider': 'stripe'
-            }).execute()
-        else:
-            # Update to link to this account if different
-            await client.schema('basejump').from_('billing_customers').update({
-                'account_id': request.account_id
-            }).eq('id', customer_id).execute()
+        # Link Stripe customer if provided
+        if request.stripe_customer_id:
+            # Check if customer already linked
+            existing_customer = await client.schema('basejump').from_('billing_customers').select(
+                'id, account_id'
+            ).eq('id', request.stripe_customer_id).execute()
+            
+            if existing_customer.data:
+                if existing_customer.data[0]['account_id'] != request.account_id:
+                    # Customer linked to different account - this is a problem
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Customer {request.stripe_customer_id} is already linked to a different account"
+                    )
+            else:
+                # Create new customer link
+                await client.schema('basejump').from_('billing_customers').insert({
+                    'id': request.stripe_customer_id,
+                    'account_id': request.account_id,
+                    'email': subscription.get('customer_email') or None,
+                    'active': True,
+                    'provider': 'stripe'
+                }).execute()
+                logger.info(f"[ADMIN LINK] Created billing_customers entry for {request.stripe_customer_id} -> {request.account_id}")
         
-        # Update credit_accounts (remember: credit_accounts.account_id actually references auth.users)
-        billing_anchor = datetime.fromtimestamp(subscription.current_period_start, tz=timezone.utc)
-        next_grant = datetime.fromtimestamp(subscription.current_period_end, tz=timezone.utc)
+        # Calculate billing dates from Stripe subscription
+        billing_anchor = datetime.fromtimestamp(subscription['current_period_start'], tz=timezone.utc)
+        next_grant = datetime.fromtimestamp(subscription['current_period_end'], tz=timezone.utc)
         
-        credit_check = await client.from_('credit_accounts').select('*').eq('account_id', user_id).execute()
+        # Grant credits only if this is an upgrade
+        if is_upgrade:
+            credits_granted = subscription_tier.monthly_credits
+            expires_at = next_grant
+            
+            await credit_manager.add_credits(
+                account_id=request.account_id,
+                amount=credits_granted,
+                is_expiring=True,
+                description=f"Admin link: Upgrade to {subscription_tier.display_name} ({request.reason})",
+                expires_at=expires_at,
+                type='admin_grant'
+            )
         
+        # Update credit account
         update_data = {
-            'tier': tier_info.name,
-            'stripe_subscription_id': subscription.id,
+            'tier': subscription_tier.name,
+            'stripe_subscription_id': request.stripe_subscription_id,
             'billing_cycle_anchor': billing_anchor.isoformat(),
             'next_credit_grant': next_grant.isoformat(),
-            'updated_at': datetime.now(timezone.utc).isoformat()
+            'updated_at': now.isoformat()
         }
         
-        if credit_check.data:
-            await client.from_('credit_accounts').update(update_data).eq('account_id', user_id).execute()
+        if is_upgrade:
+            update_data['last_grant_date'] = now.isoformat()
+        
+        if account_result.data:
+            await client.from_('credit_accounts').update(update_data).eq('account_id', request.account_id).execute()
         else:
-            update_data['account_id'] = user_id  # This is auth.users(id), not basejump.accounts(id)
-            update_data['balance'] = 0
-            update_data['expiring_credits'] = 0
-            update_data['non_expiring_credits'] = 0
-            update_data['trial_status'] = 'trialing' if subscription.status == 'trialing' else 'none'
-            update_data['created_at'] = datetime.now(timezone.utc).isoformat()
-            await client.from_('credit_accounts').insert(update_data).execute()
-        
-        # Create or update billing_subscriptions
-        billing_sub_data = {
-            'id': subscription.id,
-            'account_id': request.account_id,
-            'billing_customer_id': customer_id,
-            'status': subscription.status,
-            'price_id': price_id,
-            'plan_name': tier_info.display_name,
-            'quantity': subscription.items.data[0].quantity if subscription.items.data else 1,
-            'cancel_at_period_end': subscription.cancel_at_period_end,
-            'current_period_start': billing_anchor,
-            'current_period_end': next_grant,
-            'created': billing_anchor
-        }
-        
-        sub_check = await client.schema('basejump').from_('billing_subscriptions').select('*').eq('id', subscription.id).execute()
-        
-        if sub_check.data:
-            await client.schema('basejump').from_('billing_subscriptions').update(billing_sub_data).eq('id', subscription.id).execute()
-        else:
-            await client.schema('basejump').from_('billing_subscriptions').insert(billing_sub_data).execute()
-        
-        # Grant credits if not skipped (credit_manager expects basejump.accounts.id)
-        credits_granted = Decimal('0')
-        new_balance = 0
-        
-        if not request.skip_credit_grant and tier_info.monthly_credits > 0:
-            result = await credit_manager.add_credits(
-                account_id=request.account_id,  # credit_manager will handle the user_id lookup
-                amount=tier_info.monthly_credits,
-                is_expiring=True,
-                description=f"Subscription linked: {tier_info.display_name}",
-                expires_at=next_grant,
-                type='tier_grant'
-            )
-            credits_granted = tier_info.monthly_credits
-            new_balance = result.get('total_balance', 0)
-        else:
-            balance_info = await credit_manager.get_balance(request.account_id)  # credit_manager handles lookup
-            new_balance = balance_info.get('total', 0)
-        
-        # Create audit log (table is admin_actions_log, not admin_audit_log)
-        await client.table('admin_actions_log').insert({
-            'admin_user_id': admin['user_id'],
-            'action_type': 'link_subscription',
-            'target_user_id': user_id,
-            'details': {
+            # Create new credit account
+            insert_data = {
                 'account_id': request.account_id,
-                'subscription_id': subscription.id,
-                'customer_id': customer_id,
-                'tier': tier_info.name,
-                'price_id': price_id,
-                'status': subscription.status,
-                'credits_granted': float(credits_granted)
+                **update_data,
+                'balance': float(credits_granted) if is_upgrade else 0,
+                'expiring_credits': float(credits_granted) if is_upgrade else 0,
+                'non_expiring_credits': 0
             }
-        }).execute()
+            await client.from_('credit_accounts').insert(insert_data).execute()
         
         # Invalidate caches
-        await Cache.invalidate(f"subscription_tier:{request.account_id}")
         await Cache.invalidate(f"credit_balance:{request.account_id}")
         await Cache.invalidate(f"credit_summary:{request.account_id}")
+        await Cache.invalidate(f"subscription_tier:{request.account_id}")
         
-        logger.info(f"[ADMIN] Admin {admin['user_id']} linked subscription {subscription.id} to account {request.account_id}")
+        # Log to audit
+        try:
+            await client.table('admin_audit_log').insert({
+                'admin_account_id': admin['user_id'],
+                'action': 'link_subscription',
+                'target_account_id': request.account_id,
+                'details': {
+                    'stripe_subscription_id': request.stripe_subscription_id,
+                    'stripe_customer_id': request.stripe_customer_id,
+                    'previous_tier': current_tier_name,
+                    'subscription_tier': subscription_tier.name,
+                    'reason': request.reason,
+                    'credits_granted': float(credits_granted),
+                    'is_upgrade': is_upgrade,
+                    'is_same_tier': is_same_tier,
+                    'previous_subscription_id': existing_subscription_id
+                }
+            }).execute()
+        except Exception as audit_error:
+            logger.warning(f"[ADMIN LINK] Failed to write audit log: {audit_error}")
+        
+        logger.info(f"[ADMIN LINK] Admin {admin['user_id']} linked subscription {request.stripe_subscription_id} to {request.account_id}. Tier: {subscription_tier.name}, Credits: ${credits_granted}")
+        
+        balance_info = await credit_manager.get_balance(request.account_id)
         
         return {
             'success': True,
+            'message': f"Subscription linked successfully" + (f" - Upgraded to {subscription_tier.display_name}" if is_upgrade else " - No credits granted (same tier)"),
             'account_id': request.account_id,
-            'subscription_id': subscription.id,
-            'customer_id': customer_id,
-            'tier': tier_info.name,
-            'tier_display_name': tier_info.display_name,
-            'status': subscription.status,
+            'stripe_subscription_id': request.stripe_subscription_id,
+            'stripe_customer_id': request.stripe_customer_id,
+            'previous_tier': current_tier_name,
+            'subscription_tier': subscription_tier.name,
             'credits_granted': float(credits_granted),
-            'new_balance': float(new_balance),
-            'current_period_end': next_grant.isoformat()
+            'current_balance': balance_info.get('total', 0),
+            'billing_cycle_anchor': billing_anchor.isoformat(),
+            'next_credit_grant': next_grant.isoformat(),
+            'is_upgrade': is_upgrade,
+            'is_same_tier': is_same_tier
         }
         
     except HTTPException:
         raise
+    except stripe.error.StripeError as e:
+        logger.error(f"[ADMIN LINK] Stripe error: {e}")
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     except Exception as e:
-        logger.error(f"Failed to link subscription: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[ADMIN LINK] Failed to link subscription: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to link subscription: {str(e)}")
 
+
+@router.post("/create-checkout-link")
+async def admin_create_checkout_link(
+    request: CreateCheckoutLinkRequest,
+    admin: dict = Depends(require_admin)
+):
+    """
+    Create a Stripe checkout link for third-party payment.
+    
+    The link will have the account_id in metadata, so when the payer completes
+    checkout, the webhooks will automatically link the subscription to the user.
+    
+    Use cases:
+    - Boss paying for employee's subscription
+    - Company paying for team member
+    - Any third-party payment scenario
+    """
+    try:
+        stripe.api_key = config.STRIPE_SECRET_KEY
+        
+        # Validate tier exists
+        tier = get_tier_by_name(request.tier)
+        if not tier:
+            raise HTTPException(status_code=400, detail=f"Invalid tier: {request.tier}")
+        
+        if not tier.price_ids:
+            raise HTTPException(status_code=400, detail=f"No price configured for tier: {request.tier}")
+        
+        # Use the first (monthly) price ID
+        price_id = tier.price_ids[0]
+        
+        db = DBConnection()
+        client = await db.client
+        
+        # Verify account exists
+        account_result = await client.schema('basejump').from_('accounts').select('id').eq('id', request.account_id).execute()
+        if not account_result.data:
+            raise HTTPException(status_code=404, detail=f"Account {request.account_id} not found")
+        
+        # Create checkout session
+        session_params = {
+            'payment_method_types': ['card'],
+            'line_items': [{'price': price_id, 'quantity': 1}],
+            'mode': 'subscription',
+            'success_url': request.return_url + ('?' if '?' not in request.return_url else '&') + 'checkout=success',
+            'cancel_url': request.return_url + ('?' if '?' not in request.return_url else '&') + 'checkout=cancelled',
+            'subscription_data': {
+                'metadata': {
+                    'account_id': request.account_id,
+                    'account_type': 'personal',
+                    'admin_created': 'true',
+                    'admin_id': admin['user_id'],
+                    'third_party_payment': 'true'
+                }
+            },
+            'metadata': {
+                'account_id': request.account_id,
+                'admin_created': 'true'
+            }
+        }
+        
+        # Add customer email if provided (pre-fills checkout form)
+        if request.payer_email:
+            session_params['customer_email'] = request.payer_email
+        
+        session = await stripe.checkout.Session.create_async(**session_params)
+        
+        # Log to audit
+        try:
+            await client.table('admin_audit_log').insert({
+                'admin_account_id': admin['user_id'],
+                'action': 'create_checkout_link',
+                'target_account_id': request.account_id,
+                'details': {
+                    'tier': request.tier,
+                    'price_id': price_id,
+                    'payer_email': request.payer_email,
+                    'checkout_session_id': session.id
+                }
+            }).execute()
+        except Exception as audit_error:
+            logger.warning(f"[ADMIN CHECKOUT] Failed to write audit log: {audit_error}")
+        
+        logger.info(f"[ADMIN CHECKOUT] Admin {admin['user_id']} created checkout link for {request.account_id} ({tier.display_name})")
+        
+        return {
+            'success': True,
+            'checkout_url': session.url,
+            'checkout_session_id': session.id,
+            'account_id': request.account_id,
+            'tier': request.tier,
+            'tier_display_name': tier.display_name,
+            'monthly_credits': float(tier.monthly_credits),
+            'payer_email': request.payer_email,
+            'expires_at': datetime.fromtimestamp(session.expires_at, tz=timezone.utc).isoformat() if session.expires_at else None
+        }
+        
+    except HTTPException:
+        raise
+    except stripe.error.StripeError as e:
+        logger.error(f"[ADMIN CHECKOUT] Stripe error: {e}")
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+    except Exception as e:
+        logger.error(f"[ADMIN CHECKOUT] Failed to create checkout link: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to create checkout link: {str(e)}")
+
+
+@router.get("/tiers")
+async def get_available_tiers(
+    admin: dict = Depends(require_admin)
+):
+    """Get list of available tiers for admin plan management."""
+    available_tiers = []
+    for tier_name in ['tier_basic', 'tier_plus', 'tier_ultra']:
+        tier = TIERS.get(tier_name)
+        if tier:
+            available_tiers.append({
+                'name': tier.name,
+                'display_name': tier.display_name,
+                'monthly_credits': float(tier.monthly_credits),
+                'project_limit': tier.project_limit,
+                'can_purchase_credits': tier.can_purchase_credits
+            })
+    return {'tiers': available_tiers}
 
