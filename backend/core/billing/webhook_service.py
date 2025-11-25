@@ -188,13 +188,42 @@ class WebhookService:
             
     async def _handle_subscription_checkout(self, session, client):
         account_id = session.get('metadata', {}).get('account_id')
+        customer_id = session.get('customer')
+        
         if not account_id:
             customer_result = await client.schema('basejump').from_('billing_customers')\
                 .select('account_id')\
-                .eq('id', session.get('customer'))\
+                .eq('id', customer_id)\
                 .execute()
             if customer_result.data:
                 account_id = customer_result.data[0].get('account_id')
+        
+        # CRITICAL: Link customer to account for renewal webhooks to work
+        # This handles the case where boss pays via admin-created checkout link
+        if account_id and customer_id:
+            try:
+                existing_customer = await client.schema('basejump').from_('billing_customers')\
+                    .select('id, account_id')\
+                    .eq('id', customer_id)\
+                    .execute()
+                
+                if not existing_customer.data:
+                    # Get customer email from Stripe
+                    customer_email = session.get('customer_details', {}).get('email') or session.get('customer_email')
+                    
+                    # Create billing_customers entry to link this customer to the account
+                    await client.schema('basejump').from_('billing_customers').insert({
+                        'id': customer_id,
+                        'account_id': account_id,
+                        'email': customer_email
+                    }).execute()
+                    logger.info(f"[CHECKOUT] Linked Stripe customer {customer_id} to account {account_id} for future renewals")
+                elif existing_customer.data[0]['account_id'] != account_id:
+                    # Customer exists but linked to different account - this shouldn't happen normally
+                    logger.warning(f"[CHECKOUT] Customer {customer_id} already linked to account {existing_customer.data[0]['account_id']}, not {account_id}")
+            except Exception as e:
+                # Don't fail the checkout if customer linking fails - just log it
+                logger.error(f"[CHECKOUT] Failed to link customer {customer_id} to account {account_id}: {e}")
         
         if account_id:
             trial_check = await client.from_('credit_accounts').select(

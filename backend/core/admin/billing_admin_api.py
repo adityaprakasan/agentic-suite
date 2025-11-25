@@ -295,6 +295,11 @@ async def admin_set_user_plan(
         db = DBConnection()
         client = await db.client
         
+        # SAFEGUARD 0: Verify account exists in basejump.accounts
+        account_check = await client.schema('basejump').from_('accounts').select('id').eq('id', request.account_id).execute()
+        if not account_check.data:
+            raise HTTPException(status_code=404, detail=f"Account {request.account_id} not found")
+        
         # Get current account state
         account_result = await client.from_('credit_accounts').select(
             'tier, last_grant_date, stripe_subscription_id, balance, expiring_credits, non_expiring_credits'
@@ -309,7 +314,8 @@ async def admin_set_user_plan(
         if account_result.data and len(account_result.data) > 0:
             has_account = True
             account_data = account_result.data[0]
-            current_tier_name = account_data.get('tier', 'none')
+            # Handle NULL tier - treat as 'none'
+            current_tier_name = account_data.get('tier') or 'none'
             current_tier = get_tier_by_name(current_tier_name) or TIERS.get('none')
             last_grant_str = account_data.get('last_grant_date')
             if last_grant_str:
@@ -513,6 +519,11 @@ async def admin_link_subscription(
         db = DBConnection()
         client = await db.client
         
+        # Verify account exists in basejump.accounts
+        account_check = await client.schema('basejump').from_('accounts').select('id').eq('id', request.account_id).execute()
+        if not account_check.data:
+            raise HTTPException(status_code=404, detail=f"Account {request.account_id} not found")
+        
         # Get current account state
         account_result = await client.from_('credit_accounts').select(
             'tier, stripe_subscription_id, balance, last_grant_date'
@@ -524,7 +535,8 @@ async def admin_link_subscription(
         
         if account_result.data and len(account_result.data) > 0:
             account_data = account_result.data[0]
-            current_tier_name = account_data.get('tier', 'none')
+            # Handle NULL tier - treat as 'none'
+            current_tier_name = account_data.get('tier') or 'none'
             current_tier = get_tier_by_name(current_tier_name) or TIERS.get('none')
             existing_subscription_id = account_data.get('stripe_subscription_id')
         
@@ -542,30 +554,31 @@ async def admin_link_subscription(
         credits_granted = Decimal('0')
         now = datetime.now(timezone.utc)
         
-        # Link Stripe customer if provided
-        if request.stripe_customer_id:
+        # ALWAYS link Stripe customer (from request or subscription) for renewals to work
+        customer_id = request.stripe_customer_id or subscription.get('customer')
+        if customer_id:
             # Check if customer already linked
             existing_customer = await client.schema('basejump').from_('billing_customers').select(
                 'id, account_id'
-            ).eq('id', request.stripe_customer_id).execute()
+            ).eq('id', customer_id).execute()
             
             if existing_customer.data:
                 if existing_customer.data[0]['account_id'] != request.account_id:
                     # Customer linked to different account - this is a problem
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Customer {request.stripe_customer_id} is already linked to a different account"
+                        detail=f"Customer {customer_id} is already linked to a different account"
                     )
             else:
-                # Create new customer link
+                # Create new customer link - CRITICAL for renewal webhooks to work
                 await client.schema('basejump').from_('billing_customers').insert({
-                    'id': request.stripe_customer_id,
+                    'id': customer_id,
                     'account_id': request.account_id,
                     'email': subscription.get('customer_email') or None,
                     'active': True,
                     'provider': 'stripe'
                 }).execute()
-                logger.info(f"[ADMIN LINK] Created billing_customers entry for {request.stripe_customer_id} -> {request.account_id}")
+                logger.info(f"[ADMIN LINK] Created billing_customers entry for {customer_id} -> {request.account_id}")
         
         # Calculate billing dates from Stripe subscription
         billing_anchor = datetime.fromtimestamp(subscription['current_period_start'], tz=timezone.utc)
@@ -624,7 +637,7 @@ async def admin_link_subscription(
                 'target_account_id': request.account_id,
                 'details': {
                     'stripe_subscription_id': request.stripe_subscription_id,
-                    'stripe_customer_id': request.stripe_customer_id,
+                    'stripe_customer_id': customer_id,
                     'previous_tier': current_tier_name,
                     'subscription_tier': subscription_tier.name,
                     'reason': request.reason,
@@ -646,7 +659,7 @@ async def admin_link_subscription(
             'message': f"Subscription linked successfully" + (f" - Upgraded to {subscription_tier.display_name}" if is_upgrade else " - No credits granted (same tier)"),
             'account_id': request.account_id,
             'stripe_subscription_id': request.stripe_subscription_id,
-            'stripe_customer_id': request.stripe_customer_id,
+            'stripe_customer_id': customer_id,  # Return the actual customer ID that was linked
             'previous_tier': current_tier_name,
             'subscription_tier': subscription_tier.name,
             'credits_granted': float(credits_granted),
