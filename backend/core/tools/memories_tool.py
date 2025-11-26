@@ -301,13 +301,24 @@ class MemoriesTool(Tool):
                 prompt=prompt,
                 platform=platform
             )
+
+            if not isinstance(response, dict):
+                logger.error("marketer_chat returned unexpected payload", payload_type=type(response))
+                response = {}
             
             # Extract data (response IS already the data from marketer_chat)
             role = response.get('role', 'ASSISTANT')
             content = response.get('content', '')
             thinkings = response.get('thinkings', [])
-            refs = response.get('refs', [])
             session_id = response.get('session_id', '')
+            
+            # Refs can be at top level OR nested inside thinkings (API inconsistency)
+            refs = response.get('refs', [])
+            if not refs:
+                # Extract refs from inside thinkings if not at top level
+                for thinking in thinkings:
+                    if thinking.get('refs'):
+                        refs.extend(thinking['refs'])
             
             # Enrich refs with full video metadata
             if refs:
@@ -598,13 +609,24 @@ class MemoriesTool(Tool):
                 video_nos=video_nos,
                 prompt=prompt
             )
+
+            if not isinstance(response, dict):
+                logger.error("chat_with_video returned unexpected payload", payload_type=type(response))
+                response = {}
             
             # Extract data (response IS already the data from chat_with_video)
             role = response.get('role', 'ASSISTANT')
             content = response.get('content', '')
             thinkings = response.get('thinkings', [])
-            refs = response.get('refs', [])
             session_id = response.get('session_id', '')
+            
+            # Refs can be at top level OR nested inside thinkings (API inconsistency)
+            refs = response.get('refs', [])
+            if not refs:
+                # Extract refs from inside thinkings if not at top level
+                for thinking in thinkings:
+                    if thinking.get('refs'):
+                        refs.extend(thinking['refs'])
             
             # Enrich refs with full video metadata
             if refs:
