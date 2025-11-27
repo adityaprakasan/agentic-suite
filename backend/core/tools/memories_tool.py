@@ -69,7 +69,7 @@ class MemoriesTool(Tool):
                 data = response['data']
                 
                 # Build standardized video object
-            return {
+                return {
                     'video_no': data.get('video_no', ''),
                     'title': data.get('video_name', 'Untitled'),
                     'creator': data.get('blogger_id', 'Unknown'),
@@ -301,7 +301,7 @@ class MemoriesTool(Tool):
                 prompt=prompt,
                 platform=platform
             )
-
+            
             if not isinstance(response, dict):
                 logger.error("marketer_chat returned unexpected payload", payload_type=type(response))
                 response = {}
@@ -320,18 +320,29 @@ class MemoriesTool(Tool):
                     if thinking.get('refs'):
                         refs.extend(thinking['refs'])
             
-            # Enrich refs with full video metadata
+            # Enrich refs with full video metadata using the same method as upload tools
             if refs:
+                # Extract all video_nos from refs
+                video_nos = []
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
                     video_no = video_info.get('video_no')
-                    
                     if video_no:
-                        # Fetch full details
-                        full_details = await self._fetch_video_detail(video_no)
-                        if full_details:
-                            # Merge full details into video_info
-                            video_info.update(full_details)
+                        video_nos.append(video_no)
+                
+                # Fetch all video details using proven method with rate limiting
+                if video_nos:
+                    all_details = await self._fetch_all_video_details(video_nos)
+                    
+                    # Create lookup dict for fast access
+                    details_lookup = {v['video_no']: v for v in all_details if v.get('video_no')}
+                    
+                    # Update each ref's video with full details
+                    for ref_group in refs:
+                        video_info = ref_group.get('video', {})
+                        video_no = video_info.get('video_no')
+                        if video_no and video_no in details_lookup:
+                            video_info.update(details_lookup[video_no])
             
             logger.info(f"Marketer chat completed: {len(thinkings)} thinkings, {len(refs)} ref groups")
             
@@ -628,18 +639,29 @@ class MemoriesTool(Tool):
                     if thinking.get('refs'):
                         refs.extend(thinking['refs'])
             
-            # Enrich refs with full video metadata
+            # Enrich refs with full video metadata using the same method as upload tools
             if refs:
+                # Extract all video_nos from refs
+                video_nos = []
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
                     video_no = video_info.get('video_no')
-                    
                     if video_no:
-                        # Fetch full details
-                        full_details = await self._fetch_video_detail(video_no)
-                        if full_details:
-                            # Merge full details into video_info
-                            video_info.update(full_details)
+                        video_nos.append(video_no)
+                
+                # Fetch all video details using proven method with rate limiting
+                if video_nos:
+                    all_details = await self._fetch_all_video_details(video_nos)
+                    
+                    # Create lookup dict for fast access
+                    details_lookup = {v['video_no']: v for v in all_details if v.get('video_no')}
+                    
+                    # Update each ref's video with full details
+                    for ref_group in refs:
+                        video_info = ref_group.get('video', {})
+                        video_no = video_info.get('video_no')
+                        if video_no and video_no in details_lookup:
+                            video_info.update(details_lookup[video_no])
             
             logger.info(f"Video chat completed: {len(thinkings)} thinkings, {len(refs)} ref groups")
             
