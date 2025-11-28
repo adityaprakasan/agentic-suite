@@ -254,15 +254,15 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "video_marketer_chat",
         "description": "Get AI-powered analysis and insights from 1M+ indexed videos. Use for trend analysis, creator strategies, content patterns, and marketing insights.",
-            "parameters": {
-                "type": "object",
-                "properties": {
+        "parameters": {
+            "type": "object",
+            "properties": {
                 "prompt": {
-                        "type": "string",
+                    "type": "string",
                     "description": "Analysis question (e.g., 'What does Nike post on TikTok?', 'Analyze MrBeast viral strategies', 'Find trending fitness content patterns')"
-                    },
+                },
                 "platform": {
-                        "type": "string",
+                    "type": "string",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK",
                     "description": "Platform to analyze (default: TIKTOK)"
@@ -281,8 +281,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-                return error
-            
+            return error
+        
         try:
             # Defensive type handling
             if isinstance(prompt, list):
@@ -313,38 +313,64 @@ class MemoriesTool(Tool):
             session_id = response.get('session_id', '')
             
             # Refs can be at top level OR nested inside thinkings (API inconsistency)
+            # Always check both locations to ensure we get all refs
             refs = response.get('refs', [])
-            if not refs:
-                # Extract refs from inside thinkings if not at top level
-                for thinking in thinkings:
-                    if thinking.get('refs'):
-                        refs.extend(thinking['refs'])
+            top_level_count = len(refs)
+            
+            # Also extract refs from inside thinkings (some APIs put them there)
+            for thinking in thinkings:
+                if thinking.get('refs'):
+                    refs.extend(thinking['refs'])
+            
+            thinkings_count = len(refs) - top_level_count
+            if refs:
+                logger.info(f"Found {len(refs)} refs ({top_level_count} top-level, {thinkings_count} in thinkings) on {platform}")
             
             # Enrich refs with full video metadata using the same method as upload tools
             if refs:
-                # Extract all video_nos from refs
+                # Extract all video_nos from refs and store basic metadata as fallback
                 video_nos = []
+                basic_metadata_map = {}  # video_no -> basic metadata from ref structure
+                
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
                     video_no = video_info.get('video_no')
                     if video_no:
                         video_nos.append(video_no)
+                        # Store basic metadata from ref structure as fallback
+                        basic_metadata_map[video_no] = {
+                            'video_no': video_no,
+                            'title': video_info.get('video_name', 'Untitled'),
+                            'duration': int(video_info.get('duration', 0)) if video_info.get('duration') else 0
+                        }
                 
                 # Fetch all video details using proven method with rate limiting
                 if video_nos:
                     all_details = await self._fetch_all_video_details(video_nos)
                     
-                    # Create lookup dict for fast access
+                    # Create lookup dict for successfully fetched videos
                     details_lookup = {v['video_no']: v for v in all_details if v.get('video_no')}
                     
-                    # Update each ref's video with full details
+                    # Update each ref's video with full details, or use basic metadata as fallback
                     for ref_group in refs:
                         video_info = ref_group.get('video', {})
                         video_no = video_info.get('video_no')
-                        if video_no and video_no in details_lookup:
-                            video_info.update(details_lookup[video_no])
+                        if video_no:
+                            if video_no in details_lookup:
+                                # Use full fetched details
+                                video_info.update(details_lookup[video_no])
+                            elif video_no in basic_metadata_map:
+                                # Fallback to basic metadata from ref structure
+                                basic = basic_metadata_map[video_no].copy()
+                                basic['web_url'] = self._build_web_url(video_info)
+                                basic['thumbnail_url'] = self._extract_thumbnail(video_info)
+                                video_info.update(basic)
+            else:
+                # Log when no refs are returned (common for Instagram/YouTube due to limited indexed content)
+                if platform in ['INSTAGRAM', 'YOUTUBE']:
+                    logger.info(f"Marketer chat on {platform} returned no video references - this is normal as {platform} has less indexed content than TikTok")
             
-            logger.info(f"Marketer chat completed: {len(thinkings)} thinkings, {len(refs)} ref groups")
+            logger.info(f"Marketer chat completed: {len(thinkings)} thinkings, {len(refs)} ref groups on {platform}")
             
             return ToolResult(
                 success=True,
@@ -352,7 +378,7 @@ class MemoriesTool(Tool):
                     "role": role,
                     "content": content,
                     "thinkings": thinkings,
-                "refs": refs,
+                    "refs": refs,
                     "session_id": session_id,
                     "platform": platform
                 }
@@ -409,20 +435,20 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "upload_creator_videos",
         "description": "SLOW (TikTok: 1-2 min, Instagram/YouTube: 5+ min): Scrape and index videos from a creator's profile. Use for archiving a creator's content to the public library for deep analysis.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "creator_url": {
-                        "type": "string",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "creator_url": {
+                    "type": "string",
                     "description": "Creator URL or handle (e.g., 'https://www.tiktok.com/@nike', '@mrbeast', 'https://www.instagram.com/nike/')"
-                    },
-                    "video_count": {
-                        "type": "integer",
+                },
+                "video_count": {
+                    "type": "integer",
                     "default": 10,
                     "description": "Number of recent videos to scrape (default: 10)"
-                    }
-                },
-                "required": ["creator_url"]
+                }
+            },
+            "required": ["creator_url"]
         }
     })
     async def upload_creator_videos(
@@ -435,8 +461,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-                return error
-            
+            return error
+        
         try:
             # Defensive type handling
             if isinstance(creator_url, list):
@@ -606,22 +632,22 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "upload_hashtag_videos",
-        "description": "SLOW (1-2 min): Scrape and index videos by hashtag. Use for trend analysis or archiving hashtag content to the public library.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "hashtags": {
-                        "type": "array",
-                        "items": {"type": "string"},
+        "description": "SLOW (1-2 min for TikTok): Scrape and index videos by hashtag from TikTok. Use for trend analysis or archiving hashtag content to the public library.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "hashtags": {
+                    "type": "array",
+                    "items": {"type": "string"},
                     "description": "Hashtags to scrape (e.g., ['LVMH', 'Dior', 'fashion'])"
-                    },
-                    "video_count": {
-                        "type": "integer",
+                },
+                "video_count": {
+                    "type": "integer",
                     "default": 10,
                     "description": "Number of videos per hashtag (default: 10)"
-                    }
-                },
-                "required": ["hashtags"]
+                }
+            },
+            "required": ["hashtags"]
         }
     })
     async def upload_hashtag_videos(
@@ -634,8 +660,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-                return error
-            
+            return error
+        
         try:
             # Defensive type handling
             if isinstance(hashtags, str):
@@ -788,15 +814,22 @@ class MemoriesTool(Tool):
             if isinstance(prompt, list):
                 prompt = " ".join(str(p) for p in prompt)
             
-            video_nos = [str(vno).strip() for vno in video_nos]
+            input_video_nos = [str(vno).strip() for vno in video_nos]
             prompt = str(prompt).strip()
             
-            logger.info(f"Chatting with {len(video_nos)} videos: {prompt[:100]}")
+            # Input validation
+            if not input_video_nos:
+                return ToolResult(
+                    success=False,
+                    output={"error": "No video IDs provided. Please specify at least one video_no."}
+                )
+            
+            logger.info(f"Chatting with {len(input_video_nos)} videos: {prompt[:100]}")
             
             # Call API (non-streaming)
             response = await asyncio.to_thread(
                 self.memories_client.chat_with_video,
-                video_nos=video_nos,
+                video_nos=input_video_nos,
                 prompt=prompt
             )
 
@@ -811,36 +844,58 @@ class MemoriesTool(Tool):
             session_id = response.get('session_id', '')
             
             # Refs can be at top level OR nested inside thinkings (API inconsistency)
+            # Always check both locations to ensure we get all refs
             refs = response.get('refs', [])
-            if not refs:
-                # Extract refs from inside thinkings if not at top level
-                for thinking in thinkings:
-                    if thinking.get('refs'):
-                        refs.extend(thinking['refs'])
+            top_level_count = len(refs)
+            
+            # Also extract refs from inside thinkings
+            for thinking in thinkings:
+                if thinking.get('refs'):
+                    refs.extend(thinking['refs'])
+            
+            thinkings_count = len(refs) - top_level_count
+            if refs:
+                logger.info(f"Found {len(refs)} refs ({top_level_count} top-level, {thinkings_count} in thinkings)")
             
             # Enrich refs with full video metadata using the same method as upload tools
             if refs:
-                # Extract all video_nos from refs
-                video_nos = []
+                # Extract all video_nos from refs and store basic metadata as fallback
+                ref_video_nos = []
+                basic_metadata_map = {}  # video_no -> basic metadata from ref structure
+                
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
                     video_no = video_info.get('video_no')
                     if video_no:
-                        video_nos.append(video_no)
+                        ref_video_nos.append(video_no)
+                        # Store basic metadata from ref structure as fallback
+                        basic_metadata_map[video_no] = {
+                            'video_no': video_no,
+                            'title': video_info.get('video_name', 'Untitled'),
+                            'duration': int(video_info.get('duration', 0)) if video_info.get('duration') else 0
+                        }
                 
                 # Fetch all video details using proven method with rate limiting
-                if video_nos:
-                    all_details = await self._fetch_all_video_details(video_nos)
+                if ref_video_nos:
+                    all_details = await self._fetch_all_video_details(ref_video_nos)
                     
-                    # Create lookup dict for fast access
+                    # Create lookup dict for successfully fetched videos
                     details_lookup = {v['video_no']: v for v in all_details if v.get('video_no')}
                     
-                    # Update each ref's video with full details
+                    # Update each ref's video with full details, or use basic metadata as fallback
                     for ref_group in refs:
                         video_info = ref_group.get('video', {})
                         video_no = video_info.get('video_no')
-                        if video_no and video_no in details_lookup:
-                            video_info.update(details_lookup[video_no])
+                        if video_no:
+                            if video_no in details_lookup:
+                                # Use full fetched details
+                                video_info.update(details_lookup[video_no])
+                            elif video_no in basic_metadata_map:
+                                # Fallback to basic metadata from ref structure
+                                basic = basic_metadata_map[video_no].copy()
+                                basic['web_url'] = self._build_web_url(video_info)
+                                basic['thumbnail_url'] = self._extract_thumbnail(video_info)
+                                video_info.update(basic)
             
             logger.info(f"Video chat completed: {len(thinkings)} thinkings, {len(refs)} ref groups")
             
@@ -852,7 +907,7 @@ class MemoriesTool(Tool):
                     "thinkings": thinkings,
                     "refs": refs,
                     "session_id": session_id,
-                    "video_count": len(video_nos)
+                    "video_count": len(input_video_nos)
                 }
             )
             
