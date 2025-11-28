@@ -522,11 +522,11 @@ class MemoriesTool(Tool):
                     scraper_cnt=video_count
                 )
             else:
-            response = await asyncio.to_thread(
-                self.memories_client.scraper_public,
-                username=creator_url,
-                scraper_cnt=video_count
-            )
+                response = await asyncio.to_thread(
+                    self.memories_client.scraper_public,
+                    username=creator_url,
+                    scraper_cnt=video_count
+                )
             
             task_id = response.get('data', {}).get('taskId')
             if not task_id:
