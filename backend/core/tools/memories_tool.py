@@ -366,7 +366,10 @@ class MemoriesTool(Tool):
             )
     
     async def _wait_for_task(self, task_id: str, max_wait: int = 180) -> List[Dict]:
-        """Poll task status until complete or timeout"""
+        """
+        Poll task status until complete or timeout.
+        Returns videos even if they're UNPARSE status (still processing).
+        """
         start_time = time.time()
         poll_interval = 10  # seconds
         
@@ -379,25 +382,33 @@ class MemoriesTool(Tool):
                 
                 videos = response.get('data', {}).get('videos', [])
                 
-                # Check if we have videos with PARSE status
-                parsed_videos = [v for v in videos if v.get('status') == 'PARSE']
-                
-                if parsed_videos:
-                    logger.info(f"Task {task_id} complete: {len(parsed_videos)} videos parsed")
+                # If we have any videos at all (even UNPARSE), return them
+                # UNPARSE videos have metadata and can be used, they're just still being processed
+                if videos:
+                    parsed_count = len([v for v in videos if v.get('status') == 'PARSE'])
+                    unparsed_count = len([v for v in videos if v.get('status') == 'UNPARSE'])
+                    
+                    if parsed_count > 0:
+                        logger.info(f"Task {task_id} complete: {parsed_count} videos parsed, {unparsed_count} still processing")
+                    else:
+                        logger.info(f"Task {task_id}: {unparsed_count} videos found but still processing (UNPARSE status)")
+                    
                     return videos
                 
-                # Still processing, wait and retry
+                # No videos yet, wait and retry
                 await asyncio.sleep(poll_interval)
                 
             except Exception as e:
                 logger.error(f"Error polling task {task_id}: {str(e)}")
                 await asyncio.sleep(poll_interval)
         
-        raise TimeoutError(f"Task {task_id} did not complete within {max_wait} seconds")
+        # Timeout - return empty list to indicate no videos found
+        logger.warning(f"Task {task_id} timed out after {max_wait}s - no videos appeared")
+        return []
     
     @openapi_schema({
         "name": "upload_creator_videos",
-        "description": "SLOW (1-2 min): Scrape and index videos from a creator's profile. Use for archiving a creator's content to the public library for deep analysis.",
+        "description": "SLOW (TikTok: 1-2 min, Instagram/YouTube: 5+ min): Scrape and index videos from a creator's profile. Use for archiving a creator's content to the public library for deep analysis.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -449,33 +460,142 @@ class MemoriesTool(Tool):
             if not task_id:
                 raise ValueError("No task ID returned from scraper API")
             
-            logger.info(f"Scraping started, task_id: {task_id}. Waiting for completion...")
+            # Detect platform from URL
+            platform = "UNKNOWN"
+            if "tiktok.com" in creator_url.lower():
+                platform = "TikTok"
+            elif "instagram.com" in creator_url.lower() or "instagr.am" in creator_url.lower():
+                platform = "Instagram"
+            elif "youtube.com" in creator_url.lower() or "youtu.be" in creator_url.lower():
+                platform = "YouTube"
+            
+            logger.info(f"Scraping started for {platform}, task_id: {task_id}. Waiting for completion...")
             
             # Wait for task to complete (blocking)
-            videos_data = await self._wait_for_task(task_id, max_wait=600)
+            # Instagram/YouTube take longer (5+ minutes) than TikTok (~20 seconds)
+            max_wait_time = 600 if platform == "TikTok" else 900  # 15 min for Instagram/YouTube
+            videos_data = await self._wait_for_task(task_id, max_wait=max_wait_time)
             
-            # Fetch full details for all videos (API returns 'video_no' in some responses, 'videoNo' in others)
-            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if (v.get('video_no') or v.get('videoNo'))]
-            videos = await self._fetch_all_video_details(video_nos)
+            # Check if we got any videos at all
+            if not videos_data:
+                error_msg = f"No videos found for {platform} creator: {creator_url}"
+                if platform == "Instagram":
+                    error_msg += ". Instagram scraping typically takes 5+ minutes. The task may still be processing - check back later using the task_id."
+                elif platform == "YouTube":
+                    error_msg += ". YouTube scraping can take longer. The task may still be processing - check back later using the task_id."
+                elif platform == "TikTok":
+                    error_msg += ". The creator may not have videos, or the URL may be invalid."
+                else:
+                    error_msg += ". Platform may not be supported or URL format is invalid."
+                
+                logger.warning(error_msg)
+                return ToolResult(
+                    success=False,
+                    output={
+                        "error": error_msg,
+                        "task_id": task_id,
+                        "creator": creator_url,
+                        "platform": platform
+                    }
+                )
             
-            logger.info(f"Creator upload complete: {len(videos)} videos indexed")
+            # Extract video_nos and create lookup map for basic metadata (in case detail fetch fails)
+            video_nos = []
+            basic_metadata_map = {}  # video_no -> basic metadata from task response
+            
+            for v in videos_data:
+                video_no = v.get('video_no') or v.get('videoNo')
+                if video_no:
+                    video_nos.append(video_no)
+                    # Store basic metadata as fallback
+                    basic_metadata_map[video_no] = {
+                        'video_no': video_no,
+                        'title': v.get('video_name', 'Untitled'),
+                        'video_url': v.get('video_url', ''),
+                        'duration': int(v.get('duration', 0)) if v.get('duration') else 0,
+                        'status': v.get('status', 'UNKNOWN')
+                    }
+            
+            if not video_nos:
+                return ToolResult(
+                    success=False,
+                    output={
+                        "error": f"Videos found but no valid video IDs extracted. This may indicate an API issue with {platform}.",
+                        "task_id": task_id,
+                        "creator": creator_url,
+                        "platform": platform
+                    }
+                )
+            
+            # Fetch full details for all videos (will return None for UNPARSE or if fetch fails)
+            fetched_videos = await self._fetch_all_video_details(video_nos)
+            
+            # Create lookup for successfully fetched videos
+            fetched_map = {v['video_no']: v for v in fetched_videos if v.get('video_no')}
+            
+            # Build final video list: use fetched details if available, otherwise use basic metadata
+            videos = []
+            for video_no in video_nos:
+                if video_no in fetched_map:
+                    # Use full fetched details
+                    videos.append(fetched_map[video_no])
+                elif video_no in basic_metadata_map:
+                    # Fallback to basic metadata from task response (for UNPARSE videos)
+                    basic = basic_metadata_map[video_no].copy()
+                    # Enrich with platform-specific URL building
+                    basic['web_url'] = self._build_web_url(basic)
+                    basic['thumbnail_url'] = self._extract_thumbnail(basic)
+                    videos.append(basic)
+            
+            parsed_count = len([v for v in videos if v.get('status') == 'PARSE'])
+            unparsed_count = len([v for v in videos if v.get('status') == 'UNPARSE'])
+            
+            logger.info(f"Creator upload complete: {len(videos)} videos indexed from {platform} ({parsed_count} parsed, {unparsed_count} still processing)")
             
             return ToolResult(
                 success=True,
                 output={
                     "videos": videos,
-                        "task_id": task_id,
+                    "task_id": task_id,
                     "creator": creator_url,
+                    "platform": platform,
                     "status": "completed",
                     "count": len(videos)
                 }
             )
             
         except TimeoutError as e:
-            logger.error(f"Creator upload timeout: {str(e)}")
+            # Detect platform for better error message
+            platform = "UNKNOWN"
+            if "tiktok.com" in creator_url.lower():
+                platform = "TikTok"
+            elif "instagram.com" in creator_url.lower():
+                platform = "Instagram"
+            elif "youtube.com" in creator_url.lower():
+                platform = "YouTube"
+            
+            error_msg = f"Upload timed out after 15 minutes for {platform}: {str(e)}"
+            if platform == "Instagram":
+                error_msg += " Instagram scraping can take 5+ minutes. Videos may still be processing in the background."
+            elif platform == "YouTube":
+                error_msg += " YouTube scraping can take longer. Videos may still be processing in the background."
+            
+            # Get task_id if it exists
+            task_id_val = None
+            try:
+                task_id_val = task_id
+            except NameError:
+                pass
+            
+            logger.error(f"Creator upload timeout ({platform}): {str(e)}")
             return ToolResult(
                 success=False,
-                output={"error": f"Upload timed out: {str(e)}. Videos may still be processing."}
+                output={
+                    "error": error_msg,
+                    "task_id": task_id_val,
+                    "creator": creator_url,
+                    "platform": platform
+                }
             )
         except Exception as e:
             logger.error(f"Error uploading creator videos: {str(e)}")
@@ -541,11 +661,70 @@ class MemoriesTool(Tool):
             # Wait for task to complete (blocking)
             videos_data = await self._wait_for_task(task_id, max_wait=600)
             
-            # Fetch full details for all videos (API returns 'video_no' in some responses, 'videoNo' in others)
-            video_nos = [v.get('video_no') or v.get('videoNo') for v in videos_data if (v.get('video_no') or v.get('videoNo'))]
-            videos = await self._fetch_all_video_details(video_nos)
+            # Check if we got any videos at all
+            if not videos_data:
+                error_msg = f"No videos found for hashtags: {hashtags}. Videos may take longer to appear or hashtags may not have videos."
+                logger.warning(error_msg)
+                return ToolResult(
+                    success=False,
+                    output={
+                        "error": error_msg,
+                        "task_id": task_id,
+                        "hashtags": hashtags
+                    }
+                )
             
-            logger.info(f"Hashtag upload complete: {len(videos)} videos indexed")
+            # Extract video_nos and create lookup map for basic metadata (in case detail fetch fails)
+            video_nos = []
+            basic_metadata_map = {}  # video_no -> basic metadata from task response
+            
+            for v in videos_data:
+                video_no = v.get('video_no') or v.get('videoNo')
+                if video_no:
+                    video_nos.append(video_no)
+                    # Store basic metadata as fallback
+                    basic_metadata_map[video_no] = {
+                        'video_no': video_no,
+                        'title': v.get('video_name', 'Untitled'),
+                        'video_url': v.get('video_url', ''),
+                        'duration': int(v.get('duration', 0)) if v.get('duration') else 0,
+                        'status': v.get('status', 'UNKNOWN')
+                    }
+            
+            if not video_nos:
+                return ToolResult(
+                    success=False,
+                    output={
+                        "error": f"Videos found but no valid video IDs extracted. This may indicate an API issue.",
+                        "task_id": task_id,
+                        "hashtags": hashtags
+                    }
+                )
+            
+            # Fetch full details for all videos (will return None for UNPARSE or if fetch fails)
+            fetched_videos = await self._fetch_all_video_details(video_nos)
+            
+            # Create lookup for successfully fetched videos
+            fetched_map = {v['video_no']: v for v in fetched_videos if v.get('video_no')}
+            
+            # Build final video list: use fetched details if available, otherwise use basic metadata
+            videos = []
+            for video_no in video_nos:
+                if video_no in fetched_map:
+                    # Use full fetched details
+                    videos.append(fetched_map[video_no])
+                elif video_no in basic_metadata_map:
+                    # Fallback to basic metadata from task response (for UNPARSE videos)
+                    basic = basic_metadata_map[video_no].copy()
+                    # Enrich with platform-specific URL building
+                    basic['web_url'] = self._build_web_url(basic)
+                    basic['thumbnail_url'] = self._extract_thumbnail(basic)
+                    videos.append(basic)
+            
+            parsed_count = len([v for v in videos if v.get('status') == 'PARSE'])
+            unparsed_count = len([v for v in videos if v.get('status') == 'UNPARSE'])
+            
+            logger.info(f"Hashtag upload complete: {len(videos)} videos indexed ({parsed_count} parsed, {unparsed_count} still processing)")
             
             return ToolResult(
                 success=True,
