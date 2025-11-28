@@ -324,6 +324,8 @@ Examples: "Analyze Nike's TikTok strategy - what makes their videos viral?"
 
 **Speed:** 20-40 seconds (AI processing + retrieval)
 
+**Platform Note:** TikTok has the most indexed content and returns the most video references. Instagram/YouTube may return fewer or no video references due to less indexed content - the AI analysis (content) will still work.
+
 **CRITICAL:** Display ALL three components (thinkings, refs, content) - they are core to the user experience.
 
 ---
@@ -334,6 +336,7 @@ Examples: "Analyze Nike's TikTok strategy - what makes their videos viral?"
 Response contains:
 - `videos`: Array of uploaded videos with full metadata (video_no, title, creator, stats, etc.)
 - `creator`: Creator handle
+- `library`: Which library videos were uploaded to (public or private)
 - `count`: Number of videos uploaded
 
 **Best for:**
@@ -342,11 +345,22 @@ Response contains:
 - Deep-dive analysis of a creator's strategy
 
 **Parameters:**
-- `creator_url`: "@username", "username", or full URL (e.g., "@mrbeast")
+- `creator_url`: Full platform URL (recommended format):
+  - TikTok: `https://www.tiktok.com/@nike`
+  - Instagram: `https://www.instagram.com/nike/`
+  - YouTube: `https://www.youtube.com/@nike`
 - `video_count`: Number of videos to scrape (default: 10)
+- `library`: "public" (default, for video_marketer_chat) or "private" (for chat_with_videos)
 
-**Speed:** ⚠️ 1-2 minutes (scrapes and indexes from platform)
-**Note:** Tool blocks until complete - user will see "Analyzing..." state
+**Library Choice:**
+- `library="public"` → Creates PI- prefix videos → Use with `video_marketer_chat`
+- `library="private"` → Creates VI- prefix videos → Use with `chat_with_videos`
+
+**Speed:** 
+- TikTok: ⚠️ 1-2 minutes
+- Instagram/YouTube: ⚠️ 5+ minutes (slower platform scraping)
+
+**Note:** Tool blocks until complete - user will see "Analyzing..." state. Some videos may show as "processing" if still being indexed.
 
 ---
 
@@ -367,7 +381,8 @@ Response contains:
 - `hashtags`: List of hashtags without # prefix (e.g., ["LVMH", "fashion"])
 - `video_count`: Number of videos per hashtag (default: 10)
 
-**Speed:** ⚠️ 1-2 minutes (scrapes and indexes from platform)
+**Speed:** ⚠️ 1-2 minutes (scrapes and indexes from TikTok)
+**Note:** Hashtag scraping is TikTok-only. Some videos may show as "processing" if still being indexed.
 
 ---
 
@@ -381,15 +396,29 @@ Response object containing:
 - `session_id`: Session ID for follow-up questions
 
 **Best for:**
-- Detailed Q&A about specific videos you've found or uploaded
+- Detailed Q&A about specific videos you've uploaded to the private library
 - Comparing multiple videos side-by-side
 - Extracting insights from video content (emotions, techniques, messaging)
 
+**IMPORTANT - Library Compatibility:**
+- Works with: **Private library videos (VI- prefix)** - use `upload_creator_videos` with `library="private"`
+- Does NOT work with: Public library videos (PI- prefix) - use `video_marketer_chat` instead
+
 **Parameters:**
-- `video_nos`: List of video IDs (from upload tools or video_marketer_chat refs)
+- `video_nos`: List of video IDs from **private library** (VI- prefix)
 - `prompt`: Question about the videos (required)
 
 **Speed:** 20-40 seconds (AI processing)
+
+**Workflow for chat_with_videos:**
+1. Upload videos with `upload_creator_videos(creator_url="https://www.tiktok.com/@nike", library="private")`
+2. Get the VI- prefix video_nos from the response
+3. Use those video_nos with `chat_with_videos`
+
+**Platform URL Examples:**
+- TikTok: `upload_creator_videos(creator_url="https://www.tiktok.com/@mrbeast")`
+- Instagram: `upload_creator_videos(creator_url="https://www.instagram.com/nike/")`
+- YouTube: `upload_creator_videos(creator_url="https://www.youtube.com/@nike")`
 
 **CRITICAL:** Display ALL three components (thinkings, refs, content).
 

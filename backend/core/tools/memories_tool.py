@@ -69,7 +69,7 @@ class MemoriesTool(Tool):
                 data = response['data']
                 
                 # Build standardized video object
-                return {
+            return {
                     'video_no': data.get('video_no', ''),
                     'title': data.get('video_name', 'Untitled'),
                     'creator': data.get('blogger_id', 'Unknown'),
@@ -254,15 +254,15 @@ class MemoriesTool(Tool):
     @openapi_schema({
         "name": "video_marketer_chat",
         "description": "Get AI-powered analysis and insights from 1M+ indexed videos. Use for trend analysis, creator strategies, content patterns, and marketing insights.",
-        "parameters": {
-            "type": "object",
-            "properties": {
+            "parameters": {
+                "type": "object",
+                "properties": {
                 "prompt": {
-                    "type": "string",
+                        "type": "string",
                     "description": "Analysis question (e.g., 'What does Nike post on TikTok?', 'Analyze MrBeast viral strategies', 'Find trending fitness content patterns')"
-                },
+                    },
                 "platform": {
-                    "type": "string",
+                        "type": "string",
                     "enum": ["TIKTOK", "YOUTUBE", "INSTAGRAM"],
                     "default": "TIKTOK",
                     "description": "Platform to analyze (default: TIKTOK)"
@@ -281,8 +281,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(prompt, list):
@@ -306,65 +306,63 @@ class MemoriesTool(Tool):
                 logger.error("marketer_chat returned unexpected payload", payload_type=type(response))
                 response = {}
             
+            # Check for API error
+            if response.get('error'):
+                error_msg = response.get('error', 'Unknown error')
+                logger.warning(f"video_marketer_chat API returned error: {error_msg}")
+                return ToolResult(
+                    success=False,
+                    output={"error": f"Marketer chat failed: {error_msg}"}
+                )
+            
             # Extract data (response IS already the data from marketer_chat)
             role = response.get('role', 'ASSISTANT')
             content = response.get('content', '')
-            thinkings = response.get('thinkings', [])
+            thinkings = response.get('thinkings', []) or []  # Handle None
             session_id = response.get('session_id', '')
             
             # Refs can be at top level OR nested inside thinkings (API inconsistency)
             # Always check both locations to ensure we get all refs
-            refs = response.get('refs', [])
+            refs = response.get('refs', []) or []  # Handle None
             top_level_count = len(refs)
             
             # Also extract refs from inside thinkings (some APIs put them there)
             for thinking in thinkings:
-                if thinking.get('refs'):
-                    refs.extend(thinking['refs'])
+                thinking_refs = thinking.get('refs')
+                if thinking_refs:
+                    refs.extend(thinking_refs)
             
             thinkings_count = len(refs) - top_level_count
             if refs:
                 logger.info(f"Found {len(refs)} refs ({top_level_count} top-level, {thinkings_count} in thinkings) on {platform}")
             
-            # Enrich refs with full video metadata using the same method as upload tools
+            # Enrich refs with video metadata from refItems (stats are there, not in video object)
             if refs:
-                # Extract all video_nos from refs and store basic metadata as fallback
-                video_nos = []
-                basic_metadata_map = {}  # video_no -> basic metadata from ref structure
-                
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
-                    video_no = video_info.get('video_no')
-                    if video_no:
-                        video_nos.append(video_no)
-                        # Store basic metadata from ref structure as fallback
-                        basic_metadata_map[video_no] = {
-                            'video_no': video_no,
-                            'title': video_info.get('video_name', 'Untitled'),
-                            'duration': int(video_info.get('duration', 0)) if video_info.get('duration') else 0
-                        }
-                
-                # Fetch all video details using proven method with rate limiting
-                if video_nos:
-                    all_details = await self._fetch_all_video_details(video_nos)
+                    ref_items = ref_group.get('refItems', [])
                     
-                    # Create lookup dict for successfully fetched videos
-                    details_lookup = {v['video_no']: v for v in all_details if v.get('video_no')}
+                    # Extract stats from refItems (API puts view_count, like_count, etc. here)
+                    if ref_items:
+                        first_item = ref_items[0]
+                        # Merge stats into video_info for frontend compatibility
+                        video_info['view_count'] = first_item.get('view_count', 0)
+                        video_info['like_count'] = first_item.get('like_count', 0)
+                        video_info['share_count'] = first_item.get('share_count', 0)
+                        video_info['comment_count'] = first_item.get('comment_count', 0)
+                        # Also get summary if available
+                        if first_item.get('summary'):
+                            video_info['summary'] = first_item.get('summary')
                     
-                    # Update each ref's video with full details, or use basic metadata as fallback
-                    for ref_group in refs:
-                        video_info = ref_group.get('video', {})
-                        video_no = video_info.get('video_no')
-                        if video_no:
-                            if video_no in details_lookup:
-                                # Use full fetched details
-                                video_info.update(details_lookup[video_no])
-                            elif video_no in basic_metadata_map:
-                                # Fallback to basic metadata from ref structure
-                                basic = basic_metadata_map[video_no].copy()
-                                basic['web_url'] = self._build_web_url(video_info)
-                                basic['thumbnail_url'] = self._extract_thumbnail(video_info)
-                                video_info.update(basic)
+                    # Normalize field names for frontend
+                    video_info['title'] = video_info.get('video_name', video_info.get('title', 'Untitled'))
+                    video_info['duration'] = int(video_info.get('duration', 0)) if video_info.get('duration') else 0
+                    # Set creator - API doesn't provide blogger_id in marketer_chat refs, default to 'Unknown'
+                    video_info['creator'] = video_info.get('blogger_id', video_info.get('creator', 'Unknown'))
+                    
+                    # Build URLs
+                    video_info['web_url'] = self._build_web_url(video_info)
+                    video_info['thumbnail_url'] = self._extract_thumbnail(video_info)
             else:
                 # Log when no refs are returned (common for Instagram/YouTube due to limited indexed content)
                 if platform in ['INSTAGRAM', 'YOUTUBE']:
@@ -378,7 +376,7 @@ class MemoriesTool(Tool):
                     "role": role,
                     "content": content,
                     "thinkings": thinkings,
-                    "refs": refs,
+                "refs": refs,
                     "session_id": session_id,
                     "platform": platform
                 }
@@ -434,53 +432,74 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "upload_creator_videos",
-        "description": "SLOW (TikTok: 1-2 min, Instagram/YouTube: 5+ min): Scrape and index videos from a creator's profile. Use for archiving a creator's content to the public library for deep analysis.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "creator_url": {
-                    "type": "string",
-                    "description": "Creator URL or handle (e.g., 'https://www.tiktok.com/@nike', '@mrbeast', 'https://www.instagram.com/nike/')"
-                },
-                "video_count": {
-                    "type": "integer",
+        "description": "SLOW (TikTok: 1-2 min, Instagram/YouTube: 5+ min): Scrape and index videos from a creator's profile. Use 'private' library for chat_with_videos, 'public' for video_marketer_chat.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "creator_url": {
+                        "type": "string",
+                    "description": "Creator URL - use full URL format: TikTok: 'https://www.tiktok.com/@nike', Instagram: 'https://www.instagram.com/nike/', YouTube: 'https://www.youtube.com/@nike'"
+                    },
+                    "video_count": {
+                        "type": "integer",
                     "default": 10,
                     "description": "Number of recent videos to scrape (default: 10)"
-                }
-            },
-            "required": ["creator_url"]
+                },
+                "library": {
+                    "type": "string",
+                    "enum": ["public", "private"],
+                    "default": "public",
+                    "description": "Which library to upload to: 'public' (PI- videos for video_marketer_chat) or 'private' (VI- videos for chat_with_videos)"
+                    }
+                },
+                "required": ["creator_url"]
         }
     })
     async def upload_creator_videos(
         self,
         creator_url: str,
-        video_count: int = 10
+        video_count: int = 10,
+        library: str = "public"
     ) -> ToolResult:
-        """Scrape and index videos from a creator's profile"""
+        """Scrape and index videos from a creator's profile to public or private library"""
         
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(creator_url, list):
                 creator_url = creator_url[0] if creator_url else ""
             if isinstance(video_count, list):
                 video_count = int(video_count[0]) if video_count else 10
+            if isinstance(library, list):
+                library = library[0] if library else "public"
             
             creator_url = str(creator_url).strip()
             video_count = int(video_count)
+            library = str(library).lower().strip()
             
-            logger.info(f"Uploading {video_count} videos from creator: {creator_url}")
+            # Validate library parameter
+            if library not in ["public", "private"]:
+                library = "public"
             
-            # Start scraping task
-            response = await asyncio.to_thread(
-                self.memories_client.scraper_public,
-                username=creator_url,
-                scraper_cnt=video_count
-            )
+            logger.info(f"Uploading {video_count} videos from creator: {creator_url} to {library} library")
+            
+            # Start scraping task - use correct endpoint based on library
+            if library == "private":
+                response = await asyncio.to_thread(
+                    self.memories_client.scraper_private,
+                    username=creator_url,
+                    scraper_cnt=video_count
+                )
+            else:
+                response = await asyncio.to_thread(
+                    self.memories_client.scraper_public,
+                    username=creator_url,
+                    scraper_cnt=video_count
+                )
             
             task_id = response.get('data', {}).get('taskId')
             if not task_id:
@@ -495,7 +514,7 @@ class MemoriesTool(Tool):
             elif "youtube.com" in creator_url.lower() or "youtu.be" in creator_url.lower():
                 platform = "YouTube"
             
-            logger.info(f"Scraping started for {platform}, task_id: {task_id}. Waiting for completion...")
+            logger.info(f"Scraping started for {platform} ({library} library), task_id: {task_id}. Waiting for completion...")
             
             # Wait for task to complete (blocking)
             # Instagram/YouTube take longer (5+ minutes) than TikTok (~20 seconds)
@@ -576,17 +595,19 @@ class MemoriesTool(Tool):
             parsed_count = len([v for v in videos if v.get('status') == 'PARSE'])
             unparsed_count = len([v for v in videos if v.get('status') == 'UNPARSE'])
             
-            logger.info(f"Creator upload complete: {len(videos)} videos indexed from {platform} ({parsed_count} parsed, {unparsed_count} still processing)")
+            logger.info(f"Creator upload complete: {len(videos)} videos indexed from {platform} to {library} library ({parsed_count} parsed, {unparsed_count} still processing)")
             
             return ToolResult(
                 success=True,
                 output={
                     "videos": videos,
-                    "task_id": task_id,
+                        "task_id": task_id,
                     "creator": creator_url,
                     "platform": platform,
+                    "library": library,
                     "status": "completed",
-                    "count": len(videos)
+                    "count": len(videos),
+                    "usage_note": f"Videos uploaded to {library} library. Use {'chat_with_videos' if library == 'private' else 'video_marketer_chat'} to analyze them."
                 }
             )
             
@@ -632,22 +653,22 @@ class MemoriesTool(Tool):
     
     @openapi_schema({
         "name": "upload_hashtag_videos",
-        "description": "SLOW (1-2 min for TikTok): Scrape and index videos by hashtag from TikTok. Use for trend analysis or archiving hashtag content to the public library.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "hashtags": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Hashtags to scrape (e.g., ['LVMH', 'Dior', 'fashion'])"
-                },
-                "video_count": {
-                    "type": "integer",
+        "description": "SLOW (1-2 min): Scrape and index videos by hashtag from TikTok ONLY. Instagram/YouTube hashtag support coming soon. Use for trend analysis or archiving hashtag content.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "hashtags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    "description": "Hashtags to scrape from TikTok (e.g., ['LVMH', 'Dior', 'fashion']) - without # prefix"
+                    },
+                    "video_count": {
+                        "type": "integer",
                     "default": 10,
                     "description": "Number of videos per hashtag (default: 10)"
-                }
-            },
-            "required": ["hashtags"]
+                    }
+                },
+                "required": ["hashtags"]
         }
     })
     async def upload_hashtag_videos(
@@ -660,8 +681,8 @@ class MemoriesTool(Tool):
         # Check client
         error = self._check_client()
         if error:
-            return error
-        
+                return error
+            
         try:
             # Defensive type handling
             if isinstance(hashtags, str):
@@ -837,65 +858,63 @@ class MemoriesTool(Tool):
                 logger.error("chat_with_video returned unexpected payload", payload_type=type(response))
                 response = {}
             
+            # Check for API error
+            if response.get('error'):
+                error_msg = response.get('error', 'Unknown error')
+                logger.warning(f"chat_with_videos API returned error: {error_msg}")
+                return ToolResult(
+                    success=False,
+                    output={"error": f"Video chat failed: {error_msg}. The video IDs may be invalid or expired."}
+            )
+            
             # Extract data (response IS already the data from chat_with_video)
             role = response.get('role', 'ASSISTANT')
             content = response.get('content', '')
-            thinkings = response.get('thinkings', [])
+            thinkings = response.get('thinkings', []) or []  # Handle None
             session_id = response.get('session_id', '')
             
             # Refs can be at top level OR nested inside thinkings (API inconsistency)
             # Always check both locations to ensure we get all refs
-            refs = response.get('refs', [])
+            refs = response.get('refs', []) or []  # Handle None
             top_level_count = len(refs)
             
             # Also extract refs from inside thinkings
             for thinking in thinkings:
-                if thinking.get('refs'):
-                    refs.extend(thinking['refs'])
+                thinking_refs = thinking.get('refs')
+                if thinking_refs:
+                    refs.extend(thinking_refs)
             
             thinkings_count = len(refs) - top_level_count
             if refs:
                 logger.info(f"Found {len(refs)} refs ({top_level_count} top-level, {thinkings_count} in thinkings)")
             
-            # Enrich refs with full video metadata using the same method as upload tools
+            # Enrich refs with video metadata from refItems (stats are there, not in video object)
             if refs:
-                # Extract all video_nos from refs and store basic metadata as fallback
-                ref_video_nos = []
-                basic_metadata_map = {}  # video_no -> basic metadata from ref structure
-                
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
-                    video_no = video_info.get('video_no')
-                    if video_no:
-                        ref_video_nos.append(video_no)
-                        # Store basic metadata from ref structure as fallback
-                        basic_metadata_map[video_no] = {
-                            'video_no': video_no,
-                            'title': video_info.get('video_name', 'Untitled'),
-                            'duration': int(video_info.get('duration', 0)) if video_info.get('duration') else 0
-                        }
-                
-                # Fetch all video details using proven method with rate limiting
-                if ref_video_nos:
-                    all_details = await self._fetch_all_video_details(ref_video_nos)
+                    ref_items = ref_group.get('refItems', [])
                     
-                    # Create lookup dict for successfully fetched videos
-                    details_lookup = {v['video_no']: v for v in all_details if v.get('video_no')}
+                    # Extract stats from refItems (API puts view_count, like_count, etc. here)
+                    if ref_items:
+                        first_item = ref_items[0]
+                        # Merge stats into video_info for frontend compatibility
+                        video_info['view_count'] = first_item.get('view_count', 0)
+                        video_info['like_count'] = first_item.get('like_count', 0)
+                        video_info['share_count'] = first_item.get('share_count', 0)
+                        video_info['comment_count'] = first_item.get('comment_count', 0)
+                        # Also get summary if available
+                        if first_item.get('summary'):
+                            video_info['summary'] = first_item.get('summary')
                     
-                    # Update each ref's video with full details, or use basic metadata as fallback
-                    for ref_group in refs:
-                        video_info = ref_group.get('video', {})
-                        video_no = video_info.get('video_no')
-                        if video_no:
-                            if video_no in details_lookup:
-                                # Use full fetched details
-                                video_info.update(details_lookup[video_no])
-                            elif video_no in basic_metadata_map:
-                                # Fallback to basic metadata from ref structure
-                                basic = basic_metadata_map[video_no].copy()
-                                basic['web_url'] = self._build_web_url(video_info)
-                                basic['thumbnail_url'] = self._extract_thumbnail(video_info)
-                                video_info.update(basic)
+                    # Normalize field names for frontend
+                    video_info['title'] = video_info.get('video_name', video_info.get('title', 'Untitled'))
+                    video_info['duration'] = int(video_info.get('duration', 0)) if video_info.get('duration') else 0
+                    # Set creator - API may not provide blogger_id in chat refs, default to 'Unknown'
+                    video_info['creator'] = video_info.get('blogger_id', video_info.get('creator', 'Unknown'))
+                    
+                    # Build URLs
+                    video_info['web_url'] = self._build_web_url(video_info)
+                    video_info['thumbnail_url'] = self._extract_thumbnail(video_info)
             
             logger.info(f"Video chat completed: {len(thinkings)} thinkings, {len(refs)} ref groups")
             

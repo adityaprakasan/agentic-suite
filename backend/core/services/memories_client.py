@@ -120,7 +120,15 @@ class MemoriesClient:
         if not isinstance(response, dict):
             logger.warning(f"marketer_chat received non-dict response: {type(response)}")
             return {"role": "ASSISTANT", "content": "", "thinkings": [], "refs": [], "session_id": ""}
-        return response.get("data", {})
+        
+        # Check for API error
+        if response.get("code") != "0000" or response.get("failed"):
+            error_msg = response.get("msg", "Unknown error")
+            logger.warning(f"marketer_chat API error: {error_msg}")
+            return {"role": "ASSISTANT", "content": "", "thinkings": [], "refs": [], "session_id": "", "error": error_msg}
+        
+        # Handle null data (response.get returns None, not default, when value is explicitly null)
+        return response.get("data") or {}
     
     def chat_with_video(
         self, 
@@ -148,13 +156,46 @@ class MemoriesClient:
             logger.warning(f"chat_with_video received non-dict response: {type(response)}")
             return {"role": "ASSISTANT", "content": "", "thinkings": [], "refs": [], "session_id": ""}
         
-        result = response.get("data", {})
+        # Check for API error
+        if response.get("code") != "0000" or response.get("failed"):
+            error_msg = response.get("msg", "Unknown error")
+            logger.warning(f"chat_with_video API error: {error_msg}")
+            return {"role": "ASSISTANT", "content": "", "thinkings": [], "refs": [], "session_id": "", "error": error_msg}
+        
+        # Handle null data (response.get returns None, not default, when value is explicitly null)
+        result = response.get("data") or {}
         # Preserve session_id at top level for backward compatibility
         if "session_id" in response:
             result["session_id"] = response["session_id"]
         return result
     
-    # ============ PUBLIC LIBRARY UPLOAD (SCRAPING) ============
+    # ============ LIBRARY UPLOAD (SCRAPING) ============
+    
+    def scraper_private(
+        self, 
+        username: str, 
+        scraper_cnt: int = 10, 
+        unique_id: str = "default",
+        callback_url: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Scrape creator's videos to PRIVATE library (for Video Chat)
+        Endpoint: POST /serve/api/v1/scraper
+        Platforms: TikTok, Instagram, YouTube
+        Returns: {code, msg, data: {taskId}}
+        Note: Creates VI- prefix videos that work with chat_with_videos
+        """
+        data = {
+            "username": username,
+            "scraper_cnt": scraper_cnt,
+            "unique_id": unique_id
+        }
+        if callback_url:
+            data["callback_url"] = callback_url
+        
+        response = self._post("/serve/api/v1/scraper", json_data=data)
+        logger.info("Creator scrape initiated (private)", task_id=response.get("data", {}).get("taskId"))
+        return response
     
     def scraper_public(
         self, 
@@ -163,10 +204,11 @@ class MemoriesClient:
         callback_url: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Scrape creator's videos to public library
+        Scrape creator's videos to PUBLIC library (for Video Marketer)
         Endpoint: POST /serve/api/v1/scraper_public
         Platforms: TikTok, Instagram, YouTube
         Returns: {code, msg, data: {taskId}}
+        Note: Creates PI- prefix videos that work with video_marketer_chat
         """
         data = {
             "username": username,
