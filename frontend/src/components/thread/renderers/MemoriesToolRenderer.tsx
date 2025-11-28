@@ -72,7 +72,39 @@ function VideoCard({ video, platform }: VideoCardProps) {
   const duration = video.duration || video.duration_seconds || 0;
   const thumbnail = video.thumbnail_url || video.cover_url || video.img_url || '';
   const webUrl = video.web_url || video.share_url || video.url || '';
-  const embedUrl = video.url || video.video_url || webUrl;
+  const rawEmbedUrl = video.url || video.video_url || webUrl;
+  
+  // Transform platform URLs to embeddable format
+  const getEmbedUrl = (url: string | undefined): string => {
+    if (!url) return '';
+    
+    // Instagram posts: /p/ABC123/ → /p/ABC123/embed/
+    if (url.includes('instagram.com/p/') && !url.includes('/embed')) {
+      return url.replace(/\/?$/, '/embed/');
+    }
+    
+    // Instagram reels: /reel/ABC123/ → /reel/ABC123/embed/
+    if (url.includes('instagram.com/reel/') && !url.includes('/embed')) {
+      return url.replace(/\/?$/, '/embed/');
+    }
+    
+    // YouTube: watch?v=VIDEO_ID → /embed/VIDEO_ID
+    if (url.includes('youtube.com/watch?v=')) {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+    }
+    
+    // YouTube short URLs: youtu.be/VIDEO_ID → /embed/VIDEO_ID
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+    }
+    
+    // TikTok player URLs are already embeddable
+    return url;
+  };
+  
+  const embedUrl = getEmbedUrl(rawEmbedUrl);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -87,7 +119,8 @@ function VideoCard({ video, platform }: VideoCardProps) {
           />
         ) : embedUrl && (embedUrl.includes('youtube.com/embed') || 
                           embedUrl.includes('tiktok.com/player') || 
-                          embedUrl.includes('instagram.com/p/')) ? (
+                          embedUrl.includes('instagram.com/p/') ||
+                          embedUrl.includes('instagram.com/reel/')) ? (
           <iframe
             src={embedUrl}
             className="w-full h-full"

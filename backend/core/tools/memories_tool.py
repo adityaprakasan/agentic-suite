@@ -336,33 +336,60 @@ class MemoriesTool(Tool):
             if refs:
                 logger.info(f"Found {len(refs)} refs ({top_level_count} top-level, {thinkings_count} in thinkings) on {platform}")
             
-            # Enrich refs with video metadata from refItems (stats are there, not in video object)
+            # Enrich refs with FULL video metadata by fetching from API (same as upload tools)
             if refs:
+                # First, collect all video_nos and extract stats from refItems
+                video_nos = []
+                stats_map = {}  # video_no -> stats from refItems
+                
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
+                    video_no = video_info.get('video_no')
                     ref_items = ref_group.get('refItems', [])
                     
-                    # Extract stats from refItems (API puts view_count, like_count, etc. here)
-                    if ref_items:
-                        first_item = ref_items[0]
-                        # Merge stats into video_info for frontend compatibility
-                        video_info['view_count'] = first_item.get('view_count', 0)
-                        video_info['like_count'] = first_item.get('like_count', 0)
-                        video_info['share_count'] = first_item.get('share_count', 0)
-                        video_info['comment_count'] = first_item.get('comment_count', 0)
-                        # Also get summary if available
-                        if first_item.get('summary'):
-                            video_info['summary'] = first_item.get('summary')
+                    if video_no:
+                        video_nos.append(video_no)
+                        # Extract stats from refItems (API puts view_count, like_count, etc. here)
+                        if ref_items:
+                            first_item = ref_items[0]
+                            stats_map[video_no] = {
+                                'view_count': first_item.get('view_count', 0),
+                                'like_count': first_item.get('like_count', 0),
+                                'share_count': first_item.get('share_count', 0),
+                                'comment_count': first_item.get('comment_count', 0),
+                                'summary': first_item.get('summary', '')
+                            }
+                
+                # Fetch full video details (creator, video_url, thumbnail, etc.)
+                if video_nos:
+                    fetched_videos = await self._fetch_all_video_details(video_nos)
+                    fetched_map = {v['video_no']: v for v in fetched_videos if v.get('video_no')}
                     
-                    # Normalize field names for frontend
-                    video_info['title'] = video_info.get('video_name', video_info.get('title', 'Untitled'))
-                    video_info['duration'] = int(video_info.get('duration', 0)) if video_info.get('duration') else 0
-                    # Set creator - API doesn't provide blogger_id in marketer_chat refs, default to 'Unknown'
-                    video_info['creator'] = video_info.get('blogger_id', video_info.get('creator', 'Unknown'))
-                    
-                    # Build URLs
-                    video_info['web_url'] = self._build_web_url(video_info)
-                    video_info['thumbnail_url'] = self._extract_thumbnail(video_info)
+                    # Update each ref's video with full details + stats from refItems
+                    for ref_group in refs:
+                        video_info = ref_group.get('video', {})
+                        video_no = video_info.get('video_no')
+                        
+                        if video_no and video_no in fetched_map:
+                            # Merge full fetched details (creator, video_url, thumbnail, etc.)
+                            video_info.update(fetched_map[video_no])
+                        else:
+                            # Fallback: normalize basic fields
+                            video_info['title'] = video_info.get('video_name', video_info.get('title', 'Untitled'))
+                            video_info['duration'] = int(video_info.get('duration', 0)) if video_info.get('duration') else 0
+                            video_info['creator'] = 'Unknown'
+                            video_info['web_url'] = self._build_web_url(video_info)
+                            video_info['thumbnail_url'] = self._extract_thumbnail(video_info)
+                        
+                        # Always merge stats from refItems (more accurate than fetched)
+                        if video_no and video_no in stats_map:
+                            stats = stats_map[video_no]
+                            video_info['view_count'] = stats['view_count']
+                            video_info['like_count'] = stats['like_count']
+                            video_info['share_count'] = stats['share_count']
+                            video_info['comment_count'] = stats['comment_count']
+                            if stats['summary']:
+                                video_info['summary'] = stats['summary']
             else:
                 # Log when no refs are returned (common for Instagram/YouTube due to limited indexed content)
                 if platform in ['INSTAGRAM', 'YOUTUBE']:
@@ -495,11 +522,11 @@ class MemoriesTool(Tool):
                     scraper_cnt=video_count
                 )
             else:
-                response = await asyncio.to_thread(
-                    self.memories_client.scraper_public,
-                    username=creator_url,
-                    scraper_cnt=video_count
-                )
+            response = await asyncio.to_thread(
+                self.memories_client.scraper_public,
+                username=creator_url,
+                scraper_cnt=video_count
+            )
             
             task_id = response.get('data', {}).get('taskId')
             if not task_id:
@@ -888,33 +915,60 @@ class MemoriesTool(Tool):
             if refs:
                 logger.info(f"Found {len(refs)} refs ({top_level_count} top-level, {thinkings_count} in thinkings)")
             
-            # Enrich refs with video metadata from refItems (stats are there, not in video object)
+            # Enrich refs with FULL video metadata by fetching from API (same as upload tools)
             if refs:
+                # First, collect all video_nos and extract stats from refItems
+                ref_video_nos = []
+                stats_map = {}  # video_no -> stats from refItems
+                
                 for ref_group in refs:
                     video_info = ref_group.get('video', {})
+                    video_no = video_info.get('video_no')
                     ref_items = ref_group.get('refItems', [])
                     
-                    # Extract stats from refItems (API puts view_count, like_count, etc. here)
-                    if ref_items:
-                        first_item = ref_items[0]
-                        # Merge stats into video_info for frontend compatibility
-                        video_info['view_count'] = first_item.get('view_count', 0)
-                        video_info['like_count'] = first_item.get('like_count', 0)
-                        video_info['share_count'] = first_item.get('share_count', 0)
-                        video_info['comment_count'] = first_item.get('comment_count', 0)
-                        # Also get summary if available
-                        if first_item.get('summary'):
-                            video_info['summary'] = first_item.get('summary')
+                    if video_no:
+                        ref_video_nos.append(video_no)
+                        # Extract stats from refItems (API puts view_count, like_count, etc. here)
+                        if ref_items:
+                            first_item = ref_items[0]
+                            stats_map[video_no] = {
+                                'view_count': first_item.get('view_count', 0),
+                                'like_count': first_item.get('like_count', 0),
+                                'share_count': first_item.get('share_count', 0),
+                                'comment_count': first_item.get('comment_count', 0),
+                                'summary': first_item.get('summary', '')
+                            }
+                
+                # Fetch full video details (creator, video_url, thumbnail, etc.)
+                if ref_video_nos:
+                    fetched_videos = await self._fetch_all_video_details(ref_video_nos)
+                    fetched_map = {v['video_no']: v for v in fetched_videos if v.get('video_no')}
                     
-                    # Normalize field names for frontend
-                    video_info['title'] = video_info.get('video_name', video_info.get('title', 'Untitled'))
-                    video_info['duration'] = int(video_info.get('duration', 0)) if video_info.get('duration') else 0
-                    # Set creator - API may not provide blogger_id in chat refs, default to 'Unknown'
-                    video_info['creator'] = video_info.get('blogger_id', video_info.get('creator', 'Unknown'))
-                    
-                    # Build URLs
-                    video_info['web_url'] = self._build_web_url(video_info)
-                    video_info['thumbnail_url'] = self._extract_thumbnail(video_info)
+                    # Update each ref's video with full details + stats from refItems
+                    for ref_group in refs:
+                        video_info = ref_group.get('video', {})
+                        video_no = video_info.get('video_no')
+                        
+                        if video_no and video_no in fetched_map:
+                            # Merge full fetched details (creator, video_url, thumbnail, etc.)
+                            video_info.update(fetched_map[video_no])
+                        else:
+                            # Fallback: normalize basic fields
+                            video_info['title'] = video_info.get('video_name', video_info.get('title', 'Untitled'))
+                            video_info['duration'] = int(video_info.get('duration', 0)) if video_info.get('duration') else 0
+                            video_info['creator'] = 'Unknown'
+                            video_info['web_url'] = self._build_web_url(video_info)
+                            video_info['thumbnail_url'] = self._extract_thumbnail(video_info)
+                        
+                        # Always merge stats from refItems (more accurate than fetched)
+                        if video_no and video_no in stats_map:
+                            stats = stats_map[video_no]
+                            video_info['view_count'] = stats['view_count']
+                            video_info['like_count'] = stats['like_count']
+                            video_info['share_count'] = stats['share_count']
+                            video_info['comment_count'] = stats['comment_count']
+                            if stats['summary']:
+                                video_info['summary'] = stats['summary']
             
             logger.info(f"Video chat completed: {len(thinkings)} thinkings, {len(refs)} ref groups")
             
