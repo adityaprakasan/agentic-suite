@@ -137,16 +137,28 @@ export function ExportToolView({
   // Download state
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Helper function to sanitize filename (matching backend logic)
+  const sanitizeFilename = (name: string): string => {
+    return name.replace(/[^a-zA-Z0-9\-_]/g, '').toLowerCase();
+  };
+
   // Download handlers
   const handleDownload = async (downloadFormat: DownloadFormat) => {
-    if (!project?.sandbox?.sandbox_url || !presentationName) return;
+    if (!project?.sandbox?.sandbox_url || !presentationName) {
+      toast.error('Missing presentation information. Cannot download.');
+      return;
+    }
+
+    // Sanitize the name for the path (matching backend logic)
+    const sanitizedName = sanitizeFilename(presentationName);
+    const presentationPath = `/workspace/presentations/${sanitizedName}`;
 
     setIsDownloading(true);
     try {
       await downloadPresentation(
         downloadFormat,
         project.sandbox.sandbox_url, 
-        `/workspace/presentations/${presentationName}`, 
+        presentationPath, 
         presentationName
       );
     } catch (error) {

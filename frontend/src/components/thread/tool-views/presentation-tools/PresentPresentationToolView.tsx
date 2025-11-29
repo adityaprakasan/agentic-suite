@@ -85,19 +85,31 @@ export function PresentPresentationToolView({
   // Download state
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Helper function to sanitize filename (matching backend logic)
+  const sanitizeFilename = (name: string): string => {
+    return name.replace(/[^a-zA-Z0-9\-_]/g, '').toLowerCase();
+  };
+
   // Download handlers
   const handleDownload = async (format: DownloadFormat) => {
-    if (!project?.sandbox?.sandbox_url || !presentationName || !presentationPath) {
+    if (!project?.sandbox?.sandbox_url || !presentationName) {
       toast.error('Missing presentation information. Cannot download.');
       return;
     }
+
+    // Use presentationPath if available, otherwise construct from presentationName
+    const sanitizedName = sanitizeFilename(presentationName);
+    const effectivePath = presentationPath || `presentations/${sanitizedName}`;
+    const fullPath = effectivePath.startsWith('/workspace/') 
+      ? effectivePath 
+      : `/workspace/${effectivePath}`;
 
     setIsDownloading(true);
     try {
       if (format === DownloadFormat.GOOGLE_SLIDES) {
         const result = await handleGoogleSlidesUpload(
           project.sandbox.sandbox_url, 
-          `/workspace/${presentationPath}`
+          fullPath
         );
         // If redirected to auth, don't show error
         if (result?.redirected_to_auth) {
@@ -106,7 +118,7 @@ export function PresentPresentationToolView({
       } else {
         await downloadPresentation(format,
           project.sandbox.sandbox_url, 
-          `/workspace/${presentationPath}`, 
+          fullPath, 
           presentationName
         );
       }

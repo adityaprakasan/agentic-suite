@@ -1,9 +1,10 @@
 import httpx
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from core.utils.auth_utils import verify_and_get_user_id_from_jwt
@@ -139,6 +140,75 @@ async def convert_and_upload_to_google_docs(
     except HTTPException as he:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@docs_router.get("/download")
+async def download_document(
+    sandbox_url: str = Query(..., description="URL of the sandbox service"),
+    doc_path: str = Query(..., description="Path to the document file in sandbox"),
+    format: Literal["pdf", "docx"] = Query(..., description="Download format: pdf or docx"),
+    document_name: str = Query(default="document", description="Name for the downloaded file"),
+    _user_id: str = Depends(verify_and_get_user_id_from_jwt)
+):
+    """
+    Proxy endpoint for document downloads.
+    This bypasses browser CORS restrictions by making the request from the backend.
+    """
+    try:
+        logger.info(f"Document download request: format={format}, doc_path={doc_path}")
+        
+        convert_url = f"{sandbox_url}/document/convert-to-{format}"
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                convert_url,
+                json={
+                    "doc_path": doc_path,
+                    "download": True
+                },
+                headers={
+                    "X-Daytona-Skip-Preview-Warning": "true"
+                }
+            )
+            
+            if not response.is_success:
+                try:
+                    error_detail = response.json().get("detail", "Unknown error")
+                except:
+                    error_detail = response.text[:200] if response.text else "Unknown error"
+                logger.error(f"Document conversion failed: {error_detail}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Document conversion failed: {error_detail}"
+                )
+            
+            content = response.content
+            content_type = response.headers.get("content-type", "application/octet-stream")
+            
+            # Determine proper content type and extension
+            if format == "pdf":
+                content_type = "application/pdf"
+                filename = f"{document_name}.pdf"
+            else:
+                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                filename = f"{document_name}.docx"
+            
+            logger.info(f"Successfully converted document to {format}, size: {len(content)} bytes")
+            
+            return StreamingResponse(
+                iter([content]),
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                    "Content-Length": str(len(content))
+                }
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document download error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -15,22 +15,48 @@ export async function downloadDocument(
   documentName: string
 ): Promise<void> {
   try {
-    const response = await fetch(`${sandboxUrl}/document/convert-to-${format}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        doc_path: docPath,
-        download: true
-      })
+    // Validate inputs
+    if (!sandboxUrl || !docPath || !documentName) {
+      throw new Error('Missing required parameters for document download');
+    }
+
+    // Use backend proxy to avoid Daytona CORS issues
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      throw new Error('User not authenticated');
+    }
+
+    const params = new URLSearchParams({
+      sandbox_url: sandboxUrl,
+      doc_path: docPath,
+      format: format,
+      document_name: documentName,
     });
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/document-tools/download?${params}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      }
+    );
     
     if (!response.ok) {
-      throw new Error(`Failed to download ${format}`);
+      const errorText = await response.text();
+      throw new Error(`Failed to download ${format}: ${errorText || response.statusText}`);
     }
     
     const blob = await response.blob();
+    
+    // Validate blob size to detect corrupted downloads
+    if (blob.size < 100) {
+      throw new Error(`Download appears corrupted. File size too small: ${blob.size} bytes`);
+    }
+    
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
