@@ -105,8 +105,7 @@ export function FullScreenPresentationViewer({
         cache: 'no-cache',
         headers: { 
           'Cache-Control': 'no-cache',
-          'X-Daytona-Skip-Preview-Warning': 'true',
-          'X-Daytona-Disable-CORS': 'true',
+          'X-Daytona-Skip-Preview-Warning': 'true'
         }
       });
       

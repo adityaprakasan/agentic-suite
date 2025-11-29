@@ -106,8 +106,6 @@ export async function downloadPresentation(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Daytona-Skip-Preview-Warning': 'true',
-        'X-Daytona-Disable-CORS': 'true',
       },
       body: JSON.stringify({
         presentation_path: presentationPath,
