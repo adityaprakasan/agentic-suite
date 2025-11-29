@@ -164,7 +164,8 @@ export function PresentationViewer({
       const response = await fetch(urlWithCacheBust, {
         cache: 'no-cache',
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'X-Daytona-Skip-Preview-Warning': 'true'
         }
       });
       

@@ -79,7 +79,10 @@ async def convert_and_upload_to_google_docs(
         async with httpx.AsyncClient(timeout=120.0) as client:
             convert_response = await client.post(
                 convert_url,
-                json=convert_payload
+                json=convert_payload,
+                headers={
+                    "X-Daytona-Skip-Preview-Warning": "true"
+                }
             )
             
             logger.debug(f"Sandbox response status: {convert_response.status_code}")

@@ -1136,6 +1136,9 @@ print(json.dumps(result))
                     json={
                         "presentation_path": presentation_path,
                         "download": not store_locally
+                    },
+                    headers={
+                        "X-Daytona-Skip-Preview-Warning": "true"
                     }
                 )
                 
@@ -1237,6 +1240,9 @@ print(json.dumps(result))
                     json={
                         "presentation_path": presentation_path,
                         "download": not store_locally
+                    },
+                    headers={
+                        "X-Daytona-Skip-Preview-Warning": "true"
                     }
                 )
                 

@@ -549,7 +549,11 @@ export function GetProjectStructureView({
       );
 
       if (fileUrl) {
-        const response = await fetch(fileUrl);
+        const response = await fetch(fileUrl, {
+          headers: {
+            'X-Daytona-Skip-Preview-Warning': 'true'
+          }
+        });
         if (response.ok) {
           const content = await response.text();
           setFileContent(content);

@@ -231,6 +231,9 @@ async def convert_and_upload_to_google_slides(
                     "presentation_path": request.presentation_path,
                     "download": True,  # Get PPTX content directly, don't store locally
                     "upload_to_google_slides": False,  # We'll handle Google upload from main backend
+                },
+                headers={
+                    "X-Daytona-Skip-Preview-Warning": "true"
                 }
             )
             
