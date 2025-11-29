@@ -88,11 +88,13 @@ export function createPresentationViewerToolContent(
 }
 
 /**
- * Downloads a presentation as PDF or PPTX
+ * Downloads a presentation as PDF or PPTX via backend proxy
+ * This routes through the backend to avoid Daytona CORS issues with custom headers
+ * 
+ * @param format - The format to download the presentation as
  * @param sandboxUrl - The sandbox URL for the API endpoint
  * @param presentationPath - The path to the presentation in the workspace
  * @param presentationName - The name of the presentation for the downloaded file
- * @param format - The format to download the presentation as
  * @returns Promise that resolves when download is complete
  */
 export async function downloadPresentation(
@@ -101,35 +103,67 @@ export async function downloadPresentation(
   presentationPath: string, 
   presentationName: string
 ): Promise<void> {
+  // Validate inputs
+  if (!sandboxUrl || !presentationPath || !presentationName) {
+    toast.error('Missing required parameters for download');
+    throw new Error('Missing required parameters for download');
+  }
+
   try {
-    const response = await fetch(`${sandboxUrl}/presentation/convert-to-${format}`, {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      toast.error('Please sign in to download presentations');
+      throw new Error('User not authenticated');
+    }
+
+    const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+    
+    // Use backend proxy to avoid Daytona CORS issues
+    const response = await fetch(`${API_URL}/presentation-tools/download`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         presentation_path: presentationPath,
-        download: true
+        sandbox_url: sandboxUrl,
+        format: format,
       })
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to download ${format}`);
+      const errorText = await response.text();
+      console.error(`Download failed: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to download ${format}: ${response.status}`);
     }
     
     const blob = await response.blob();
+    
+    // Validate blob size
+    if (blob.size < 1000) {
+      console.error(`Downloaded file is too small: ${blob.size} bytes`);
+      throw new Error('Downloaded file appears to be invalid');
+    }
+    
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `${presentationName}.${format}`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+    
     toast.success(`Downloaded ${presentationName} as ${format.toUpperCase()}`, {
       duration: 8000,
     });
   } catch (error) {
     console.error(`Error downloading ${format}:`, error);
-    throw error; // Re-throw to allow calling code to handle
+    toast.error(`Failed to download ${format.toUpperCase()}`);
+    throw error;
   }
 }
 
@@ -163,8 +197,11 @@ export const handleGoogleAuth = async (presentationPath: string, sandboxUrl: str
 
 
 export const handleGoogleSlidesUpload = async (sandboxUrl: string, presentationPath: string) => {
-  if (!sandboxUrl || !presentationPath) {
-    throw new Error('Missing required parameters');
+  // Validate inputs - check for undefined both as missing and as string "undefined"
+  if (!sandboxUrl || !presentationPath || presentationPath === 'undefined' || presentationPath.includes('undefined')) {
+    console.error('Invalid parameters for Google Slides upload:', { sandboxUrl, presentationPath });
+    toast.error('Missing presentation information. Please try again.');
+    throw new Error('Missing required parameters or invalid presentation path');
   }
   
   try {

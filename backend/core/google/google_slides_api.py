@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Depends
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field
 
 from core.utils.auth_utils import verify_and_get_user_id_from_jwt
@@ -57,6 +57,12 @@ class ConvertToSlidesResponse(BaseModel):
     google_slides_url: Optional[str] = None
     google_slides_file_id: Optional[str] = None
     is_api_enabled: bool = None
+
+
+class DownloadPresentationRequest(BaseModel):
+    presentation_path: str = Field(..., description="Path to the presentation in sandbox (e.g., /workspace/presentations/my-pres)")
+    sandbox_url: str = Field(..., description="Sandbox URL to fetch from")
+    format: str = Field(..., description="Format to download: 'pdf' or 'pptx'")
 
 
 # ================== DEPENDENCY INJECTION ==================
@@ -300,6 +306,82 @@ async def convert_and_upload_to_google_slides(
     except Exception as e:
         logger.error(f"Error in convert_and_upload_to_google_slides: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@presentation_router.post("/download")
+async def download_presentation(
+    request: DownloadPresentationRequest,
+    user_id: str = Depends(verify_and_get_user_id_from_jwt),
+):
+    """
+    Download presentation as PDF or PPTX via backend proxy.
+    
+    This endpoint proxies the request to the sandbox with the proper Daytona headers,
+    avoiding CORS issues that occur with direct browser requests.
+    """
+    if request.format not in ['pdf', 'pptx']:
+        raise HTTPException(status_code=400, detail="Format must be 'pdf' or 'pptx'")
+    
+    try:
+        logger.info(f"Downloading presentation as {request.format} for user {user_id}")
+        logger.debug(f"Presentation path: {request.presentation_path}, Sandbox URL: {request.sandbox_url}")
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            convert_response = await client.post(
+                f"{request.sandbox_url}/presentation/convert-to-{request.format}",
+                json={
+                    "presentation_path": request.presentation_path,
+                    "download": True,
+                },
+                headers={
+                    "X-Daytona-Skip-Preview-Warning": "true"
+                }
+            )
+            
+            if not convert_response.is_success:
+                try:
+                    error_detail = convert_response.json().get("detail", "Unknown error")
+                except:
+                    error_detail = convert_response.text
+                logger.error(f"Conversion failed: {error_detail}")
+                raise HTTPException(
+                    status_code=convert_response.status_code,
+                    detail=f"{request.format.upper()} conversion failed: {error_detail}"
+                )
+            
+            # Get the file content
+            file_content = convert_response.content
+            
+            # Extract filename from Content-Disposition header
+            filename = f"presentation.{request.format}"
+            content_disposition = convert_response.headers.get("Content-Disposition", "")
+            if "filename=" in content_disposition:
+                try:
+                    filename = content_disposition.split('filename="')[1].split('"')[0]
+                except:
+                    pass
+            
+            # Determine content type
+            if request.format == 'pdf':
+                content_type = "application/pdf"
+            else:
+                content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            
+            logger.info(f"Successfully converted presentation to {request.format}: {filename} ({len(file_content)} bytes)")
+            
+            return Response(
+                content=file_content,
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"'
+                }
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading presentation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
 
 
 # ================== ROUTER ASSEMBLY ==================

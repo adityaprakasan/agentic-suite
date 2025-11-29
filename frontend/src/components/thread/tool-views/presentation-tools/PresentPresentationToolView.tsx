@@ -87,7 +87,10 @@ export function PresentPresentationToolView({
 
   // Download handlers
   const handleDownload = async (format: DownloadFormat) => {
-    if (!project?.sandbox?.sandbox_url || !presentationName) return;
+    if (!project?.sandbox?.sandbox_url || !presentationName || !presentationPath) {
+      toast.error('Missing presentation information. Cannot download.');
+      return;
+    }
 
     setIsDownloading(true);
     try {
