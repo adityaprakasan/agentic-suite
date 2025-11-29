@@ -147,7 +147,8 @@ export function ExportToolView({
         downloadFormat,
         project.sandbox.sandbox_url, 
         `/workspace/presentations/${presentationName}`, 
-        presentationName
+        presentationName,
+        project.sandbox.token
       );
     } catch (error) {
       console.error(`Error downloading ${downloadFormat}:`, error);

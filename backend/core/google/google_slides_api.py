@@ -227,6 +227,10 @@ async def convert_and_upload_to_google_slides(
         async with httpx.AsyncClient(timeout=120.0) as client:
             convert_response = await client.post(
                 f"{request.sandbox_url}/presentation/convert-to-pptx",
+                headers={
+                    'X-Daytona-Skip-Preview-Warning': 'true',
+                    'Content-Type': 'application/json',
+                },
                 json={
                     "presentation_path": request.presentation_path,
                     "download": True,  # Get PPTX content directly, don't store locally

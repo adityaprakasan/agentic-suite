@@ -104,7 +104,8 @@ export function PresentPresentationToolView({
         await downloadPresentation(format,
           project.sandbox.sandbox_url, 
           `/workspace/${presentationPath}`, 
-          presentationName
+          presentationName,
+          project.sandbox.token
         );
       }
     } catch (error) {

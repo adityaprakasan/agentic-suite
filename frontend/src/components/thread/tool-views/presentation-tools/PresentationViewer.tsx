@@ -32,6 +32,7 @@ import { ToolViewProps } from '../types';
 import { formatTimestamp, extractToolData, getToolTitle } from '../utils';
 import { downloadPresentation, handleGoogleSlidesUpload } from '../utils/presentation-utils';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
+import { daytonaFetch, constructProxyUrl } from '@/lib/utils/daytona-fetch';
 import { CodeBlockCode } from '@/components/ui/code-block';
 import { LoadingState } from '../shared/LoadingState';
 import { FullScreenPresentationViewer } from './FullScreenPresentationViewer';
@@ -161,12 +162,13 @@ export function PresentationViewer({
       
       console.log(`Loading presentation metadata (attempt ${retryCount + 1}/${maxRetries + 1}):`, urlWithCacheBust);
       
-      const response = await fetch(urlWithCacheBust, {
+      // Use daytonaFetch with Daytona headers to bypass preview warning
+      const response = await daytonaFetch(urlWithCacheBust, {
         cache: 'no-cache',
         headers: {
           'Cache-Control': 'no-cache'
         }
-      });
+      }, project?.sandbox?.token);
       
       if (response.ok) {
         const data = await response.json();
@@ -420,9 +422,10 @@ export function PresentationViewer({
         );
       }
 
-      const slideUrl = constructHtmlPreviewUrl(project.sandbox.sandbox_url, slide.file_path);
+      // Use proxy URL for iframe to bypass Daytona preview warning
+      const slideUrl = constructProxyUrl(project.sandbox.id, slide.file_path);
       // Add cache-busting to iframe src to ensure fresh content
-      const slideUrlWithCacheBust = `${slideUrl}?t=${refreshTimestamp}`;
+      const slideUrlWithCacheBust = slideUrl ? `${slideUrl}&t=${refreshTimestamp}` : undefined;
 
       return (
         <div className="w-full h-full flex items-center justify-center bg-transparent">
@@ -436,7 +439,7 @@ export function PresentationViewer({
           >
             <iframe
               key={`slide-${slide.number}-${refreshTimestamp}`} // Key with stable timestamp ensures iframe refreshes when metadata changes
-              src={slideUrlWithCacheBust}
+              src={slideUrlWithCacheBust || ''}
               title={`Slide ${slide.number}: ${slide.title}`}
               className="border-0 rounded-xl"
               sandbox="allow-same-origin allow-scripts"
@@ -486,7 +489,7 @@ export function PresentationViewer({
           return; // Don't set loading false, user is being redirected
         }
       } else{
-        await downloadPresentation(format, project.sandbox.sandbox_url, `/workspace/presentations/${extractedPresentationName}`, extractedPresentationName);
+        await downloadPresentation(format, project.sandbox.sandbox_url, `/workspace/presentations/${extractedPresentationName}`, extractedPresentationName, project.sandbox.token);
       }
     } catch (error) {
       console.error('Error downloading PDF:', error);
@@ -750,6 +753,8 @@ export function PresentationViewer({
         }}
         presentationName={extractedPresentationName}
         sandboxUrl={project?.sandbox?.sandbox_url}
+        sandboxId={project?.sandbox?.id}
+        sandboxToken={project?.sandbox?.token}
         initialSlide={fullScreenInitialSlide || visibleSlide || currentSlideNumber || slides[0]?.number || 1}
       />
     </Card>

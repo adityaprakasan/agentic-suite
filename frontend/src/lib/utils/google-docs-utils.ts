@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { backendApi } from '../api-client';
+import { daytonaFetch } from './daytona-fetch';
 
 export enum DownloadFormat {
   PDF = 'pdf',
@@ -12,10 +13,12 @@ export async function downloadDocument(
   format: DownloadFormat,
   sandboxUrl: string,
   docPath: string,
-  documentName: string
+  documentName: string,
+  sandboxToken?: string
 ): Promise<void> {
   try {
-    const response = await fetch(`${sandboxUrl}/document/convert-to-${format}`, {
+    // Use daytonaFetch with Daytona headers to bypass preview warning
+    const response = await daytonaFetch(`${sandboxUrl}/document/convert-to-${format}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -24,7 +27,7 @@ export async function downloadDocument(
         doc_path: docPath,
         download: true
       })
-    });
+    }, sandboxToken);
     
     if (!response.ok) {
       throw new Error(`Failed to download ${format}`);

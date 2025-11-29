@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
 import { downloadPresentation, DownloadFormat, handleGoogleSlidesUpload } from '../utils/presentation-utils';
+import { daytonaFetch, constructProxyUrl } from '@/lib/utils/daytona-fetch';
 
 interface SlideMetadata {
   title: string;
@@ -45,6 +46,8 @@ interface FullScreenPresentationViewerProps {
   onClose: () => void;
   presentationName?: string;
   sandboxUrl?: string;
+  sandboxId?: string;
+  sandboxToken?: string;
   initialSlide?: number;
 }
 
@@ -53,6 +56,8 @@ export function FullScreenPresentationViewer({
   onClose,
   presentationName,
   sandboxUrl,
+  sandboxId,
+  sandboxToken,
   initialSlide = 1,
 }: FullScreenPresentationViewerProps) {
   const [metadata, setMetadata] = useState<PresentationMetadata | null>(null);
@@ -101,10 +106,11 @@ export function FullScreenPresentationViewer({
       const urlWithCacheBust = `${metadataUrl}?t=${Date.now()}`;
       console.log(`Loading presentation metadata (attempt ${retryCount + 1}/${maxRetries + 1}):`, urlWithCacheBust);
       
-      const response = await fetch(urlWithCacheBust, {
+      // Use daytonaFetch with Daytona headers to bypass preview warning
+      const response = await daytonaFetch(urlWithCacheBust, {
         cache: 'no-cache',
         headers: { 'Cache-Control': 'no-cache' }
-      });
+      }, sandboxToken);
       
       if (response.ok) {
         const data = await response.json();
@@ -280,7 +286,7 @@ export function FullScreenPresentationViewer({
           return; // Don't set loading false, user is being redirected
         }
       } else {
-        await downloadPresentation(format, sandboxUrl, `/workspace/presentations/${presentationName}`, presentationName);
+        await downloadPresentation(format, sandboxUrl, `/workspace/presentations/${presentationName}`, presentationName, sandboxToken);
       }
     } catch (error) {
       console.error(`Error downloading ${format}:`, error);
@@ -341,9 +347,10 @@ export function FullScreenPresentationViewer({
         );
       }
 
-      const slideUrl = constructHtmlPreviewUrl(sandboxUrl, slide.file_path);
+      // Use proxy URL for iframe to bypass Daytona preview warning
+      const slideUrl = constructProxyUrl(sandboxId, slide.file_path);
       // Add cache-busting to iframe src to ensure fresh content
-      const slideUrlWithCacheBust = `${slideUrl}?t=${refreshTimestamp}`;
+      const slideUrlWithCacheBust = slideUrl ? `${slideUrl}&t=${refreshTimestamp}` : '';
 
       return (
         <div className="w-full h-full flex items-center justify-center bg-transparent">
@@ -361,7 +368,7 @@ export function FullScreenPresentationViewer({
           >
             <iframe
               key={`slide-${slide.number}-${refreshTimestamp}-${showEditor}`} // Key with stable timestamp ensures iframe refreshes when metadata changes
-              src={showEditor ? `${sandboxUrl}/api/html/${slide.file_path}/editor` : slideUrlWithCacheBust}
+              src={showEditor ? (constructProxyUrl(sandboxId, `api/html/${slide.file_path}/editor`) || '') : slideUrlWithCacheBust}
               title={`Slide ${slide.number}: ${slide.title}`}
               className="border-0 rounded-xl"
               sandbox="allow-same-origin allow-scripts allow-modals"

@@ -32,6 +32,7 @@ export interface FileRendererProject {
     sandbox_url?: string;
     vnc_preview?: string;
     pass?: string;
+    token?: string; // Daytona preview authentication token
   };
 }
 

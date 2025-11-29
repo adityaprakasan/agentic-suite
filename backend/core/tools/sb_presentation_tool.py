@@ -1129,10 +1129,14 @@ print(json.dumps(result))
             if not metadata.get("slides"):
                 return self.fail_response(f"Presentation '{presentation_name}' not found or has no slides")
             
-            # Call sandbox conversion endpoint
+            # Call sandbox conversion endpoint with Daytona headers to bypass preview warning
             async with httpx.AsyncClient(timeout=120.0) as client:
                 convert_response = await client.post(
                     f"{self.sandbox_url}/presentation/convert-to-pptx",
+                    headers={
+                        'X-Daytona-Skip-Preview-Warning': 'true',
+                        'Content-Type': 'application/json',
+                    },
                     json={
                         "presentation_path": presentation_path,
                         "download": not store_locally
@@ -1230,10 +1234,14 @@ print(json.dumps(result))
             if not metadata.get("slides"):
                 return self.fail_response(f"Presentation '{presentation_name}' not found or has no slides")
             
-            # Call sandbox conversion endpoint
+            # Call sandbox conversion endpoint with Daytona headers to bypass preview warning
             async with httpx.AsyncClient(timeout=120.0) as client:
                 convert_response = await client.post(
                     f"{self.sandbox_url}/presentation/convert-to-pdf",
+                    headers={
+                        'X-Daytona-Skip-Preview-Warning': 'true',
+                        'Content-Type': 'application/json',
+                    },
                     json={
                         "presentation_path": presentation_path,
                         "download": not store_locally

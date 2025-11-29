@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import { CodeBlockCode } from '@/components/ui/code-block';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
+import { constructProxyUrl } from '@/lib/utils/daytona-fetch';
 import {
   Card,
   CardContent,
@@ -149,9 +150,16 @@ export function FileOperationToolView({
   const hasHighlighting = hasLanguageHighlighting(language);
   const contentLines = splitContentIntoLines(fileContent);
 
+  // Direct URL for external links (Open in Browser)
   const htmlPreviewUrl =
     isHtml && project?.sandbox?.sandbox_url && processedFilePath
       ? constructHtmlPreviewUrl(project.sandbox.sandbox_url, processedFilePath)
+      : undefined;
+  
+  // Proxy URL for iframes to bypass Daytona preview warning
+  const htmlProxyUrl =
+    isHtml && project?.sandbox?.id && processedFilePath
+      ? constructProxyUrl(project.sandbox.id, processedFilePath)
       : undefined;
 
   const FileIcon = getFileIcon(fileName);
@@ -182,11 +190,11 @@ export function FileOperationToolView({
       );
     }
 
-    if (isHtml && htmlPreviewUrl) {
+    if (isHtml && htmlProxyUrl) {
       return (
         <div className="w-full h-full">
           <iframe
-            src={htmlPreviewUrl}
+            src={htmlProxyUrl}
             title={`HTML Preview of ${fileName}`}
             className="w-full h-full border-0"
             sandbox="allow-same-origin allow-scripts"
@@ -420,7 +428,7 @@ export function FileOperationToolView({
           </TabsContent>
 
           <TabsContent value="preview" className="w-full flex-1 h-full mt-0 p-0 overflow-hidden">
-            {isHtml && htmlPreviewUrl ? (
+            {isHtml && htmlProxyUrl ? (
               // For HTML files, render iframe directly without ScrollArea for full viewport
               <div className="w-full h-full relative">
                 {renderFilePreview()}

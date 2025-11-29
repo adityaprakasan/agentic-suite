@@ -1,6 +1,7 @@
 import { backendApi } from "@/lib/api-client";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { daytonaFetch } from "@/lib/utils/daytona-fetch";
 
 export enum DownloadFormat {
   PDF = 'pdf',
@@ -93,16 +94,19 @@ export function createPresentationViewerToolContent(
  * @param presentationPath - The path to the presentation in the workspace
  * @param presentationName - The name of the presentation for the downloaded file
  * @param format - The format to download the presentation as
+ * @param sandboxToken - Optional Daytona preview authentication token
  * @returns Promise that resolves when download is complete
  */
 export async function downloadPresentation(
   format: DownloadFormat,
   sandboxUrl: string, 
   presentationPath: string, 
-  presentationName: string
+  presentationName: string,
+  sandboxToken?: string
 ): Promise<void> {
   try {
-    const response = await fetch(`${sandboxUrl}/presentation/convert-to-${format}`, {
+    // Use daytonaFetch with Daytona headers to bypass preview warning
+    const response = await daytonaFetch(`${sandboxUrl}/presentation/convert-to-${format}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -111,7 +115,7 @@ export async function downloadPresentation(
         presentation_path: presentationPath,
         download: true
       })
-    });
+    }, sandboxToken);
     
     if (!response.ok) {
       throw new Error(`Failed to download ${format}`);

@@ -174,6 +174,7 @@ export type Project = {
     sandbox_url?: string;
     id?: string;
     pass?: string;
+    token?: string; // Daytona preview authentication token
   };
   is_public?: boolean; // Flag to indicate if the project is public
   // Icon system field for thread categorization

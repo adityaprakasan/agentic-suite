@@ -2,8 +2,9 @@ import os
 import urllib.parse
 from typing import Optional
 
+import httpx
 from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Form, Depends, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from daytona_sdk import AsyncSandbox
 
@@ -402,4 +403,79 @@ async def ensure_project_sandbox_active(
         }
     except Exception as e:
         logger.error(f"Error ensuring sandbox is active for project {project_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sandboxes/{sandbox_id}/proxy")
+async def proxy_sandbox_content(
+    sandbox_id: str,
+    path: str,
+    request: Request = None,
+    user_id: Optional[str] = Depends(get_optional_user_id)
+):
+    """
+    Proxy content from the sandbox with Daytona authentication headers.
+    
+    This endpoint allows iframes and other browser elements to access sandbox content
+    by proxying requests through the backend with the required Daytona headers:
+    - X-Daytona-Skip-Preview-Warning: true (bypasses the warning page)
+    - X-Daytona-Preview-Token: {token} (authenticates private sandbox access)
+    """
+    path = normalize_path(path)
+    
+    logger.debug(f"Proxying content for sandbox {sandbox_id}, path: {path}, user_id: {user_id}")
+    client = await db.client
+    
+    # Verify the user has access to this sandbox
+    project_data = await verify_sandbox_access_optional(client, sandbox_id, user_id)
+    
+    try:
+        # Get sandbox URL and token from project data
+        sandbox_info = project_data.get('sandbox', {})
+        sandbox_url = sandbox_info.get('sandbox_url')
+        sandbox_token = sandbox_info.get('token')
+        
+        if not sandbox_url:
+            raise HTTPException(status_code=404, detail="Sandbox URL not found")
+        
+        # Construct the full URL
+        # Remove leading slash from path if present to avoid double slashes
+        clean_path = path.lstrip('/')
+        full_url = f"{sandbox_url.rstrip('/')}/{clean_path}"
+        
+        # Prepare headers with Daytona authentication
+        headers = {
+            'X-Daytona-Skip-Preview-Warning': 'true',
+        }
+        if sandbox_token:
+            headers['X-Daytona-Preview-Token'] = sandbox_token
+        
+        # Make the request to the sandbox
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.get(full_url, headers=headers, follow_redirects=True)
+            
+            if not response.is_success:
+                logger.error(f"Proxy request failed: {response.status_code} - {response.text[:500]}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Sandbox returned error: {response.status_code}"
+                )
+            
+            # Get content type from response
+            content_type = response.headers.get('content-type', 'application/octet-stream')
+            
+            # Return the proxied content with the same content type
+            return Response(
+                content=response.content,
+                media_type=content_type,
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'Access-Control-Allow-Origin': '*',
+                }
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error proxying content for sandbox {sandbox_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

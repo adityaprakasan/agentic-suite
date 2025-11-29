@@ -92,8 +92,31 @@ class GoogleDocsService:
                 )
             
             if response.status_code != 200:
-                logger.error(f"Token exchange failed: {response.status_code} - {response.text}")
-                raise HTTPException(status_code=400, detail="Failed to exchange authorization code")
+                error_text = response.text
+                try:
+                    error_json = response.json()
+                    error_details = error_json.get('error', 'unknown_error')
+                    error_description = error_json.get('error_description', error_text)
+                    logger.error(
+                        f"Token exchange failed: {response.status_code} | "
+                        f"Error: {error_details} | "
+                        f"Description: {error_description} | "
+                        f"Client ID: {self.client_id[:30]}... | "
+                        f"Redirect URI: {self.redirect_uri}"
+                    )
+                    # Include Google's error description in the exception
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Failed to exchange authorization code: {error_details}. {error_description}"
+                    )
+                except Exception:
+                    # If we can't parse the response, just log the raw text
+                    logger.error(
+                        f"Token exchange failed: {response.status_code} - {error_text} | "
+                        f"Client ID: {self.client_id[:30]}... | "
+                        f"Redirect URI: {self.redirect_uri}"
+                    )
+                    raise HTTPException(status_code=400, detail=f"Failed to exchange authorization code: {error_text}")
             
             tokens = response.json()
             
