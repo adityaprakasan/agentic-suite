@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Code, Monitor, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
+import { constructProxyUrl } from '@/lib/utils/daytona-fetch';
 import type { Project } from '@/lib/api';
 
 interface HtmlRendererProps {
@@ -56,13 +57,13 @@ export function HtmlRenderer({
         }
     }, [previewUrl]);
 
-    // Construct HTML file preview URL using the full file path
+    // Construct HTML file preview URL using the proxy to bypass Daytona warning
     const htmlPreviewUrl = useMemo(() => {
-        if (project?.sandbox?.sandbox_url && filePath) {
-            return constructHtmlPreviewUrl(project.sandbox.sandbox_url, filePath);
+        if (project?.sandbox?.id && filePath) {
+            return constructProxyUrl(project.sandbox.id, filePath);
         }
         return blobHtmlUrl || previewUrl;
-    }, [project?.sandbox?.sandbox_url, filePath, blobHtmlUrl, previewUrl]);
+    }, [project?.sandbox?.id, filePath, blobHtmlUrl, previewUrl]);
 
     // Clean up blob URL on unmount
     useEffect(() => {

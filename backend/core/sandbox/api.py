@@ -3,7 +3,7 @@ import urllib.parse
 from typing import Optional
 
 import httpx
-from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Form, Depends, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Form, Depends, Request, Query
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from daytona_sdk import AsyncSandbox
@@ -409,7 +409,7 @@ async def ensure_project_sandbox_active(
 @router.get("/sandboxes/{sandbox_id}/proxy")
 async def proxy_sandbox_content(
     sandbox_id: str,
-    path: str,
+    path: str = Query(..., description="Path to the file within the sandbox"),
     request: Request = None,
     user_id: Optional[str] = Depends(get_optional_user_id)
 ):

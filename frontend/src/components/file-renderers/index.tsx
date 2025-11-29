@@ -9,6 +9,7 @@ import { ImageRenderer } from './image-renderer';
 import { BinaryRenderer } from './binary-renderer';
 import { HtmlRenderer } from './html-renderer';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
+import { constructProxyUrl } from '@/lib/utils/daytona-fetch';
 import { CsvRenderer } from './csv-renderer';
 import { XlsxRenderer } from './xlsx-renderer';
 
@@ -236,9 +237,10 @@ export function FileRenderer({
     return undefined;
   }, [isHtmlFile, content, project?.sandbox?.sandbox_url, tiptapHtmlContent]);
 
+  // Use proxy URL for iframes to bypass Daytona preview warning
   const htmlPreviewUrl =
-    isHtmlFile && project?.sandbox?.sandbox_url && (filePath || fileName)
-      ? constructHtmlPreviewUrl(project.sandbox.sandbox_url, filePath || fileName)
+    isHtmlFile && project?.sandbox?.id && (filePath || fileName)
+      ? constructProxyUrl(project.sandbox.id, filePath || fileName)
       : blobHtmlUrl;
 
   React.useEffect(() => {

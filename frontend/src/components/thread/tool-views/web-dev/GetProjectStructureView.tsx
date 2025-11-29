@@ -31,6 +31,7 @@ import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { CodeBlockCode } from '@/components/ui/code-block';
 import { getLanguageFromFileName } from '../file-operation/_utils';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
+import { daytonaFetch, constructProxyUrl } from '@/lib/utils/daytona-fetch';
 import {
   Dialog,
   DialogContent,
@@ -549,7 +550,8 @@ export function GetProjectStructureView({
       );
 
       if (fileUrl) {
-        const response = await fetch(fileUrl);
+        // Use daytonaFetch with Daytona headers to bypass preview warning
+        const response = await daytonaFetch(fileUrl, {}, project.sandbox.token);
         if (response.ok) {
           const content = await response.text();
           setFileContent(content);
@@ -568,9 +570,10 @@ export function GetProjectStructureView({
   }, [project, projectData]);
 
   const isHtmlFile = selectedFile?.endsWith('.html');
-  const previewUrl = isHtmlFile && project?.sandbox?.sandbox_url && projectData
-    ? constructHtmlPreviewUrl(
-        project.sandbox.sandbox_url,
+  // Use proxy URL for iframe to bypass Daytona preview warning
+  const previewUrl = isHtmlFile && project?.sandbox?.id && projectData
+    ? constructProxyUrl(
+        project.sandbox.id,
         `${projectData.projectName}/${selectedFile}`
       )
     : undefined;
