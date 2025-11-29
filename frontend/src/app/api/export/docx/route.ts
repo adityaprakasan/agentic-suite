@@ -103,29 +103,36 @@ export async function POST(request: NextRequest) {
     // Generate DOCX buffer
     const docxBuffer = await HTMLtoDOCX(docxContent, null, docxOptions);
     
-    // Ensure we have a proper Uint8Array for the response
-    let responseData: Uint8Array;
+    // Convert to ArrayBuffer for NextResponse
+    let arrayBuffer: ArrayBuffer;
     if (Buffer.isBuffer(docxBuffer)) {
-      responseData = new Uint8Array(docxBuffer);
+      arrayBuffer = docxBuffer.buffer.slice(
+        docxBuffer.byteOffset,
+        docxBuffer.byteOffset + docxBuffer.byteLength
+      ) as ArrayBuffer;
     } else if (docxBuffer instanceof ArrayBuffer) {
-      responseData = new Uint8Array(docxBuffer);
+      arrayBuffer = docxBuffer;
     } else if (docxBuffer instanceof Blob) {
-      const arrayBuffer = await docxBuffer.arrayBuffer();
-      responseData = new Uint8Array(arrayBuffer);
+      arrayBuffer = await docxBuffer.arrayBuffer();
     } else {
-      // Try to convert to buffer
-      responseData = new Uint8Array(Buffer.from(docxBuffer as any));
+      // Try to convert via Buffer
+      const buf = Buffer.from(docxBuffer as any);
+      arrayBuffer = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
     }
+
+    // Create a Blob for the response (fully compatible with NextResponse)
+    const blob = new Blob([arrayBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
 
     // Sanitize filename for Content-Disposition header
     const safeFileName = fileName.replace(/[^a-zA-Z0-9\-_\s]/g, '').trim() || 'document';
 
-    return new NextResponse(responseData, {
+    return new NextResponse(blob, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': `attachment; filename="${safeFileName}.docx"`,
-        'Content-Length': String(responseData.byteLength),
       },
     });
   } catch (error) {
