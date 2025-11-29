@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import HTMLtoDOCX from 'html-to-docx';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
-    const { content, fileName } = await request.json();
+    const body = await request.json();
+    const { content, fileName } = body;
 
     if (!content || !fileName) {
       return NextResponse.json(
@@ -11,6 +15,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Sanitize and prepare HTML content
+    const sanitizedContent = content
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '');
 
     const docxContent = `
       <!DOCTYPE html>
@@ -71,13 +80,13 @@ export async function POST(request: NextRequest) {
         </style>
       </head>
       <body>
-        ${content}
+        ${sanitizedContent}
       </body>
       </html>
     `;
 
     const docxOptions = {
-      orientation: 'portrait',
+      orientation: 'portrait' as const,
       margins: {
         top: 720,
         bottom: 720,
@@ -91,19 +100,46 @@ export async function POST(request: NextRequest) {
       fontSize: 22,
     };
 
+    // Generate DOCX buffer
     const docxBuffer = await HTMLtoDOCX(docxContent, null, docxOptions);
-    return new NextResponse(docxBuffer, {
+    
+    // Ensure we have a proper Uint8Array for the response
+    let responseData: Uint8Array;
+    if (Buffer.isBuffer(docxBuffer)) {
+      responseData = new Uint8Array(docxBuffer);
+    } else if (docxBuffer instanceof ArrayBuffer) {
+      responseData = new Uint8Array(docxBuffer);
+    } else if (docxBuffer instanceof Blob) {
+      const arrayBuffer = await docxBuffer.arrayBuffer();
+      responseData = new Uint8Array(arrayBuffer);
+    } else {
+      // Try to convert to buffer
+      responseData = new Uint8Array(Buffer.from(docxBuffer as any));
+    }
+
+    // Sanitize filename for Content-Disposition header
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9\-_\s]/g, '').trim() || 'document';
+
+    return new NextResponse(responseData, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="${fileName}.docx"`,
+        'Content-Disposition': `attachment; filename="${safeFileName}.docx"`,
+        'Content-Length': String(responseData.byteLength),
       },
     });
   } catch (error) {
     console.error('DOCX export error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('DOCX export stack:', errorStack);
+    
     return NextResponse.json(
-      { error: 'Failed to generate DOCX file', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to generate DOCX file', 
+        details: errorMessage,
+      },
       { status: 500 }
     );
   }
-} 
+}
