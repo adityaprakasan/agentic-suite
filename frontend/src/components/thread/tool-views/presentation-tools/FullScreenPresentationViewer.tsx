@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
 import { downloadPresentation, DownloadFormat, handleGoogleSlidesUpload } from '../utils/presentation-utils';
+import { toast } from 'sonner';
 
 interface SlideMetadata {
   title: string;
@@ -268,7 +269,14 @@ export function FullScreenPresentationViewer({
 
   // Download handlers
   const handleDownload = async (format: DownloadFormat) => {
-    if (!sandboxUrl || !presentationName) return;
+    if (!sandboxUrl || !presentationName) {
+      toast.error('Missing presentation information. Cannot download.');
+      return;
+    }
+
+    // Sanitize the name for the path (matching backend logic)
+    const sanitizedName = sanitizeFilename(presentationName);
+    const presentationPath = `/workspace/presentations/${sanitizedName}`;
 
     const setDownloadState = format === DownloadFormat.PDF ? setIsDownloadingPDF : 
                            format === DownloadFormat.PPTX ? setIsDownloadingPPTX : 
@@ -277,13 +285,13 @@ export function FullScreenPresentationViewer({
     setDownloadState(true);
     try {
       if (format === DownloadFormat.GOOGLE_SLIDES) {
-        const result = await handleGoogleSlidesUpload(sandboxUrl, `/workspace/presentations/${presentationName}`);
+        const result = await handleGoogleSlidesUpload(sandboxUrl, presentationPath);
         // If redirected to auth, don't show error
         if (result?.redirected_to_auth) {
           return; // Don't set loading false, user is being redirected
         }
       } else {
-        await downloadPresentation(format, sandboxUrl, `/workspace/presentations/${presentationName}`, presentationName);
+        await downloadPresentation(format, sandboxUrl, presentationPath, presentationName);
       }
     } catch (error) {
       console.error(`Error downloading ${format}:`, error);

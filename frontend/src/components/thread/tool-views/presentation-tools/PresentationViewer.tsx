@@ -31,6 +31,7 @@ import {
 import { ToolViewProps } from '../types';
 import { formatTimestamp, extractToolData, getToolTitle } from '../utils';
 import { downloadPresentation, handleGoogleSlidesUpload } from '../utils/presentation-utils';
+import { toast } from 'sonner';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
 import { CodeBlockCode } from '@/components/ui/code-block';
 import { LoadingState } from '../shared/LoadingState';
@@ -475,22 +476,37 @@ export function PresentationViewer({
   }, [SlideIframe]);
 
   const handleDownload = async (setIsDownloading: (isDownloading: boolean) => void, format: DownloadFormat) => {
+    // Use extractedPresentationName or fall back to metadata presentation_name
+    const presentationName = extractedPresentationName || metadata?.presentation_name;
     
-    if (!project?.sandbox?.sandbox_url || !extractedPresentationName) return;
+    if (!project?.sandbox?.sandbox_url || !presentationName) {
+      console.error('Cannot download - missing data:', { 
+        hasSandboxUrl: !!project?.sandbox?.sandbox_url, 
+        presentationName,
+        extractedPresentationName,
+        metadataName: metadata?.presentation_name 
+      });
+      toast.error('Missing presentation information. Please try refreshing the page.');
+      return;
+    }
+
+    // Sanitize the name for the path (matching backend logic)
+    const sanitizedName = sanitizeFilename(presentationName);
+    const presentationPath = `/workspace/presentations/${sanitizedName}`;
 
     setIsDownloading(true);
-    try{
-      if (format === DownloadFormat.GOOGLE_SLIDES){
-        const result = await handleGoogleSlidesUpload(project!.sandbox!.sandbox_url, `/workspace/presentations/${extractedPresentationName}`);
+    try {
+      if (format === DownloadFormat.GOOGLE_SLIDES) {
+        const result = await handleGoogleSlidesUpload(project.sandbox.sandbox_url, presentationPath);
         // If redirected to auth, don't show error
         if (result?.redirected_to_auth) {
           return; // Don't set loading false, user is being redirected
         }
-      } else{
-        await downloadPresentation(format, project.sandbox.sandbox_url, `/workspace/presentations/${extractedPresentationName}`, extractedPresentationName);
+      } else {
+        await downloadPresentation(format, project.sandbox.sandbox_url, presentationPath, presentationName);
       }
     } catch (error) {
-      console.error('Error downloading PDF:', error);
+      console.error(`Error downloading ${format}:`, error);
     } finally {
       setIsDownloading(false);
     }
