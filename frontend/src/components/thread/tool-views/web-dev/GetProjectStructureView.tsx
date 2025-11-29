@@ -551,7 +551,8 @@ export function GetProjectStructureView({
       if (fileUrl) {
         const response = await fetch(fileUrl, {
           headers: {
-            'X-Daytona-Skip-Preview-Warning': 'true'
+            'X-Daytona-Skip-Preview-Warning': 'true',
+            'X-Daytona-Disable-CORS': 'true',
           }
         });
         if (response.ok) {

@@ -20,6 +20,7 @@ export async function downloadDocument(
       headers: {
         'Content-Type': 'application/json',
         'X-Daytona-Skip-Preview-Warning': 'true',
+        'X-Daytona-Disable-CORS': 'true',
       },
       body: JSON.stringify({
         doc_path: docPath,
