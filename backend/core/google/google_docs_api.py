@@ -1,11 +1,17 @@
 import httpx
 import tempfile
+import io
+import re
 from pathlib import Path
 from typing import Optional, Literal
+from html.parser import HTMLParser
 
 from fastapi import APIRouter, HTTPException, Depends, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel, Field
+from docx import Document
+from docx.shared import Pt, Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 from core.utils.auth_utils import verify_and_get_user_id_from_jwt
 from core.utils.logger import logger
@@ -16,6 +22,11 @@ from .google_slides_service import OAuthTokenService
 class ConvertToDocsRequest(BaseModel):
     doc_path: str = Field(..., description="Path to the document file in sandbox")
     sandbox_url: str = Field(..., description="URL of the sandbox service")
+
+
+class ExportDocxRequest(BaseModel):
+    content: str = Field(..., description="HTML content to convert to DOCX")
+    fileName: str = Field(..., description="Name for the exported file")
 
 
 class ConvertToDocsResponse(BaseModel):
@@ -212,5 +223,222 @@ async def download_document(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class HTMLToDocxParser(HTMLParser):
+    """Simple HTML to DOCX converter using python-docx"""
+    
+    def __init__(self, document: Document):
+        super().__init__()
+        self.document = document
+        self.current_paragraph = None
+        self.current_run = None
+        self.list_level = 0
+        self.in_list = False
+        self.is_bold = False
+        self.is_italic = False
+        self.is_underline = False
+        self.heading_level = 0
+        self.in_code = False
+        self.in_blockquote = False
+        self.text_buffer = ""
+        
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        
+        if tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+            self._flush_text()
+            self.heading_level = int(tag[1])
+            self.current_paragraph = self.document.add_heading(level=self.heading_level)
+            
+        elif tag == 'p':
+            self._flush_text()
+            self.current_paragraph = self.document.add_paragraph()
+            if self.in_blockquote:
+                self.current_paragraph.paragraph_format.left_indent = Inches(0.5)
+                
+        elif tag in ['strong', 'b']:
+            self._flush_text()
+            self.is_bold = True
+            
+        elif tag in ['em', 'i']:
+            self._flush_text()
+            self.is_italic = True
+            
+        elif tag == 'u':
+            self._flush_text()
+            self.is_underline = True
+            
+        elif tag == 'br':
+            if self.current_paragraph:
+                self.current_paragraph.add_run('\n')
+                
+        elif tag in ['ul', 'ol']:
+            self._flush_text()
+            self.in_list = True
+            self.list_level += 1
+            
+        elif tag == 'li':
+            self._flush_text()
+            self.current_paragraph = self.document.add_paragraph(style='List Bullet')
+            
+        elif tag == 'blockquote':
+            self._flush_text()
+            self.in_blockquote = True
+            
+        elif tag in ['code', 'pre']:
+            self._flush_text()
+            self.in_code = True
+            if tag == 'pre':
+                self.current_paragraph = self.document.add_paragraph()
+                
+        elif tag == 'hr':
+            self._flush_text()
+            self.document.add_paragraph('_' * 50)
+            
+        elif tag == 'a':
+            # Just continue with text, links become plain text in DOCX
+            pass
+            
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        
+        if tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+            self._flush_text()
+            self.heading_level = 0
+            self.current_paragraph = None
+            
+        elif tag == 'p':
+            self._flush_text()
+            self.current_paragraph = None
+            
+        elif tag in ['strong', 'b']:
+            self._flush_text()
+            self.is_bold = False
+            
+        elif tag in ['em', 'i']:
+            self._flush_text()
+            self.is_italic = False
+            
+        elif tag == 'u':
+            self._flush_text()
+            self.is_underline = False
+            
+        elif tag in ['ul', 'ol']:
+            self._flush_text()
+            self.list_level -= 1
+            if self.list_level <= 0:
+                self.in_list = False
+                self.list_level = 0
+                
+        elif tag == 'li':
+            self._flush_text()
+            self.current_paragraph = None
+            
+        elif tag == 'blockquote':
+            self._flush_text()
+            self.in_blockquote = False
+            
+        elif tag in ['code', 'pre']:
+            self._flush_text()
+            self.in_code = False
+            if tag == 'pre':
+                self.current_paragraph = None
+                
+    def handle_data(self, data):
+        # Clean up whitespace but preserve meaningful content
+        text = data
+        if not self.in_code:
+            text = re.sub(r'\s+', ' ', text)
+        
+        if text.strip() or (self.in_code and text):
+            self.text_buffer += text
+            
+    def _flush_text(self):
+        if not self.text_buffer:
+            return
+            
+        text = self.text_buffer
+        self.text_buffer = ""
+        
+        if not self.current_paragraph:
+            self.current_paragraph = self.document.add_paragraph()
+            
+        run = self.current_paragraph.add_run(text)
+        run.bold = self.is_bold
+        run.italic = self.is_italic
+        run.underline = self.is_underline
+        
+        if self.in_code:
+            run.font.name = 'Courier New'
+            run.font.size = Pt(10)
+            
+    def finalize(self):
+        self._flush_text()
+
+
+def html_to_docx(html_content: str, title: str = "Document") -> bytes:
+    """Convert HTML content to DOCX bytes"""
+    document = Document()
+    
+    # Set document properties
+    core_props = document.core_properties
+    core_props.title = title
+    core_props.author = "Suna AI"
+    
+    # Parse HTML and build document
+    parser = HTMLToDocxParser(document)
+    parser.feed(html_content)
+    parser.finalize()
+    
+    # Save to bytes
+    buffer = io.BytesIO()
+    document.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+# Export router for the /api/export/docx endpoint (matches Next.js route)
+export_router = APIRouter(prefix="/export", tags=["export"])
+
+
+@export_router.post("/docx")
+async def export_html_to_docx(request: ExportDocxRequest):
+    """
+    Convert HTML content to DOCX file.
+    This endpoint mirrors the Next.js /api/export/docx route.
+    """
+    try:
+        logger.info(f"DOCX export request for: {request.fileName}")
+        
+        if not request.content or not request.fileName:
+            raise HTTPException(
+                status_code=400,
+                detail="Content and fileName are required"
+            )
+        
+        # Convert HTML to DOCX
+        docx_bytes = html_to_docx(request.content, request.fileName)
+        
+        logger.info(f"Successfully generated DOCX: {request.fileName}.docx ({len(docx_bytes)} bytes)")
+        
+        return Response(
+            content=docx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f'attachment; filename="{request.fileName}.docx"',
+                "Content-Length": str(len(docx_bytes))
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"DOCX export error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate DOCX file: {str(e)}"
+        )
+
+
 main_router.include_router(docs_router)
+main_router.include_router(export_router)
 router = main_router
