@@ -253,17 +253,21 @@ export function DocsToolView({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {project?.sandbox?.sandbox_url && data?.document?.path && (
-                      <DropdownMenuItem onClick={() => handleExport('google-docs')}>
-                        <Share/>
-                        Upload to Google Docs
+                      <>
+                        <DropdownMenuItem onClick={() => handleExport('google-docs')}>
+                          <Share/>
+                          Upload to Google Docs
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport('docx')}>
+                          Export as DOCX
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {!project?.sandbox?.sandbox_url && (
+                      <DropdownMenuItem onClick={() => handleExport('docx')}>
+                        Export as DOCX
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                      Export as PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('docx')}>
-                      Export as DOCX
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleExport('txt')}>
                       Export as Text
                     </DropdownMenuItem>

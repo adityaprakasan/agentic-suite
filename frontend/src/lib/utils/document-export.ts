@@ -117,44 +117,25 @@ export async function exportDocument({ content, fileName, format }: DocumentExpo
       }
 
       case 'docx': {
-        try {
-          const response = await fetch('/api/export/docx', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              content: htmlContent,
-              fileName: fileName,
-            }),
-          });
+        const response = await fetch('/api/export/docx', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: htmlContent,
+            fileName: fileName,
+          }),
+        });
 
-          if (!response.ok) {
-            let errorMessage = 'Failed to export DOCX';
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.error || errorData.details || errorMessage;
-            } catch {
-              errorMessage = `Server error: ${response.status} ${response.statusText}`;
-            }
-            throw new Error(errorMessage);
-          }
-
-          const blob = await response.blob();
-          
-          // Validate blob size
-          if (blob.size < 100) {
-            throw new Error('Generated DOCX file appears to be empty or corrupted');
-          }
-          
-          saveAs(blob, `${fileName}.docx`);
-          toast.success('DOCX exported successfully');
-        } catch (docxError) {
-          console.error('DOCX export failed:', docxError);
-          // Fallback: offer to download as HTML instead
-          toast.error(`DOCX export failed: ${docxError instanceof Error ? docxError.message : 'Unknown error'}. Try exporting as HTML instead.`);
-          throw docxError;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to export DOCX');
         }
+
+        const blob = await response.blob();
+        saveAs(blob, `${fileName}.docx`);
+        toast.success('DOCX exported successfully');
         break;
       }
 
