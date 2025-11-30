@@ -45,41 +45,66 @@ class AuthConfigService:
             logger.debug(f"Custom auth config provided: {bool(custom_auth_config)}")
             logger.debug(f"Use custom auth: {use_custom_auth}")
             
-            # If custom auth config is provided, use it for credentials
-            if use_custom_auth and custom_auth_config:
+            # Fetch toolkit info to determine auth requirements
+            toolkit_info = None
+            toolkit_auth_schemes = []
+            requires_user_credentials = False
+            
+            try:
+                from .toolkit_service import ToolkitService
+                toolkit_service = ToolkitService(api_key=None)
+                toolkit_info = await toolkit_service.get_toolkit_by_slug(toolkit_slug)
+                if toolkit_info:
+                    toolkit_auth_schemes = toolkit_info.auth_schemes
+                    requires_user_credentials = toolkit_info.requires_user_credentials
+                    logger.debug(f"Toolkit {toolkit_slug} auth schemes: {toolkit_auth_schemes}, requires_user_credentials: {requires_user_credentials}")
+            except Exception as e:
+                logger.warning(f"Could not fetch toolkit info for {toolkit_slug}: {e}")
+            
+            # Determine if we should use custom auth:
+            # 1. Explicitly requested via use_custom_auth flag
+            # 2. Toolkit requires user credentials (no Composio-managed OAuth2 available)
+            # 3. API_KEY is the only/primary auth scheme
+            should_use_custom_auth = use_custom_auth or requires_user_credentials
+            
+            # Also force custom auth for toolkits that only support API_KEY
+            USER_PROVIDABLE_AUTH_SCHEMES = ["API_KEY", "BASIC", "KEYS", "CUSTOM"]
+            has_only_user_providable_auth = (
+                toolkit_auth_schemes and 
+                all(scheme in USER_PROVIDABLE_AUTH_SCHEMES for scheme in toolkit_auth_schemes)
+            )
+            if has_only_user_providable_auth:
+                should_use_custom_auth = True
+                logger.debug(f"Toolkit {toolkit_slug} only supports user-providable auth schemes, forcing custom auth")
+            
+            if should_use_custom_auth:
                 logger.debug("Creating custom auth config with user-provided credentials")
                 
-                # Build credentials from custom auth config fields
+                # Build credentials from custom_auth_config or initiation_fields
                 credentials = {}
-                for field_name, field_value in custom_auth_config.items():
-                    if field_value:
-                        # Handle both string and list values from frontend
-                        if isinstance(field_value, list):
-                            field_value = field_value[0] if field_value else ""
-                        credentials[field_name] = str(field_value)
+                source_fields = custom_auth_config if custom_auth_config else initiation_fields
+                
+                if source_fields:
+                    for field_name, field_value in source_fields.items():
+                        if field_value:
+                            # Handle both string and list values from frontend
+                            if isinstance(field_value, list):
+                                field_value = field_value[0] if field_value else ""
+                            credentials[field_name] = str(field_value)
                 
                 logger.debug(f"Using custom credentials (keys): {list(credentials.keys())}")
                 
                 # Determine the auth scheme from the toolkit
-                # For non-OAuth2 integrations, we need to get the toolkit's auth schemes
-                auth_scheme = "OAUTH2"  # Default fallback
-                try:
-                    from .toolkit_service import ToolkitService
-                    # Use None to get API key from environment (same as AuthConfigService does)
-                    toolkit_service = ToolkitService(api_key=None)
-                    toolkit_info = await toolkit_service.get_toolkit_by_slug(toolkit_slug)
-                    if toolkit_info and toolkit_info.auth_schemes:
-                        # Prefer user-providable auth schemes (API_KEY, BASIC, etc.) over OAUTH2
-                        user_providable_schemes = ["API_KEY", "BASIC", "KEYS", "CUSTOM"]
-                        for scheme in user_providable_schemes:
-                            if scheme in toolkit_info.auth_schemes:
-                                auth_scheme = scheme
-                                break
-                        # If no user-providable scheme found, use the first available scheme
-                        if auth_scheme == "OAUTH2" and toolkit_info.auth_schemes:
-                            auth_scheme = toolkit_info.auth_schemes[0]
-                except Exception as e:
-                    logger.warning(f"Could not determine auth scheme for {toolkit_slug}, defaulting to OAUTH2: {e}")
+                auth_scheme = "API_KEY"  # Default for custom auth
+                if toolkit_auth_schemes:
+                    # Prefer user-providable auth schemes (API_KEY, BASIC, etc.) over OAUTH2
+                    for scheme in USER_PROVIDABLE_AUTH_SCHEMES:
+                        if scheme in toolkit_auth_schemes:
+                            auth_scheme = scheme
+                            break
+                    # If no user-providable scheme found, use the first available scheme
+                    if auth_scheme == "API_KEY" and "API_KEY" not in toolkit_auth_schemes and toolkit_auth_schemes:
+                        auth_scheme = toolkit_auth_schemes[0]
                 
                 logger.debug(f"Using auth scheme: {auth_scheme} for toolkit {toolkit_slug}")
                 
