@@ -1,9 +1,7 @@
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from core.utils.logger import logger
-from enum import Enum
 from .client import ComposioClient
-import json
 
 
 class ConnectionState(BaseModel):
@@ -64,40 +62,72 @@ class ConnectedAccountService:
         auth_scheme: str = "OAUTH2"
     ) -> ConnectedAccount:
         try:
-            print("[DEBUG] Auth config id: ", auth_config_id)
-            print("[DEBUG] User id: ", user_id)
-            print("[DEBUG] Initiation fields: ", initiation_fields)
-            print("[DEBUG] Auth scheme: ", auth_scheme)
+            logger.debug(f"[DEBUG] Auth config id: {auth_config_id}")
+            logger.debug(f"[DEBUG] User id: {user_id}")
+            logger.debug(f"[DEBUG] Initiation fields: {initiation_fields}")
+            logger.debug(f"[DEBUG] Auth scheme: {auth_scheme}")
             
-            state_val = {"status": "INITIALIZING"}
+            # Determine if this is an API_KEY or similar non-OAuth2 auth scheme
+            USER_PROVIDABLE_AUTH_SCHEMES = ["API_KEY", "BASIC", "KEYS", "CUSTOM"]
+            is_api_key_auth = auth_scheme in USER_PROVIDABLE_AUTH_SCHEMES
             
-            if initiation_fields:
-                for field_name, field_value in initiation_fields.items():
-                    if field_value:
-                        # Handle both string and list values from frontend
-                        if isinstance(field_value, list):
-                            field_value = field_value[0] if field_value else ""
-                        if field_name == "suffix.one":
-                            state_val["extension"] = str(field_value)
-                        else:
-                            state_val[field_name] = str(field_value)
-            
-            logger.debug(f"Using state.val: {state_val}")
-            logger.debug(f"Final state.val for Composio API: {json.dumps(state_val, indent=2)}")
-            logger.debug(f"Using auth scheme: {auth_scheme}")
-            
-            response = self.client.connected_accounts.create(
-                auth_config={
-                    "id": auth_config_id
-                },
-                connection={
-                    "user_id": user_id,
-                    "state": {
-                        "authScheme": auth_scheme,
-                        "val": state_val,
+            if is_api_key_auth:
+                # For API_KEY auth, use initiate with config parameter
+                # Build the val object with the API key credentials
+                val = {}
+                if initiation_fields:
+                    for field_name, field_value in initiation_fields.items():
+                        if field_value:
+                            if isinstance(field_value, list):
+                                field_value = field_value[0] if field_value else ""
+                            if field_name == "suffix.one":
+                                val["extension"] = str(field_value)
+                            else:
+                                val[field_name] = str(field_value)
+                
+                logger.debug(f"Using API_KEY auth with config: auth_scheme={auth_scheme}, val={val}")
+                
+                response = self.client.connected_accounts.initiate(
+                    user_id=user_id,
+                    auth_config_id=auth_config_id,
+                    config={
+                        "auth_scheme": auth_scheme,
+                        "val": val
                     }
-                }
-            )
+                )
+            else:
+                # For OAuth2 and other redirect-based auth, use initiate without config
+                # Build state_val for any additional fields needed during OAuth
+                state_val = {}
+                if initiation_fields:
+                    for field_name, field_value in initiation_fields.items():
+                        if field_value:
+                            if isinstance(field_value, list):
+                                field_value = field_value[0] if field_value else ""
+                            if field_name == "suffix.one":
+                                state_val["extension"] = str(field_value)
+                            else:
+                                state_val[field_name] = str(field_value)
+                
+                logger.debug(f"Using OAuth2 auth with state_val: {state_val}")
+                
+                # Use initiate for OAuth2 - it will return a redirect_url
+                if state_val:
+                    response = self.client.connected_accounts.initiate(
+                        user_id=user_id,
+                        auth_config_id=auth_config_id,
+                        config={
+                            "auth_scheme": auth_scheme,
+                            "val": state_val
+                        }
+                    )
+                else:
+                    response = self.client.connected_accounts.initiate(
+                        user_id=user_id,
+                        auth_config_id=auth_config_id
+                    )
+            
+            logger.debug(f"Connected account response: {response}")
             
             connection_data_obj = getattr(response, 'connection_data', None)
             if not connection_data_obj:
