@@ -68,13 +68,13 @@ class ConnectedAccountService:
             logger.debug(f"[DEBUG] Auth scheme: {auth_scheme}")
             
             # Determine if this is an API_KEY or similar non-OAuth2 auth scheme
-            USER_PROVIDABLE_AUTH_SCHEMES = ["API_KEY", "BASIC", "KEYS", "CUSTOM"]
+            USER_PROVIDABLE_AUTH_SCHEMES = ["API_KEY", "BASIC", "KEYS", "CUSTOM", "BEARER_TOKEN"]
             is_api_key_auth = auth_scheme in USER_PROVIDABLE_AUTH_SCHEMES
             
             if is_api_key_auth:
-                # For API_KEY auth, use initiate with config parameter
-                # Build the val object with the API key credentials
-                val = {}
+                # For API_KEY auth, use create with status: ACTIVE and the credentials
+                # The val object must include status: ACTIVE for immediate activation
+                val = {"status": "ACTIVE"}
                 if initiation_fields:
                     for field_name, field_value in initiation_fields.items():
                         if field_value:
@@ -85,20 +85,24 @@ class ConnectedAccountService:
                             else:
                                 val[field_name] = str(field_value)
                 
-                logger.debug(f"Using API_KEY auth with config: auth_scheme={auth_scheme}, val={val}")
+                logger.debug(f"Using API_KEY auth with create: authScheme={auth_scheme}, val={val}")
                 
-                response = self.client.connected_accounts.initiate(
-                    user_id=user_id,
-                    auth_config_id=auth_config_id,
-                    config={
-                        "auth_scheme": auth_scheme,
-                        "val": val
+                response = self.client.connected_accounts.create(
+                    auth_config={
+                        "id": auth_config_id
+                    },
+                    connection={
+                        "user_id": user_id,
+                        "state": {
+                            "authScheme": auth_scheme,
+                            "val": val
+                        }
                     }
                 )
             else:
-                # For OAuth2 and other redirect-based auth, use initiate without config
+                # For OAuth2 and other redirect-based auth, use create with status: INITIALIZING
                 # Build state_val for any additional fields needed during OAuth
-                state_val = {}
+                state_val = {"status": "INITIALIZING"}
                 if initiation_fields:
                     for field_name, field_value in initiation_fields.items():
                         if field_value:
@@ -109,23 +113,20 @@ class ConnectedAccountService:
                             else:
                                 state_val[field_name] = str(field_value)
                 
-                logger.debug(f"Using OAuth2 auth with state_val: {state_val}")
+                logger.debug(f"Using OAuth2 auth with create: authScheme={auth_scheme}, state_val={state_val}")
                 
-                # Use initiate for OAuth2 - it will return a redirect_url
-                if state_val:
-                    response = self.client.connected_accounts.initiate(
-                        user_id=user_id,
-                        auth_config_id=auth_config_id,
-                        config={
-                            "auth_scheme": auth_scheme,
+                response = self.client.connected_accounts.create(
+                    auth_config={
+                        "id": auth_config_id
+                    },
+                    connection={
+                        "user_id": user_id,
+                        "state": {
+                            "authScheme": auth_scheme,
                             "val": state_val
                         }
-                    )
-                else:
-                    response = self.client.connected_accounts.initiate(
-                        user_id=user_id,
-                        auth_config_id=auth_config_id
-                    )
+                    }
+                )
             
             logger.debug(f"Connected account response: {response}")
             
