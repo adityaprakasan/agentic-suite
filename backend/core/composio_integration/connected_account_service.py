@@ -60,12 +60,14 @@ class ConnectedAccountService:
         self, 
         auth_config_id: str, 
         user_id: str,
-        initiation_fields: Optional[Dict[str, str]] = None
+        initiation_fields: Optional[Dict[str, str]] = None,
+        auth_scheme: str = "OAUTH2"
     ) -> ConnectedAccount:
         try:
             print("[DEBUG] Auth config id: ", auth_config_id)
             print("[DEBUG] User id: ", user_id)
             print("[DEBUG] Initiation fields: ", initiation_fields)
+            print("[DEBUG] Auth scheme: ", auth_scheme)
             
             state_val = {"status": "INITIALIZING"}
             
@@ -82,6 +84,7 @@ class ConnectedAccountService:
             
             logger.debug(f"Using state.val: {state_val}")
             logger.debug(f"Final state.val for Composio API: {json.dumps(state_val, indent=2)}")
+            logger.debug(f"Using auth scheme: {auth_scheme}")
             
             response = self.client.connected_accounts.create(
                 auth_config={
@@ -90,7 +93,7 @@ class ConnectedAccountService:
                 connection={
                     "user_id": user_id,
                     "state": {
-                        "authScheme": "OAUTH2",
+                        "authScheme": auth_scheme,
                         "val": state_val,
                     }
                 }
