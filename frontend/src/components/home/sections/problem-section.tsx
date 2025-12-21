@@ -27,17 +27,17 @@ export function ProblemSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="max-w-3xl mx-auto space-y-6"
+              className="max-w-3xl mx-auto space-y-8"
             >
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed text-center">
-                You started a brand to create products—to sell the best socks, protein bars, or gear on the market. But once you hit $1M, the <span className="font-semibold text-foreground">"Owner's Trap"</span> sets in.
+                You started a brand to create products. But once you hit $1M, the <span className="font-semibold text-foreground">"Owner's Trap"</span> sets in.
               </p>
               
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed text-center">
-                Instead of building, you\'re stuck "gluing" apps together. You\'re manually auditing Stripe refunds, guessing which TikTok creative is working, and worrying about inventory. <span className="font-semibold text-foreground">You are the bottleneck.</span>
+                Instead of building, you're stuck "gluing" apps together. <span className="font-semibold text-foreground">You are the bottleneck.</span>
               </p>
 
-              <div className="pt-6 space-y-4 flex flex-col items-center">
+              <div className="pt-4 flex justify-center">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
@@ -48,14 +48,24 @@ export function ProblemSection() {
                     Stop being the machine. Start being the owner.
                   </span>
                 </motion.div>
-                
+              </div>
+              
+              <div className="pt-4 border-t border-border/50">
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}
                   animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
                   transition={{ duration: 0.6, delay: 0.5, ease: 'easeOut' }}
-                  className="text-sm text-muted-foreground text-center max-w-2xl"
+                  className="text-base text-muted-foreground leading-relaxed text-center"
                 >
-                  Adentic isn\'t just one AI—it\'s a <span className="font-semibold text-foreground">team of specialized agents</span> working together. One watches competitors, another guards margins, another handles support. More reliable. More value. Like having a full operations team, not just a single assistant.
+                  Adentic isn't just one AI—it's a <span className="font-semibold text-foreground">team of specialized agents</span> working together. One watches competitors, another guards margins, another handles support.
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                  transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
+                  className="text-base font-semibold text-foreground text-center mt-3"
+                >
+                  More reliable. More value. Like a full operations team.
                 </motion.p>
               </div>
             </motion.div>

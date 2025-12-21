@@ -109,7 +109,7 @@ export const siteConfig = {
     title: 'The First $5M Brand Run by One Person',
     description:
       'Stop hiring a team to scale. Meet Adentic: A team of AI agents that runs your ads, protects your margins, and manages your operations. One founder. Zero employees. Infinite scale.',
-    inputPlaceholder: "What's eating your time today? (e.g., 'audit my ad spend' or 'find trending competitor hooks')",
+    inputPlaceholder: "What's eating your time today? (e.g., 'check my margins' or 'audit support tickets')",
   },
   cloudPricingItems: [
     {

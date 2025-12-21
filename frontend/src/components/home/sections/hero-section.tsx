@@ -392,7 +392,7 @@ export function HeroSection() {
                 <ChatInput
                   ref={chatInputRef}
                   onSubmit={handleChatInputSubmit}
-                  placeholder="What's eating your time today? (e.g., 'audit my ad spend' or 'find trending competitor hooks')"
+                  placeholder="What's eating your time today? (e.g., 'check my margins' or 'audit support tickets')"
                   loading={isSubmitting}
                   disabled={isSubmitting}
                   value={inputValue}
