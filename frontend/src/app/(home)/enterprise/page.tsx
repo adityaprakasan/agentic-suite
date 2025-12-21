@@ -37,17 +37,17 @@ const CustomHeroSection = () => {
             
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Marketing Automation Implementation</span>
+              <span className="text-sm font-medium text-primary">Enterprise Multi-Agent Systems</span>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-medium tracking-tighter text-balance text-center">
-              <span className="text-primary">Enterprise Marketing Automation.</span>
+              <span className="text-primary">Enterprise Automation.</span>
               <br />
-              <span className="text-secondary">Deployed in days.</span>
+              <span className="text-secondary">Teams of agents, deployed in days.</span>
             </h1>
             
             <p className="text-lg md:text-xl text-center text-muted-foreground font-medium text-balance leading-relaxed tracking-tight max-w-3xl">
-              Transform your marketing operations with custom AI automation. Our specialists design, develop and deploy enterprise-grade marketing solutions that integrate seamlessly with your existing tech stack.
+              Transform your operations with custom multi-agent systems. Our specialists design, develop and deploy enterprise-grade teams of specialized AI agents that integrate seamlessly with your existing tech stack—Shopify, Stripe, HubSpot, TikTok, and 100+ more.
             </p>
             
             <div className="flex flex-col items-center gap-6 pt-6">
@@ -89,10 +89,10 @@ const ValuePropSection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              When Off-the-Shelf Marketing Tools Fall Short
+              When Off-the-Shelf Automation Falls Short
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Custom marketing automation solutions designed for enterprise teams with complex workflows, multi-channel campaigns, and mission-critical marketing operations.
+              Custom multi-agent systems designed for enterprise teams with complex workflows, multi-channel operations, and mission-critical business processes. Teams of specialized agents working together for reliability and scale.
             </p>
           </SectionHeader>
 
@@ -103,9 +103,9 @@ const ValuePropSection = () => {
                   <Clock className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">Accelerate Marketing ROI</h3>
+                  <h3 className="text-xl font-semibold mb-3">Accelerate Business ROI</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Bypass months of campaign setup and optimization cycles. Our proven methodology delivers enterprise-ready marketing automation in weeks, letting you focus on strategy instead of technical implementation.
+                    Bypass months of automation setup and optimization cycles. Our proven methodology delivers enterprise-ready multi-agent systems in weeks, letting you focus on strategy instead of technical implementation.
                   </p>
                 </div>
               </div>
@@ -117,9 +117,9 @@ const ValuePropSection = () => {
                   <Settings className="w-6 h-6 text-secondary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">Marketing Stack Integration</h3>
+                  <h3 className="text-xl font-semibold mb-3">Complete Stack Integration</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Designed for complex marketing ecosystems requiring seamless integration with CRM systems, email platforms, social media tools, analytics platforms, and compliance frameworks.
+                    Designed for complex business ecosystems requiring seamless integration with e-commerce platforms (Shopify), payment systems (Stripe), CRM tools (HubSpot), social platforms (TikTok), and 100+ other tools. Teams of agents coordinate across your entire stack.
                   </p>
                 </div>
               </div>
@@ -136,20 +136,20 @@ const ProcessSection = () => {
   const steps = [
     {
       icon: <Users className="w-8 h-8" />,
-      title: "Marketing Strategy Analysis",
-      description: "Marketing specialists conduct comprehensive campaign analysis, workflow mapping, and technical requirements gathering to design optimal automation architecture for your marketing operations.",
+      title: "Business Strategy Analysis",
+      description: "Specialists conduct comprehensive workflow analysis, process mapping, and technical requirements gathering to design optimal multi-agent architecture. We identify which teams of agents (Marketing, Finance, Operations, Growth) you need and how they'll coordinate.",
       phase: "Discovery"
     },
     {
       icon: <Zap className="w-8 h-8" />,
-      title: "Automation Development", 
-      description: "Full-stack marketing automation development with enterprise security, scalability design, comprehensive testing, performance optimization, and seamless integration with your marketing stack.",
+      title: "Multi-Agent System Development", 
+      description: "Full-stack development of teams of specialized agents with enterprise security, scalability design, comprehensive testing, performance optimization, and seamless integration with your entire tech stack—Shopify, Stripe, HubSpot, TikTok, and more.",
       phase: "Build"
     },
     {
       icon: <Shield className="w-8 h-8" />,
-      title: "Marketing Success Management",
-      description: "Dedicated marketing success management, comprehensive team training programs, continuous campaign monitoring, optimization services, and ROI guarantee with full accountability.",
+      title: "Success Management",
+      description: "Dedicated success management, comprehensive team training programs, continuous monitoring of agent teams, optimization services, and ROI guarantee with full accountability. Multiple agents per function ensure reliability.",
       phase: "Scale"
     }
   ];
@@ -160,10 +160,10 @@ const ProcessSection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Our Marketing Automation Methodology
+              Our Multi-Agent System Methodology
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              A proven three-phase approach that transforms your marketing vision into production-ready automation systems
+              A proven three-phase approach that transforms your business vision into production-ready teams of specialized agents
             </p>
           </SectionHeader>
 
@@ -206,12 +206,12 @@ const ProcessSection = () => {
 // Benefits Section
 const BenefitsSection = () => {
   const benefits = [
-    "Dedicated marketing automation specialist and technical lead for your project",
-    "Enterprise-grade marketing automation design with scalability considerations",
-    "White-glove support with dedicated marketing success manager", 
-    "Comprehensive marketing team training and knowledge transfer",
-    "Quarterly marketing performance reviews and campaign optimization",
-    "Deep integration with existing marketing stack and campaign workflows"
+    "Dedicated multi-agent system specialist and technical lead for your project",
+    "Enterprise-grade multi-agent architecture with teams of agents for redundancy and reliability",
+    "White-glove support with dedicated success manager", 
+    "Comprehensive team training on managing and optimizing agent teams",
+    "Quarterly performance reviews and agent team optimization",
+    "Deep integration with existing tech stack—Shopify, Stripe, HubSpot, TikTok, and 100+ tools"
   ];
 
   return (
@@ -220,10 +220,10 @@ const BenefitsSection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Enterprise Marketing Automation
+              Enterprise Multi-Agent Systems
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Premium service tier with dedicated marketing resources and tailored automation solutions for complex marketing operations
+              Premium service tier with dedicated resources and tailored multi-agent solutions for complex business operations. Teams of specialized agents working together for maximum reliability and scale.
             </p>
           </SectionHeader>
 
@@ -398,10 +398,10 @@ const FinalCTASection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Ready to Transform Your Marketing Operations?
+              Ready to Transform Your Operations?
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Let's discuss your specific marketing requirements and design a custom automation strategy for your marketing team.
+              Let's discuss your specific business requirements and design a custom multi-agent system strategy with teams of specialized agents for your organization.
             </p>
           </SectionHeader>
 
@@ -412,7 +412,7 @@ const FinalCTASection = () => {
                   <AdenticEnterpriseModal>
                     <Button size="lg">
                       <Calendar className="w-4 h-4 mr-2" />
-                      Book Your Marketing Strategy Session
+                      Book Your Strategy Session
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </AdenticEnterpriseModal>
@@ -420,12 +420,12 @@ const FinalCTASection = () => {
                     <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-accent/20">
                       <Shield className="w-6 h-6 text-primary" />
                       <span className="text-sm font-medium">ROI Guarantee</span>
-                      <span className="text-xs text-muted-foreground">Marketing results</span>
+                      <span className="text-xs text-muted-foreground">Business results</span>
                     </div>
                     <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-accent/20">
                       <Users className="w-6 h-6 text-primary" />
-                      <span className="text-sm font-medium">Marketing Support</span>
-                      <span className="text-xs text-muted-foreground">Dedicated team</span>
+                      <span className="text-sm font-medium">Dedicated Support</span>
+                      <span className="text-xs text-muted-foreground">Expert team</span>
                     </div>
                     <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-accent/20">
                       <Settings className="w-6 h-6 text-primary" />

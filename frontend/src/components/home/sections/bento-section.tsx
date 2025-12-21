@@ -9,23 +9,23 @@ export function BentoSection() {
     {
       id: 1,
       content: <FirstBentoAnimation />,
-      title: 'Define your marketing goals',
+      title: 'Specialized Teams',
       description:
-        'Configure your automation workflows for campaigns, content, and analytics.',
+        'Multiple agents per function—your Marketing Team, Finance Team, Operations Team. Each team has several agents working together for reliability and redundancy.',
     },
     {
       id: 2,
       content: <SecondBentoAnimation />,
-      title: 'Connect 100+ marketing tools',
+      title: 'Coordinated Execution',
       description:
-        'Integrate with your CRM, email platform, social media, and analytics tools seamlessly.',
+        'Agents within each team communicate and collaborate seamlessly. Teams of agents connect to different apps simultaneously—your Marketing Team talks to TikTok, your Finance Team monitors Stripe, your Operations Team manages Shopify.',
     },
     {
       id: 3,
       content: <ThirdBentoAnimation />,
-      title: 'Launch and optimize campaigns',
+      title: 'Built-in Redundancy',
       description:
-        'Deploy AI-powered campaigns that learn and improve performance automatically.',
+        'Multiple agents mean reliability. If one agent encounters an issue or is busy, the team continues working seamlessly. Nothing breaks, nothing slips through.',
     },
   ];
 
@@ -38,10 +38,10 @@ export function BentoSection() {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Create a New AI Worker in 3 Simple Steps
+              Teams of Agents, Working Together
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Customize powerful AI Workers to work on your tailored use cases.
+              Adentic doesn't ask you to build workflows or connect nodes. It inhabits the stack you already use. Whether it's Shopify for sales, Stripe for refunds, HubSpot for retention, or TikTok for growth—teams of agents act as the connective tissue that makes them work as one.
             </p>
           </SectionHeader>
 

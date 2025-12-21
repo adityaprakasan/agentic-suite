@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useInView } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 
 export function ReasoningBasic() {
-  const reasoningText = `Perfect! I'll create an AI Worker that monitors your marketing channels, automatically identifies high-value leads, and optimizes your conversion funnels. The agent will also A/B test campaigns and generate performance reports for continuous improvement.`;
+  const reasoningText = `Got it! I'll set up teams of agents to handle this. Your Marketing Team will monitor TikTok for competitor trends and automatically draft counter-ads. Your Finance Team will watch your Stripe account and pause any ad campaigns if margins drop below 30%. Your Operations Team will handle customer support issues in Shopify. Multiple agents per team ensure nothing gets missed.`;
 
   return (
     <Reasoning>
@@ -70,8 +70,7 @@ export function FirstBentoAnimation() {
             }}
           >
             <p className="text-sm">
-              I need an AI Worker to help manage my marketing campaigns. Can you create 
-              one that automates lead generation and optimizes conversion funnels?
+              My competitor just went viral on TikTok with a new hook. Can you set up agents to monitor trends, protect my profit margins, and handle customer issues automatically?
             </p>
           </motion.div>
           <div className="flex items-center bg-background rounded-full w-fit border border-border flex-shrink-0">
