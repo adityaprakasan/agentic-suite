@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useInView } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 
 export function ReasoningBasic() {
-  const reasoningText = `Got it! I'll set up teams of agents to handle this. Your Marketing Team will monitor TikTok for competitor trends and automatically draft counter-ads. Your Finance Team will watch your Stripe account and pause any ad campaigns if margins drop below 30%. Your Operations Team will handle customer support issues in Shopify. Multiple agents per team ensure nothing gets missed.`;
+  const reasoningText = `Perfect! I'll deploy teams of specialized agents for you: one team learns your brand voice and tracks margins, another monitors competitors 24/7, one handles customer support proactively, and another optimizes your ad spend. Each team has a specific role—more reliable than a single AI. Think of it as your always-on operations team.`;
 
   return (
     <Reasoning>
@@ -70,7 +70,7 @@ export function FirstBentoAnimation() {
             }}
           >
             <p className="text-sm">
-              My competitor just went viral on TikTok with a new hook. Can you set up agents to monitor trends, protect my profit margins, and handle customer issues automatically?
+              I'm running a DTC brand doing $800K/year. I'm drowning in operations—ads, support, inventory. Can you help me scale without hiring a team?
             </p>
           </motion.div>
           <div className="flex items-center bg-background rounded-full w-fit border border-border flex-shrink-0">

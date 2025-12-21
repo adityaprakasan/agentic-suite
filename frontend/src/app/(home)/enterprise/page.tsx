@@ -37,39 +37,39 @@ const CustomHeroSection = () => {
             
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Enterprise Multi-Agent Systems</span>
+              <span className="text-sm font-medium text-primary">Team Edition for Scaling Brands</span>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-medium tracking-tighter text-balance text-center">
-              <span className="text-primary">Enterprise Automation.</span>
+              <span className="text-primary">Built for brands scaling from $1M to $10M.</span>
               <br />
-              <span className="text-secondary">Teams of agents, deployed in days.</span>
+              <span className="text-secondary">Without the bloat.</span>
             </h1>
             
             <p className="text-lg md:text-xl text-center text-muted-foreground font-medium text-balance leading-relaxed tracking-tight max-w-3xl">
-              Transform your operations with custom multi-agent systems. Our specialists design, develop and deploy enterprise-grade teams of specialized AI agents that integrate seamlessly with your existing tech stack—Shopify, Stripe, HubSpot, TikTok, and 100+ more.
+              Adentic Team Edition gives your lean team (5-20 people) the operational leverage of a 50-person company. A <span className="font-semibold text-foreground">team of specialized AI agents</span> working alongside your team. Built for collaboration.
             </p>
             
             <div className="flex flex-col items-center gap-6 pt-6">
               <AdenticEnterpriseModal>
                 <Button size="lg">
                   <Calendar className="w-4 h-4 mr-2" />
-                  Book Marketing Strategy Call
+                  Book Team Strategy Call
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </AdenticEnterpriseModal>
               <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Free marketing audit</span>
+                  <span>Free operations audit</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Custom automation design</span>
+                  <span>Custom team workflows</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>ROI-focused pricing</span>
+                  <span>Scale-based pricing</span>
                 </div>
               </div>
             </div>
@@ -89,10 +89,10 @@ const ValuePropSection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              When Off-the-Shelf Automation Falls Short
+              When Your Team Needs More Than Solo Mode
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Custom multi-agent systems designed for enterprise teams with complex workflows, multi-channel operations, and mission-critical business processes. Teams of specialized agents working together for reliability and scale.
+              Built for scaling brands with lean teams who need enterprise-level operations without enterprise-level headcount.
             </p>
           </SectionHeader>
 
@@ -103,9 +103,9 @@ const ValuePropSection = () => {
                   <Clock className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">Accelerate Business ROI</h3>
+                  <h3 className="text-xl font-semibold mb-3">Multiply Team Output</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Bypass months of automation setup and optimization cycles. Our proven methodology delivers enterprise-ready multi-agent systems in weeks, letting you focus on strategy instead of technical implementation.
+                    Your 5-person team operates like 20. A team of AI agents handles the operational grind across ads, customer support, inventory, and analytics—so your team focuses on growth strategy.
                   </p>
                 </div>
               </div>
@@ -117,9 +117,9 @@ const ValuePropSection = () => {
                   <Settings className="w-6 h-6 text-secondary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">Complete Stack Integration</h3>
+                  <h3 className="text-xl font-semibold mb-3">Built for Collaboration</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Designed for complex business ecosystems requiring seamless integration with e-commerce platforms (Shopify), payment systems (Stripe), CRM tools (HubSpot), social platforms (TikTok), and 100+ other tools. Teams of agents coordinate across your entire stack.
+                    Team permissions, shared workflows, and collaborative decision-making. Everyone on your team can leverage the agent team's power while maintaining control and visibility over each specialized agent.
                   </p>
                 </div>
               </div>
@@ -136,20 +136,20 @@ const ProcessSection = () => {
   const steps = [
     {
       icon: <Users className="w-8 h-8" />,
-      title: "Business Strategy Analysis",
-      description: "Specialists conduct comprehensive workflow analysis, process mapping, and technical requirements gathering to design optimal multi-agent architecture. We identify which teams of agents (Marketing, Finance, Operations, Growth) you need and how they'll coordinate.",
+      title: "Team Operations Analysis",
+      description: "Our specialists work with your team to map workflows, identify bottlenecks, and design an autonomous system tailored to your brand's operations and growth goals.",
       phase: "Discovery"
     },
     {
       icon: <Zap className="w-8 h-8" />,
-      title: "Multi-Agent System Development", 
-      description: "Full-stack development of teams of specialized agents with enterprise security, scalability design, comprehensive testing, performance optimization, and seamless integration with your entire tech stack—Shopify, Stripe, HubSpot, TikTok, and more.",
+      title: "Custom Team Deployment", 
+      description: "We configure Adentic for your team's specific needs—permissions, workflows, integrations, and collaboration features—with full training and onboarding support.",
       phase: "Build"
     },
     {
       icon: <Shield className="w-8 h-8" />,
-      title: "Success Management",
-      description: "Dedicated success management, comprehensive team training programs, continuous monitoring of agent teams, optimization services, and ROI guarantee with full accountability. Multiple agents per function ensure reliability.",
+      title: "Dedicated Growth Strategist",
+      description: "Your team gets a dedicated growth strategist for ongoing optimization, quarterly reviews, and strategic guidance as you scale from $1M to $10M+.",
       phase: "Scale"
     }
   ];
@@ -160,10 +160,10 @@ const ProcessSection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Our Multi-Agent System Methodology
+              How Team Edition Works
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              A proven three-phase approach that transforms your business vision into production-ready teams of specialized agents
+              A proven three-phase approach that transforms your team's operations into a scalable, autonomous system
             </p>
           </SectionHeader>
 
@@ -206,12 +206,12 @@ const ProcessSection = () => {
 // Benefits Section
 const BenefitsSection = () => {
   const benefits = [
-    "Dedicated multi-agent system specialist and technical lead for your project",
-    "Enterprise-grade multi-agent architecture with teams of agents for redundancy and reliability",
-    "White-glove support with dedicated success manager", 
-    "Comprehensive team training on managing and optimizing agent teams",
-    "Quarterly performance reviews and agent team optimization",
-    "Deep integration with existing tech stack—Shopify, Stripe, HubSpot, TikTok, and 100+ tools"
+    "Dedicated growth strategist and technical lead for your team",
+    "Custom team workflows with role-based permissions and collaboration features",
+    "White-glove onboarding with comprehensive team training", 
+    "Priority support with dedicated Slack channel for your team",
+    "Quarterly strategy reviews and operations optimization",
+    "Deep integration with your existing operations stack (Shopify, Stripe, HubSpot, etc.)"
   ];
 
   return (
@@ -220,10 +220,10 @@ const BenefitsSection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Enterprise Multi-Agent Systems
+              Team Edition Benefits
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Premium service tier with dedicated resources and tailored multi-agent solutions for complex business operations. Teams of specialized agents working together for maximum reliability and scale.
+              Premium tier with dedicated support, custom workflows, and strategic guidance for scaling brands
             </p>
           </SectionHeader>
 
@@ -398,10 +398,10 @@ const FinalCTASection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Ready to Transform Your Operations?
+              Ready to Scale Your Team's Impact?
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Let's discuss your specific business requirements and design a custom multi-agent system strategy with teams of specialized agents for your organization.
+              Let's discuss how Adentic Team Edition can give your lean team enterprise-level operational leverage.
             </p>
           </SectionHeader>
 
@@ -412,25 +412,25 @@ const FinalCTASection = () => {
                   <AdenticEnterpriseModal>
                     <Button size="lg">
                       <Calendar className="w-4 h-4 mr-2" />
-                      Book Your Strategy Session
+                      Book Your Team Strategy Session
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </AdenticEnterpriseModal>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center max-w-2xl mx-auto">
                     <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-accent/20">
                       <Shield className="w-6 h-6 text-primary" />
-                      <span className="text-sm font-medium">ROI Guarantee</span>
-                      <span className="text-xs text-muted-foreground">Business results</span>
+                      <span className="text-sm font-medium">Growth Guarantee</span>
+                      <span className="text-xs text-muted-foreground">Scale with confidence</span>
                     </div>
                     <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-accent/20">
                       <Users className="w-6 h-6 text-primary" />
-                      <span className="text-sm font-medium">Dedicated Support</span>
-                      <span className="text-xs text-muted-foreground">Expert team</span>
+                      <span className="text-sm font-medium">Dedicated Strategist</span>
+                      <span className="text-xs text-muted-foreground">Your growth partner</span>
                     </div>
                     <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-accent/20">
                       <Settings className="w-6 h-6 text-primary" />
-                      <span className="text-sm font-medium">Custom Pricing</span>
-                      <span className="text-xs text-muted-foreground">Based on ROI</span>
+                      <span className="text-sm font-medium">Custom Workflows</span>
+                      <span className="text-xs text-muted-foreground">Built for your team</span>
                     </div>
                   </div>
                 </div>

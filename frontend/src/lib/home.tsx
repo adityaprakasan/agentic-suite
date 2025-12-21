@@ -59,10 +59,10 @@ export interface PricingTier {
 
 export const siteConfig = {
   name: 'Adentic',
-  description: 'AI-Powered Marketing Automation Platform for High-Performance Teams',
-  cta: 'Start Free Trial',
+  description: 'The First $5M Brand Run by One Person - A team of AI agents that autonomously runs your operations so you can scale without hiring',
+  cta: 'Start Your Solo-Empire',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  keywords: ['Marketing Automation', 'AI Marketing', 'Campaign Management', 'Marketing Analytics'],
+  keywords: ['E-commerce Automation', 'DTC Brand Operations', 'Shopify Automation', 'Solo Founder Tools', 'Brand Scaling'],
   links: {
     email: 'aditya.p@tryadentic.com',
     twitter: 'https://x.com/adenticai',
@@ -106,10 +106,10 @@ export const siteConfig = {
       </svg>
     ),
     badge: 'ENTERPRISE READY',
-    title: 'Marketing automation that scales with your growth',
+    title: 'The First $5M Brand Run by One Person',
     description:
-      'AI-powered platform designed for marketing teams and agencies who need enterprise-grade automation without the complexity.',
-    inputPlaceholder: 'What marketing task can we automate for you?',
+      'Stop hiring a team to scale. Meet Adentic: A team of AI agents that runs your ads, protects your margins, and manages your operations. One founder. Zero employees. Infinite scale.',
+    inputPlaceholder: "What's eating your time today? (e.g., 'audit my ad spend' or 'find trending competitor hooks')",
   },
   cloudPricingItems: [
     {
@@ -532,23 +532,23 @@ export const siteConfig = {
     ],
   },
   bentoSection: {
-    title: 'Empower Your Workflow with Adentic Adentic',
+    title: 'How Adentic Becomes Your Operations Brain',
     description:
-      'Let Adentic Adentic act on your behalf with advanced AI capabilities, seamless integrations, and autonomous task execution.',
+      'Three steps to autonomous operations. No coding. No complexity. Just results.',
     items: [
       {
         id: 1,
         content: <FirstBentoAnimation />,
-        title: 'Autonomous Task Execution',
+        title: 'Define your brand goals',
         description:
-          'Experience true marketing automation with Adentic. From video analytics and competitive research to content strategy and campaign execution—all through natural conversation.',
+          'Tell Adentic what you're building. It learns your brand voice, margins, and goals.',
       },
       {
         id: 2,
         content: <SecondBentoAnimation />,
-        title: 'Seamless Integrations',
+        title: 'Connect your stack',
         description:
-          'Connect Adentic to your existing tools for a unified workflow. Boost productivity through AI-powered interconnected systems.',
+          'Connect Shopify, Stripe, Meta Ads, TikTok, HubSpot—Adentic becomes the brain.',
       },
       {
         id: 3,
@@ -560,16 +560,16 @@ export const siteConfig = {
             ]}
           />
         ),
-        title: 'Intelligent Data Analysis',
+        title: 'Launch and scale',
         description:
-          "Transform raw data into actionable insights in seconds. Make better decisions with Adentic's real-time, adaptive intelligence.",
+          'Adentic runs 24/7, protecting margins and spotting opportunities while you sleep.',
       },
       {
         id: 4,
         content: <FourthBentoAnimation once={false} />,
-        title: 'Complete Customization',
+        title: '100+ Apps. One Brain.',
         description:
-          'Tailor Adentic to your specific needs. As a flexible marketing operations platform, you have full control over its capabilities, integrations, and implementation.',
+          'Adentic doesn't ask you to build workflows or connect "nodes." It inhabits the stack you already use—Shopify, Stripe, HubSpot, TikTok—acting as the connective tissue that makes them work as one.',
       },
     ],
   },
@@ -1215,13 +1215,13 @@ export const siteConfig = {
   },
   ctaSection: {
     id: 'cta',
-    title: 'Transform Your Marketing Operations Today',
+    title: 'Ready to hand over the grind?',
     backgroundImage: '/holo.png',
     button: {
-      text: 'Start Your Free Trial',
+      text: 'Request Early Access',
       href: '/auth',
     },
-    subtext: 'Automate campaigns, boost ROI, scale your team',
+    subtext: 'Limited spots for 2026 cohort',
   },
   footerLinks: [
     {

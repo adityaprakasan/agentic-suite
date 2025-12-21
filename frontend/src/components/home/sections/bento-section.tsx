@@ -9,23 +9,23 @@ export function BentoSection() {
     {
       id: 1,
       content: <FirstBentoAnimation />,
-      title: 'Specialized Teams',
+      title: 'Define your brand goals',
       description:
-        'Multiple agents per function—your Marketing Team, Finance Team, Operations Team. Each team has several agents working together for reliability and redundancy.',
+        'Tell Adentic what you're building. A team of specialized agents learns your brand voice, margins, and goals.',
     },
     {
       id: 2,
       content: <SecondBentoAnimation />,
-      title: 'Coordinated Execution',
+      title: 'Connect your stack',
       description:
-        'Agents within each team communicate and collaborate seamlessly. Teams of agents connect to different apps simultaneously—your Marketing Team talks to TikTok, your Finance Team monitors Stripe, your Operations Team manages Shopify.',
+        'Connect Shopify, Stripe, Meta Ads, TikTok, HubSpot—Adentic becomes the brain.',
     },
     {
       id: 3,
       content: <ThirdBentoAnimation />,
-      title: 'Built-in Redundancy',
+      title: 'Launch and scale',
       description:
-        'Multiple agents mean reliability. If one agent encounters an issue or is busy, the team continues working seamlessly. Nothing breaks, nothing slips through.',
+        'Your agent team runs 24/7—each handling a specific role—protecting margins and spotting opportunities while you sleep.',
     },
   ];
 
@@ -38,10 +38,10 @@ export function BentoSection() {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Teams of Agents, Working Together
+              How Adentic Becomes Your Operations Brain
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Adentic doesn't ask you to build workflows or connect nodes. It inhabits the stack you already use. Whether it's Shopify for sales, Stripe for refunds, HubSpot for retention, or TikTok for growth—teams of agents act as the connective tissue that makes them work as one.
+              Three steps to autonomous operations. No coding. No complexity. Just results.
             </p>
           </SectionHeader>
 

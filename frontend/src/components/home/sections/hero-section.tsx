@@ -374,10 +374,15 @@ export function HeroSection() {
           </Link> */}
           <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 pt-8 sm:pt-12 max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium tracking-tighter text-balance text-center px-2">
-              <span className="text-primary">{hero.title}</span>
+              <span className="text-primary">The First $5M </span>
+              <RotatingText 
+                texts={['Brand', 'Shopify Brand', 'E-commerce Brand', 'DTC Brand', 'Product Brand', 'Online Brand', 'Etsy Brand', 'Amazon Brand']}
+                className="text-secondary"
+              />
+              <span className="text-primary"> Run by One Person</span>
             </h1>
             <p className="text-base md:text-lg text-center text-muted-foreground font-medium text-balance leading-relaxed tracking-tight max-w-2xl px-2">
-              {hero.description}
+            Stop hiring a team to scale. Meet Adentic: A <span className="font-semibold text-foreground">team of AI agents</span> that runs your ads, protects your margins, and manages your operations. <span className="font-semibold">One founder. Zero employees. Infinite scale.</span>
             </p>
           </div>
 
@@ -387,7 +392,7 @@ export function HeroSection() {
                 <ChatInput
                   ref={chatInputRef}
                   onSubmit={handleChatInputSubmit}
-                  placeholder={hero.inputPlaceholder}
+                  placeholder="What's eating your time today? (e.g., 'audit my ad spend' or 'find trending competitor hooks')"
                   loading={isSubmitting}
                   disabled={isSubmitting}
                   value={inputValue}
