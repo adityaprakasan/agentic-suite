@@ -541,7 +541,7 @@ export const siteConfig = {
         content: <FirstBentoAnimation />,
         title: 'Define your brand goals',
         description:
-          'Tell Adentic what you're building. It learns your brand voice, margins, and goals.',
+          'Tell Adentic what you\'re building. A team of specialized agents learns your brand voice, margins, and goals.',
       },
       {
         id: 2,
