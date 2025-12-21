@@ -562,21 +562,21 @@ export const siteConfig = {
         ),
         title: 'Launch and scale',
         description:
-          'Adentic runs 24/7, protecting margins and spotting opportunities while you sleep.',
+          'Your agent team runs 24/7—each handling a specific role—protecting margins and spotting opportunities while you sleep.',
       },
       {
         id: 4,
         content: <FourthBentoAnimation once={false} />,
         title: '100+ Apps. One Brain.',
         description:
-          'Adentic doesn't ask you to build workflows or connect "nodes." It inhabits the stack you already use—Shopify, Stripe, HubSpot, TikTok—acting as the connective tissue that makes them work as one.',
+          'Adentic doesn\'t ask you to build workflows or connect "nodes." It inhabits the stack you already use—Shopify, Stripe, HubSpot, TikTok—acting as the connective tissue that makes them work as one.',
       },
     ],
   },
   benefits: [
     {
       id: 1,
-      text: "Automate everyday tasks with Adentic's powerful AI capabilities.",
+      text: "Automate everyday tasks with Adentic\'s powerful AI capabilities.",
       image: '/Device-6.png',
     },
     {
@@ -1173,7 +1173,7 @@ export const siteConfig = {
   faqSection: {
     title: 'Frequently Asked Questions',
     description:
-      "Answers to common questions about Adentic Adentic and its capabilities. If you have any other questions, please don't hesitate to contact us.",
+      "Answers to common questions about Adentic Adentic and its capabilities. If you have any other questions, please don\'t hesitate to contact us.",
     faQitems: [
       {
         id: 1,

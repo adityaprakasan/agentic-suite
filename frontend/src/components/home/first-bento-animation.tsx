@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useInView } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 
 export function ReasoningBasic() {
-  const reasoningText = `Perfect! I'll deploy teams of specialized agents for you: one team learns your brand voice and tracks margins, another monitors competitors 24/7, one handles customer support proactively, and another optimizes your ad spend. Each team has a specific role—more reliable than a single AI. Think of it as your always-on operations team.`;
+  const reasoningText = `Perfect! I'll deploy a team of specialized agents for you: one learns your brand voice and tracks margins, another monitors competitors 24/7, one handles customer support proactively, and another optimizes your ad spend. Each agent has a specific role—more reliable than a single AI. Think of it as your always-on operations team.`;
 
   return (
     <Reasoning>

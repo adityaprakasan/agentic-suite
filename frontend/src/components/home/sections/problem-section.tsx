@@ -34,7 +34,7 @@ export function ProblemSection() {
               </p>
               
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed text-center">
-                Instead of building, you're stuck "gluing" apps together. You're manually auditing Stripe refunds, guessing which TikTok creative is working, and worrying about inventory. <span className="font-semibold text-foreground">You are the bottleneck.</span>
+                Instead of building, you\'re stuck "gluing" apps together. You\'re manually auditing Stripe refunds, guessing which TikTok creative is working, and worrying about inventory. <span className="font-semibold text-foreground">You are the bottleneck.</span>
               </p>
 
               <div className="pt-6 space-y-4 flex flex-col items-center">
@@ -55,7 +55,7 @@ export function ProblemSection() {
                   transition={{ duration: 0.6, delay: 0.5, ease: 'easeOut' }}
                   className="text-sm text-muted-foreground text-center max-w-2xl"
                 >
-                  Adentic isn't just one AI—it's a <span className="font-semibold text-foreground">team of specialized agents</span> working together. One watches competitors, another guards margins, another handles support. More reliable. More value. Like having a full operations team, not just a single assistant.
+                  Adentic isn\'t just one AI—it\'s a <span className="font-semibold text-foreground">team of specialized agents</span> working together. One watches competitors, another guards margins, another handles support. More reliable. More value. Like having a full operations team, not just a single assistant.
                 </motion.p>
               </div>
             </motion.div>

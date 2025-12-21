@@ -14,7 +14,7 @@ const scenarios = [
   {
     number: '01',
     title: 'The Competitor Pivot',
-    when: "A competitor's video goes viral at 2 AM with a new hook.",
+    when: "A competitor\'s video goes viral at 2 AM with a new hook.",
     adenticDoes: "Detects the viral trend, adapts the hook to your brand voice, and drafts counter-ads for your approval before you wake up.",
     result: "You never miss a market shift.",
     icon: <TrendingUp className="size-6" />,

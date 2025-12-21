@@ -119,7 +119,7 @@ const ValuePropSection = () => {
                 <div>
                   <h3 className="text-xl font-semibold mb-3">Built for Collaboration</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Team permissions, shared workflows, and collaborative decision-making. Everyone on your team can leverage the agent team's power while maintaining control and visibility over each specialized agent.
+                    Team permissions, shared workflows, and collaborative decision-making. Everyone on your team can leverage the agent team\'s power while maintaining control and visibility over each specialized agent.
                   </p>
                 </div>
               </div>
@@ -137,13 +137,13 @@ const ProcessSection = () => {
     {
       icon: <Users className="w-8 h-8" />,
       title: "Team Operations Analysis",
-      description: "Our specialists work with your team to map workflows, identify bottlenecks, and design an autonomous system tailored to your brand's operations and growth goals.",
+      description: "Our specialists work with your team to map workflows, identify bottlenecks, and design an autonomous system tailored to your brand\'s operations and growth goals.",
       phase: "Discovery"
     },
     {
       icon: <Zap className="w-8 h-8" />,
       title: "Custom Team Deployment", 
-      description: "We configure Adentic for your team's specific needs—permissions, workflows, integrations, and collaboration features—with full training and onboarding support.",
+      description: "We configure Adentic for your team\'s specific needs—permissions, workflows, integrations, and collaboration features—with full training and onboarding support.",
       phase: "Build"
     },
     {
@@ -163,7 +163,7 @@ const ProcessSection = () => {
               How Team Edition Works
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              A proven three-phase approach that transforms your team's operations into a scalable, autonomous system
+              A proven three-phase approach that transforms your team\'s operations into a scalable, autonomous system
             </p>
           </SectionHeader>
 
@@ -398,10 +398,10 @@ const FinalCTASection = () => {
         <div className="max-w-6xl mx-auto border-l border-r border-border">
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
-              Ready to Scale Your Team's Impact?
+              Ready to Scale Your Team\'s Impact?
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Let's discuss how Adentic Team Edition can give your lean team enterprise-level operational leverage.
+              Let\'s discuss how Adentic Team Edition can give your lean team enterprise-level operational leverage.
             </p>
           </SectionHeader>
 
