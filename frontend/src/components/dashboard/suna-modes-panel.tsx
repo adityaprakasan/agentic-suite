@@ -74,24 +74,24 @@ interface Mode {
 const modes: Mode[] = [
   {
     id: 'image',
-    label: 'Image',
+    label: 'Product Images',
     icon: <ImageIcon className="w-4 h-4" />,
     samplePrompts: [
-      'A majestic golden eagle soaring through misty mountain peaks at sunrise with dramatic lighting',
-      'Close-up portrait of a fashion model with avant-garde makeup, studio lighting, high contrast shadows',
-      'Cozy Scandinavian living room with natural wood furniture, indoor plants, and soft morning sunlight',
-      'Futuristic cyberpunk street market at night with neon signs, rain-slicked pavement, and holographic displays',
-      'Elegant product photography of luxury perfume bottle on marble surface with soft reflections',
-      'Whimsical floating islands connected by rope bridges in a pastel sky with dreamy clouds',
-      'Macro close-up of morning dew drops on vibrant flower petals with bokeh background',
-      'Modern workspace desk setup with laptop, coffee, notebook, and succulent plants from above',
-      'Mystical forest path with ancient trees, glowing fireflies, and ethereal light beams through fog',
-      'Architectural detail of contemporary glass building facade with geometric patterns and reflections',
-      'Vibrant street food vendor stall with colorful ingredients, steam rising, and warm lighting',
-      'Serene Japanese zen garden with raked sand, moss-covered stones, and cherry blossom petals',
-      'Dynamic action shot of athlete mid-jump against dramatic sunset sky, silhouette effect',
-      'Rustic farmhouse kitchen with copper pots, fresh herbs, wooden cutting boards, and natural textures',
-      'Abstract fluid art with swirling metallic gold, deep blue, and emerald green organic patterns',
+      'Professional product photography of my product on a clean white background with soft shadows',
+      'Lifestyle image showing my product being used in a natural, everyday setting',
+      'Close-up detail shot highlighting the key features and quality of my product',
+      'Product flat lay arrangement with my product alongside complementary items and props',
+      'Elegant product photography of my product on marble surface with premium lighting',
+      'Action shot showing my product in use, demonstrating its functionality and benefits',
+      'Minimalist product image with my product as the focal point and subtle background',
+      'Lifestyle scene featuring my product integrated into a cozy home environment',
+      'Product comparison image showing my product alongside competitors with clear differentiation',
+      'Packaging shot of my product with branding visible and professional presentation',
+      'Product detail macro photography highlighting textures, materials, and craftsmanship',
+      'Social media ready image of my product styled for Instagram with trendy aesthetic',
+      'Product hero shot with dramatic lighting showcasing my product as the star',
+      'Lifestyle image showing my product solving a problem or enhancing daily life',
+      'Product photography with my product displayed in a retail or e-commerce setting',
     ],
     options: {
       title: 'Choose a style',
@@ -116,19 +116,19 @@ const modes: Mode[] = [
   },
   {
     id: 'slides',
-    label: 'Slides',
+    label: 'Product Presentations',
     icon: <Presentation className="w-4 h-4" />,
     samplePrompts: [
-      'Create a Series A pitch deck with market size, traction, and financial projections',
-      'Build a Q4 business review showcasing KPIs, wins, and strategic initiatives',
-      'Design a product launch presentation with demo videos and customer testimonials',
-      'Develop a sales enablement deck explaining our value prop and competitive advantages',
-      'Create an investor update highlighting key metrics and upcoming milestones',
-      'Build a customer case study presentation showing ROI and success metrics',
-      'Design an all-hands presentation covering company updates and vision',
-      'Develop a training deck for new product features and workflows',
-      'Create a conference talk about scaling engineering teams',
-      'Build a board meeting presentation with strategic recommendations',
+      'Create a product launch presentation for my product with features, benefits, and customer testimonials',
+      'Build a sales pitch deck showcasing my product\'s value proposition and competitive advantages',
+      'Design a product catalog presentation featuring my product line with pricing and specifications',
+      'Develop a marketing campaign presentation for my product launch with strategy and timeline',
+      'Create a customer success story presentation showing how my product solved real problems',
+      'Build a product comparison deck highlighting why my product outperforms competitors',
+      'Design a seasonal promotion presentation for my product with offers and marketing materials',
+      'Develop a product training presentation for my sales team on my product\'s key features',
+      'Create a quarterly sales review presentation showing my product\'s performance metrics',
+      'Build a product roadmap presentation outlining future enhancements for my product line',
     ],
     options: {
       title: 'Choose a template',
@@ -156,19 +156,19 @@ const modes: Mode[] = [
   },
   {
     id: 'data',
-    label: 'Data',
+    label: 'Product Analytics',
     icon: <BarChart3 className="w-4 h-4" />,
     samplePrompts: [
-      'Build a financial model projecting ARR growth with different pricing scenarios',
-      'Create an interactive sales dashboard tracking metrics by region and quarter',
-      'Analyze 50K customer reviews and visualize sentiment trends over time',
-      'Design a content calendar tracking campaigns with ROI and engagement charts',
-      'Build a cohort analysis showing user retention and churn patterns',
-      'Create a marketing attribution model comparing channel performance',
-      'Develop a hiring tracker with pipeline metrics and time-to-fill analysis',
-      'Build a budget planning spreadsheet with scenario modeling',
-      'Analyze website traffic data and visualize conversion funnels',
-      'Create an inventory management system with automated reorder alerts',
+      'Build a sales analytics dashboard tracking my product\'s revenue, units sold, and growth trends',
+      'Create an inventory management system for my product with stock levels and reorder alerts',
+      'Analyze customer reviews for my product and visualize sentiment trends and common themes',
+      'Design a conversion funnel analysis showing how customers discover and purchase my product',
+      'Build a customer lifetime value model for my product buyers with segmentation analysis',
+      'Create a marketing attribution dashboard showing which channels drive sales for my product',
+      'Develop a product performance tracker comparing my product\'s metrics across different time periods',
+      'Build a pricing analysis spreadsheet for my product with competitor comparisons and elasticity',
+      'Analyze customer behavior data showing how people interact with my product online',
+      'Create a seasonal sales forecast for my product with demand predictions and inventory planning',
     ],
     options: {
       title: 'Choose output format',
@@ -196,19 +196,19 @@ const modes: Mode[] = [
   },
   {
     id: 'docs',
-    label: 'Docs',
+    label: 'Product Content',
     icon: <FileText className="w-4 h-4" />,
     samplePrompts: [
-      'Write a comprehensive PRD for an AI-powered recommendation engine',
-      'Draft a technical architecture document for a scalable microservices platform',
-      'Create a go-to-market strategy document for our Q2 product launch',
-      'Develop a 90-day onboarding playbook for engineering managers',
-      'Write an API documentation guide with examples and best practices',
-      'Create a company handbook covering culture, policies, and benefits',
-      'Draft a data privacy policy compliant with GDPR and CCPA',
-      'Develop a customer success playbook for SaaS enterprise accounts',
-      'Write a security incident response plan with escalation procedures',
-      'Create a comprehensive style guide for brand and content',
+      'Write a comprehensive product description for my product highlighting features and benefits',
+      'Draft a product launch plan document for my product with timeline, channels, and strategy',
+      'Create a go-to-market strategy document for launching my product to target customers',
+      'Develop a product catalog document for my product line with specifications and pricing',
+      'Write product listing copy for my product optimized for e-commerce platforms',
+      'Create a customer service playbook for handling inquiries about my product',
+      'Draft a return and refund policy document specific to my product and business',
+      'Develop a product comparison guide showing how my product differs from competitors',
+      'Write a product FAQ document answering common questions about my product',
+      'Create a comprehensive product marketing guide for promoting my product across channels',
     ],
     options: {
       title: 'Choose a template',
@@ -226,28 +226,28 @@ const modes: Mode[] = [
   },
   {
     id: 'people',
-    label: 'Creator search',
+    label: 'Influencer Discovery',
     icon: <Users className="w-4 h-4" />,
     samplePrompts: [
       {
-        short: 'Find macro-influencers (500K-2M followers) suitable for brand ambassador role',
-        long: 'Find macro-influencers (500K-2M followers) suitable for [Brand Name] long-term brand ambassador role:\n\n- Primary platforms: TikTok, Instagram, YouTube\n- Audience demographics: [e.g., "UK women 25-50, affluent, lifestyle-focused"]\n- Content specialization: [e.g., "food, wellness, lifestyle, home"]\n- Engagement rate minimum: 2-3%\n- Audience authenticity: Verified, low bot engagement\n- Previous brand partnerships: [e.g., "luxury brands", "CPG brands", "lifestyle brands"]\n- Brand safety: [e.g., "family-friendly", "premium positioning", "eco-conscious"]\n- Content production quality: Professional/semi-professional\n- Availability: [e.g., "available for 6-12 month partnership"]\n- Geographic reach: UK-dominant or UK-significant audience\n- Estimated partnership budget: [e.g., "£5K-£20K per post"]\n\nProvide: Top 5-10 creator recommendations with full profiles, audience insights, previous campaign examples, negotiation strategy.'
+        short: 'Find macro-influencers (500K-2M followers) suitable for promoting my product',
+        long: 'Find macro-influencers (500K-2M followers) suitable for promoting my product as brand ambassadors:\n\n- Primary platforms: TikTok, Instagram, YouTube\n- Audience demographics: [e.g., "UK women 25-50, affluent, lifestyle-focused"]\n- Content specialization: [e.g., "food, wellness, lifestyle, home"]\n- Engagement rate minimum: 2-3%\n- Audience authenticity: Verified, low bot engagement\n- Previous brand partnerships: [e.g., "luxury brands", "CPG brands", "lifestyle brands"]\n- Brand safety: [e.g., "family-friendly", "premium positioning", "eco-conscious"]\n- Content production quality: Professional/semi-professional\n- Availability: [e.g., "available for 6-12 month partnership"]\n- Geographic reach: UK-dominant or UK-significant audience\n- Estimated partnership budget: [e.g., "£5K-£20K per post"]\n\nProvide: Top 5-10 creator recommendations with full profiles, audience insights, previous campaign examples, negotiation strategy.'
       },
       {
-        short: 'Identify celebrity & macro-influencer crossover candidates',
-        long: 'Identify macro-influencers with celebrity status or mainstream media presence for [Brand Name]:\n\n- Follower count: 1M+ across platforms\n- Media presence: TV appearances, press coverage, podcast features\n- Audience reach: UK-wide with international appeal\n- Content categories: [e.g., "food", "lifestyle", "wellness", "entertainment"]\n- Brand partnerships: Previous work with major brands\n- Credibility: Industry expert, thought leader, or entertainment personality\n- Engagement authenticity: Real, engaged audience\n- Crossover potential: Ability to reach beyond social media\n- Campaign fit: [e.g., "product launch", "brand repositioning", "market expansion"]\n\nProvide: Celebrity/macro-influencer profiles, media reach analysis, partnership potential, estimated costs, PR value.'
+        short: 'Identify celebrity & macro-influencer crossover candidates for my product',
+        long: 'Identify macro-influencers with celebrity status or mainstream media presence for promoting my product:\n\n- Follower count: 1M+ across platforms\n- Media presence: TV appearances, press coverage, podcast features\n- Audience reach: UK-wide with international appeal\n- Content categories: [e.g., "food", "lifestyle", "wellness", "entertainment"]\n- Brand partnerships: Previous work with major brands\n- Credibility: Industry expert, thought leader, or entertainment personality\n- Engagement authenticity: Real, engaged audience\n- Crossover potential: Ability to reach beyond social media\n- Campaign fit: [e.g., "product launch", "brand repositioning", "market expansion"]\n\nProvide: Celebrity/macro-influencer profiles, media reach analysis, partnership potential, estimated costs, PR value.'
       },
       {
-        short: 'Search for macro-influencers dominating multiple platforms',
-        long: 'Find macro-influencers who dominate multiple platforms simultaneously:\n\n- TikTok followers: 500K+\n- Instagram followers: 500K+\n- YouTube subscribers: 200K+\n- Consistent posting across all platforms\n- Audience demographics: [Target audience]\n- Content themes: [e.g., "food", "lifestyle", "wellness"]\n- Engagement rates: Above 2% on all platforms\n- Cross-platform content strategy: Repurposing and platform-specific content\n- Audience overlap: Significant audience across platforms\n- Geographic focus: UK-based or UK-dominant\n\nProvide: Multi-platform influencer profiles, cross-platform reach analysis, content strategy insights, partnership recommendations.'
+        short: 'Search for macro-influencers dominating multiple platforms to promote my product',
+        long: 'Find macro-influencers who dominate multiple platforms simultaneously for promoting my product:\n\n- TikTok followers: 500K+\n- Instagram followers: 500K+\n- YouTube subscribers: 200K+\n- Consistent posting across all platforms\n- Audience demographics: [Target audience for my product]\n- Content themes: [e.g., "food", "lifestyle", "wellness"]\n- Engagement rates: Above 2% on all platforms\n- Cross-platform content strategy: Repurposing and platform-specific content\n- Audience overlap: Significant audience across platforms\n- Geographic focus: UK-based or UK-dominant\n\nProvide: Multi-platform influencer profiles, cross-platform reach analysis, content strategy insights, partnership recommendations.'
       },
       {
-        short: 'Search for macro-influencers available for seasonal campaigns',
-        long: 'Search for macro-influencers available for seasonal campaigns:\n\n- Campaign season: [e.g., "Christmas 2025", "Summer 2025", "Easter 2025"]\n- Follower range: 500K-3M\n- Content alignment: [e.g., "festive content", "seasonal lifestyle", "holiday entertaining"]\n- Audience demographics: [Target market]\n- Campaign duration: [e.g., "4-8 weeks"]\n- Content requirements: [e.g., "5-10 posts", "mix of feed and stories", "video content"]\n- Previous seasonal campaigns: Track record with holiday/seasonal content\n- Availability confirmation: Confirmed availability during campaign period\n- Budget range: [e.g., "£10K-£30K"]\n\nProvide: Available macro-influencers, seasonal content examples, campaign recommendations, booking timeline.'
+        short: 'Search for macro-influencers available for seasonal campaigns promoting my product',
+        long: 'Search for macro-influencers available for seasonal campaigns to promote my product:\n\n- Campaign season: [e.g., "Christmas 2025", "Summer 2025", "Easter 2025"]\n- Follower range: 500K-3M\n- Content alignment: [e.g., "festive content", "seasonal lifestyle", "holiday entertaining"]\n- Audience demographics: [Target market for my product]\n- Campaign duration: [e.g., "4-8 weeks"]\n- Content requirements: [e.g., "5-10 posts", "mix of feed and stories", "video content"]\n- Previous seasonal campaigns: Track record with holiday/seasonal content\n- Availability confirmation: Confirmed availability during campaign period\n- Budget range: [e.g., "£10K-£30K"]\n\nProvide: Available macro-influencers, seasonal content examples, campaign recommendations, booking timeline.'
       },
       {
-        short: 'Find mid-tier creators who are authentic brand advocates',
-        long: 'Find mid-tier creators (100K-500K followers) who are authentic advocates for [Product Category]:\n\n- Genuine passion for [e.g., "sustainable food", "healthy eating", "family wellness"]\n- Audience alignment: [Target demographics]\n- Engagement rate: 3-5%+\n- Content authenticity: Organic, non-salesy approach\n- Community trust: Strong audience loyalty and comments\n- Previous brand partnerships: [e.g., "2-5 successful collaborations"]\n- Content quality: High production value or authentic lifestyle content\n- Posting frequency: Consistent (3-5x per week minimum)\n- Geographic focus: UK-based or UK audience\n- Partnership flexibility: Open to creative collaboration\n- Budget range: [e.g., "£1K-£5K per post"]\n\nProvide: Creator profiles, audience insights, content examples, partnership history, collaboration ideas.'
+        short: 'Find mid-tier creators who are authentic advocates for my product',
+        long: 'Find mid-tier creators (100K-500K followers) who are authentic advocates for my product:\n\n- Genuine passion for [e.g., "sustainable food", "healthy eating", "family wellness"]\n- Audience alignment: [Target demographics for my product]\n- Engagement rate: 3-5%+\n- Content authenticity: Organic, non-salesy approach\n- Community trust: Strong audience loyalty and comments\n- Previous brand partnerships: [e.g., "2-5 successful collaborations"]\n- Content quality: High production value or authentic lifestyle content\n- Posting frequency: Consistent (3-5x per week minimum)\n- Geographic focus: UK-based or UK audience\n- Partnership flexibility: Open to creative collaboration\n- Budget range: [e.g., "£1K-£5K per post"]\n\nProvide: Creator profiles, audience insights, content examples, partnership history, collaboration ideas.'
       },
       {
         short: 'Identify mid-tier creators who are niche specialists',
@@ -258,8 +258,8 @@ const modes: Mode[] = [
         long: 'Find mid-tier creators with strong growth trajectory and rising influence:\n\n- Current followers: 100K-300K\n- Monthly growth rate: 5-10%+\n- Engagement rate: 4-6%\n- Content trend alignment: Creating trending/viral content\n- Audience demographics: [Target market]\n- Content categories: [e.g., "food", "lifestyle", "wellness"]\n- Platform momentum: Strong performance on TikTok/Instagram\n- Media attention: Growing press coverage or viral moments\n- Partnership history: Successful brand collaborations\n- Future potential: Likely to reach 500K+ within 12 months\n- Budget advantage: Lower costs than established macro-influencers\n- Estimated cost: [e.g., "£500-£2K per post"]\n\nProvide: Rising star profiles, growth trajectory analysis, partnership value, cost-benefit analysis.'
       },
       {
-        short: 'Search for mid-tier creators ideal for long-term partnerships',
-        long: 'Search for mid-tier creators ideal for 3-6 month brand ambassador partnerships:\n\n- Follower range: 150K-400K\n- Audience stability: Consistent, loyal audience\n- Content consistency: Regular posting schedule (4-5x per week)\n- Brand alignment: Values and aesthetics match [Brand Name]\n- Engagement quality: Authentic, high-quality audience interactions\n- Flexibility: Open to multiple content pieces and creative direction\n- Exclusivity: Willing to limit competing brand partnerships\n- Communication: Responsive and professional\n- Content creation speed: Can deliver content on schedule\n- Audience demographics: [Target market]\n- Partnership commitment: Interested in long-term relationship\n- Estimated cost: [e.g., "£2K-£8K per month for 3-6 month deal"]\n\nProvide: Partnership candidate profiles, commitment level assessment, content calendar recommendations, contract terms.'
+        short: 'Search for mid-tier creators ideal for long-term partnerships promoting my product',
+        long: 'Search for mid-tier creators ideal for 3-6 month brand ambassador partnerships to promote my product:\n\n- Follower range: 150K-400K\n- Audience stability: Consistent, loyal audience\n- Content consistency: Regular posting schedule (4-5x per week)\n- Brand alignment: Values and aesthetics match my brand\n- Engagement quality: Authentic, high-quality audience interactions\n- Flexibility: Open to multiple content pieces and creative direction\n- Exclusivity: Willing to limit competing brand partnerships\n- Communication: Responsive and professional\n- Content creation speed: Can deliver content on schedule\n- Audience demographics: [Target market for my product]\n- Partnership commitment: Interested in long-term relationship\n- Estimated cost: [e.g., "£2K-£8K per month for 3-6 month deal"]\n\nProvide: Partnership candidate profiles, commitment level assessment, content calendar recommendations, contract terms.'
       },
       {
         short: 'Identify mid-tier creators with proven conversion track record',
@@ -310,16 +310,16 @@ const modes: Mode[] = [
         long: 'Find creators specializing in recipe and food content:\n\n- Follower range: [e.g., "30K-300K"]\n- Content focus: Recipes, cooking tutorials, food reviews, food styling\n- Video format: [e.g., "short-form", "long-form tutorials", "ASMR cooking"]\n- Engagement rate: 4-6%+\n- Audience demographics: [e.g., "food enthusiasts", "home cooks", "busy families"]\n- Content quality: Professional food styling and videography\n- Recipe variety: [e.g., "quick meals", "healthy recipes", "budget-friendly", "plant-based"]\n- Audience trust: High credibility in food/cooking space\n- Platform focus: [e.g., "TikTok", "Instagram", "YouTube"]\n- Estimated cost: [e.g., "£300-£1.5K per video"]\n\nProvide: Food content creator profiles, recipe specialization, audience insights, partnership opportunities.'
       },
       {
-        short: 'Find creators whose audiences perfectly match target customer profile',
-        long: 'Find creators whose audiences perfectly match [Brand Name]\'s target customer profile:\n\n- Target customer profile: [e.g., "UK women 25-45, affluent, health-conscious, eco-aware, family-oriented"]\n- Audience size: [e.g., "50K-500K followers"]\n- Audience demographics: Age, gender, location, income level, interests\n- Audience psychographics: Values, lifestyle, purchasing behavior\n- Audience engagement: Quality of audience interactions and loyalty\n- Platform: [e.g., "Instagram", "TikTok", "YouTube"]\n- Content alignment: Creator content matches audience interests\n- Audience authenticity: Real, engaged followers\n- Purchase intent: Audience with buying power and product interest\n- Estimated cost: [e.g., "£300-£2K per post"]\n\nProvide: Creator profiles with audience alignment analysis, demographic breakdowns, partnership recommendations.'
+        short: 'Find creators whose audiences perfectly match my product\'s target customer profile',
+        long: 'Find creators whose audiences perfectly match my product\'s target customer profile:\n\n- Target customer profile: [e.g., "UK women 25-45, affluent, health-conscious, eco-aware, family-oriented"]\n- Audience size: [e.g., "50K-500K followers"]\n- Audience demographics: Age, gender, location, income level, interests\n- Audience psychographics: Values, lifestyle, purchasing behavior\n- Audience engagement: Quality of audience interactions and loyalty\n- Platform: [e.g., "Instagram", "TikTok", "YouTube"]\n- Content alignment: Creator content matches audience interests\n- Audience authenticity: Real, engaged followers\n- Purchase intent: Audience with buying power and product interest\n- Estimated cost: [e.g., "£300-£2K per post"]\n\nProvide: Creator profiles with audience alignment analysis, demographic breakdowns, partnership recommendations.'
       },
       {
-        short: 'Identify creators with significant audience overlap with existing customers',
-        long: 'Identify creators with significant audience overlap with [Brand Name]\'s existing customer base:\n\n- Existing customer profile: [e.g., "UK families, budget-conscious, value-driven"]\n- Audience overlap percentage: 40%+\n- Follower range: [e.g., "50K-300K"]\n- Content categories: [e.g., "food", "family", "lifestyle", "wellness"]\n- Engagement quality: High-quality audience interactions\n- Platform: [e.g., "Instagram", "TikTok"]\n- Geographic focus: UK-based or UK audience\n- Audience loyalty: Strong repeat engagement\n- Cross-sell potential: Audience likely to purchase [Product Category]\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Creator profiles, audience overlap analysis, cross-sell potential, partnership recommendations.'
+        short: 'Identify creators with significant audience overlap with my product\'s existing customers',
+        long: 'Identify creators with significant audience overlap with my product\'s existing customer base:\n\n- Existing customer profile: [e.g., "UK families, budget-conscious, value-driven"]\n- Audience overlap percentage: 40%+\n- Follower range: [e.g., "50K-300K"]\n- Content categories: [e.g., "food", "family", "lifestyle", "wellness"]\n- Engagement quality: High-quality audience interactions\n- Platform: [e.g., "Instagram", "TikTok"]\n- Geographic focus: UK-based or UK audience\n- Audience loyalty: Strong repeat engagement\n- Cross-sell potential: Audience likely to purchase my product\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Creator profiles, audience overlap analysis, cross-sell potential, partnership recommendations.'
       },
       {
-        short: 'Find creators who can introduce brand to new audience segments',
-        long: 'Find creators who can introduce [Brand Name] to new, adjacent audience segments:\n\n- Current audience: [e.g., "UK families, 35-55, traditional"]\n- Target new audience: [e.g., "younger professionals 25-35, trendy, digital-native"]\n- Follower range: [e.g., "100K-500K"]\n- Audience demographics: [New target demographics]\n- Content style: Appeals to new audience segment\n- Platform focus: [e.g., "TikTok", "Instagram"]\n- Engagement rate: 3-5%+\n- Content categories: [e.g., "lifestyle", "wellness", "entertainment"]\n- Audience growth: Expanding audience segment\n- Estimated cost: [e.g., "£500-£2K per post"]\n\nProvide: Creator profiles, new audience insights, expansion potential, partnership strategy.'
+        short: 'Find creators who can introduce my product to new audience segments',
+        long: 'Find creators who can introduce my product to new, adjacent audience segments:\n\n- Current audience: [e.g., "UK families, 35-55, traditional"]\n- Target new audience: [e.g., "younger professionals 25-35, trendy, digital-native"]\n- Follower range: [e.g., "100K-500K"]\n- Audience demographics: [New target demographics]\n- Content style: Appeals to new audience segment\n- Platform focus: [e.g., "TikTok", "Instagram"]\n- Engagement rate: 3-5%+\n- Content categories: [e.g., "lifestyle", "wellness", "entertainment"]\n- Audience growth: Expanding audience segment\n- Estimated cost: [e.g., "£500-£2K per post"]\n\nProvide: Creator profiles, new audience insights, expansion potential, partnership strategy.'
       },
       {
         short: 'Identify creators with high-income affluent audiences',
@@ -390,8 +390,8 @@ const modes: Mode[] = [
         long: 'Identify creators known for authentic, relatable, down-to-earth content:\n\n- Follower range: [e.g., "50K-300K"]\n- Content style: Authentic, relatable, genuine, non-corporate\n- Aesthetic: Real life, unfiltered, honest content\n- Audience demographics: [Target market]\n- Engagement rate: 4-6%+\n- Audience connection: Strong audience loyalty and relatability\n- Content categories: [e.g., "lifestyle", "family", "wellness", "daily life"]\n- Platform: [e.g., "Instagram", "TikTok"]\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Authentic creator profiles, relatability analysis, audience connection assessment, partnership opportunities.'
       },
       {
-        short: 'Find creators focused on sustainability and eco-conscious living',
-        long: 'Find creators focused on sustainability and eco-conscious living:\n\n- Follower range: [e.g., "30K-300K"]\n- Content focus: Sustainability, eco-friendly, zero-waste, ethical consumption\n- Audience demographics: Eco-conscious, values-driven consumers\n- Engagement rate: 4-6%+\n- Audience trust: High credibility in sustainability space\n- Content depth: Educational, expert-level sustainability content\n- Platform: [e.g., "Instagram", "TikTok", "YouTube"]\n- Brand alignment: [Brand Name]\'s sustainability values\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Eco-conscious creator profiles, sustainability expertise, audience values alignment, partnership opportunities.'
+        short: 'Find creators focused on sustainability and eco-conscious living for my product',
+        long: 'Find creators focused on sustainability and eco-conscious living to promote my product:\n\n- Follower range: [e.g., "30K-300K"]\n- Content focus: Sustainability, eco-friendly, zero-waste, ethical consumption\n- Audience demographics: Eco-conscious, values-driven consumers\n- Engagement rate: 4-6%+\n- Audience trust: High credibility in sustainability space\n- Content depth: Educational, expert-level sustainability content\n- Platform: [e.g., "Instagram", "TikTok", "YouTube"]\n- Brand alignment: My brand\'s sustainability values\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Eco-conscious creator profiles, sustainability expertise, audience values alignment, partnership opportunities.'
       },
       {
         short: 'Identify creators specializing in health wellness and nutrition',
@@ -410,75 +410,75 @@ const modes: Mode[] = [
         long: 'Find creators who are Gen Z and understand youth culture:\n\n- Follower range: [e.g., "50K-300K"]\n- Creator age: [e.g., "18-30 years old"]\n- Audience demographics: Gen Z, younger millennials\n- Content style: Trendy, youth-focused, culturally relevant\n- Platform expertise: TikTok, Instagram, YouTube Shorts\n- Trend awareness: Up-to-date with youth trends and culture\n- Engagement rate: 4-6%+\n- Authenticity: Genuine Gen Z voice and perspective\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Gen Z creator profiles, youth culture expertise, trend awareness, partnership recommendations.'
       },
       {
-        short: 'Analyze creators working with competitor brands',
-        long: 'Analyze creators working with competitor brands:\n\n- Competitor brands: [e.g., "Branston Beans competitors", "similar CPG brands"]\n- Analysis scope: All creators currently partnering with competitors\n- Creator tier breakdown: Macro, mid-tier, micro distribution\n- Content themes: Messaging and content approaches used\n- Engagement performance: Competitor content performance metrics\n- Audience overlap: Creators with audience overlap to [Brand Name]\n- Partnership opportunities: Creators open to [Brand Name] partnerships\n- Competitive gaps: Opportunities in competitor\'s creator strategy\n- Estimated cost: [e.g., "varies by creator tier"]\n\nProvide: Competitor creator list, performance analysis, partnership opportunities, competitive strategy recommendations.'
+        short: 'Analyze creators working with competitor brands for products like mine',
+        long: 'Analyze creators working with competitor brands that sell products similar to mine:\n\n- Competitor brands: [e.g., "competitors selling similar products", "similar CPG brands"]\n- Analysis scope: All creators currently partnering with competitors\n- Creator tier breakdown: Macro, mid-tier, micro distribution\n- Content themes: Messaging and content approaches used\n- Engagement performance: Competitor content performance metrics\n- Audience overlap: Creators with audience overlap to my product\'s target market\n- Partnership opportunities: Creators open to partnerships for my product\n- Competitive gaps: Opportunities in competitor\'s creator strategy\n- Estimated cost: [e.g., "varies by creator tier"]\n\nProvide: Competitor creator list, performance analysis, partnership opportunities, competitive strategy recommendations.'
       },
       {
-        short: 'Identify creators filling market gaps in product category',
-        long: 'Identify creators filling market gaps in [Product Category]:\n\n- Market gaps: [e.g., "underserved audience segments", "missing content types"]\n- Follower range: [e.g., "50K-300K"]\n- Content focus: Addressing market gaps\n- Audience demographics: Underserved audience segments\n- Engagement rate: 4-6%+\n- Growth potential: Emerging creators in gap areas\n- Platform: [e.g., "TikTok", "Instagram"]\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Gap-filling creator profiles, market opportunity analysis, growth potential, partnership recommendations.'
+        short: 'Identify creators filling market gaps in my product category',
+        long: 'Identify creators filling market gaps in my product category:\n\n- Market gaps: [e.g., "underserved audience segments", "missing content types"]\n- Follower range: [e.g., "50K-300K"]\n- Content focus: Addressing market gaps\n- Audience demographics: Underserved audience segments\n- Engagement rate: 4-6%+\n- Growth potential: Emerging creators in gap areas\n- Platform: [e.g., "TikTok", "Instagram"]\n- Estimated cost: [e.g., "£300-£1.5K per post"]\n\nProvide: Gap-filling creator profiles, market opportunity analysis, growth potential, partnership recommendations.'
       },
       {
         short: 'Find creators who set trends rather than follow them',
         long: 'Find creators who set trends rather than follow them:\n\n- Follower range: [e.g., "100K-500K"]\n- Trend-setting ability: Creators who originate trends\n- Content innovation: Original, innovative content ideas\n- Engagement rate: 4-6%+\n- Audience demographics: [Target market]\n- Platform influence: Recognized trend-setters on platform\n- Content categories: [e.g., "food", "lifestyle", "wellness"]\n- Estimated cost: [e.g., "£500-£2K per post"]\n\nProvide: Trend-setting creator profiles, innovation examples, influence assessment, partnership recommendations.'
       },
       {
-        short: 'Find creators perfect for product launch campaign',
-        long: 'Find creators perfect for [Product Name] product launch campaign:\n\n- Campaign type: Product launch\n- Product category: [e.g., "new snack", "new flavor", "new product line"]\n- Campaign duration: [e.g., "4-8 weeks"]\n- Creator tier mix: [e.g., "2-3 macro, 5-8 mid-tier, 10-15 micro"]\n- Audience demographics: [Target market]\n- Content requirements: [e.g., "unboxing", "first impressions", "product review"]\n- Exclusivity: First-to-market content\n- Timing: Coordinated launch timing\n- Budget: [e.g., "£10K-£30K"]\n- Estimated cost: [e.g., "varies by tier"]\n\nProvide: Product launch creator recommendations, campaign strategy, timeline, budget breakdown.'
+        short: 'Find creators perfect for launching my product',
+        long: 'Find creators perfect for my product launch campaign:\n\n- Campaign type: Product launch\n- Product category: [e.g., "new snack", "new flavor", "new product line"]\n- Campaign duration: [e.g., "4-8 weeks"]\n- Creator tier mix: [e.g., "2-3 macro, 5-8 mid-tier, 10-15 micro"]\n- Audience demographics: [Target market for my product]\n- Content requirements: [e.g., "unboxing", "first impressions", "product review"]\n- Exclusivity: First-to-market content\n- Timing: Coordinated launch timing\n- Budget: [e.g., "£10K-£30K"]\n- Estimated cost: [e.g., "varies by tier"]\n\nProvide: Product launch creator recommendations, campaign strategy, timeline, budget breakdown.'
       },
       {
-        short: 'Identify creators for seasonal campaigns',
-        long: 'Identify creators for seasonal campaigns:\n\n- Campaign season: [e.g., "Christmas 2025", "Summer 2025", "Easter 2025"]\n- Follower range: [e.g., "50K-500K"]\n- Content alignment: Seasonal content themes\n- Audience demographics: [Target market]\n- Campaign duration: [e.g., "4-8 weeks"]\n- Content requirements: [e.g., "festive content", "seasonal lifestyle"]\n- Previous seasonal campaigns: Track record with seasonal content\n- Availability: Confirmed availability during season\n- Budget: [e.g., "£5K-£20K"]\n- Estimated cost: [e.g., "varies by creator"]\n\nProvide: Seasonal campaign creator recommendations, content ideas, timeline, budget breakdown.'
+        short: 'Identify creators for seasonal campaigns promoting my product',
+        long: 'Identify creators for seasonal campaigns to promote my product:\n\n- Campaign season: [e.g., "Christmas 2025", "Summer 2025", "Easter 2025"]\n- Follower range: [e.g., "50K-500K"]\n- Content alignment: Seasonal content themes\n- Audience demographics: [Target market for my product]\n- Campaign duration: [e.g., "4-8 weeks"]\n- Content requirements: [e.g., "festive content", "seasonal lifestyle"]\n- Previous seasonal campaigns: Track record with seasonal content\n- Availability: Confirmed availability during season\n- Budget: [e.g., "£5K-£20K"]\n- Estimated cost: [e.g., "varies by creator"]\n\nProvide: Seasonal campaign creator recommendations, content ideas, timeline, budget breakdown.'
       },
     ],
   },
   {
     id: 'research',
-    label: 'Social Media Intelligence',
+    label: 'Competitor Analysis',
     icon: <Video className="w-4 h-4" />,
     samplePrompts: [
       {
-        short: 'Analyze trending content patterns on TikTok for fitness brands',
-        long: 'Use video intelligence to analyze trending content patterns on TikTok for fitness brands. Identify what types of fitness content are currently going viral, analyze engagement metrics, identify key hooks and CTAs that work, and provide insights on content strategy for fitness brands looking to expand on TikTok.'
+        short: 'Analyze trending content patterns on TikTok for products similar to mine',
+        long: 'Use video intelligence to analyze trending content patterns on TikTok for products similar to my product. Identify what types of product content are currently going viral, analyze engagement metrics, identify key hooks and CTAs that work, and provide insights on content strategy for promoting my product on TikTok.'
       },
       {
-        short: 'Compare Nike and Adidas video content strategies on TikTok',
-        long: 'Use video intelligence to compare Nike and Adidas video content strategies on TikTok. Upload and index videos from both brand channels, analyze their content themes, hooks, CTAs, pacing, visual elements, and engagement patterns. Provide a comprehensive side-by-side comparison with actionable insights on what\'s working for each brand.'
+        short: 'Compare competitor product video content strategies on TikTok',
+        long: 'Use video intelligence to compare competitor product video content strategies on TikTok. Upload and index videos from competitor brands promoting similar products, analyze their content themes, hooks, CTAs, pacing, visual elements, and engagement patterns. Provide a comprehensive side-by-side comparison with actionable insights on what\'s working for competitor products.'
       },
       {
-        short: 'Find viral food content trends and analyze what makes them successful',
-        long: 'Use video intelligence to search for trending food content on TikTok. Analyze the top performing videos to identify common patterns in hooks, storytelling techniques, visual elements, and CTAs. Provide insights on what makes food content go viral and best practices for creating engaging food content.'
+        short: 'Find viral product promotion trends and analyze what makes them successful',
+        long: 'Use video intelligence to search for trending product promotion content on TikTok. Analyze the top performing product videos to identify common patterns in hooks, storytelling techniques, visual elements, and CTAs. Provide insights on what makes product content go viral and best practices for creating engaging content for my product.'
       },
       {
-        short: 'Research top-performing videos from @MrBeast on TikTok and analyze his content strategy',
-        long: 'Use video intelligence to research top-performing videos from @MrBeast on TikTok. Upload and index his recent videos, analyze video structure, hooks, pacing, visual elements, and engagement drivers. Extract transcripts and summaries to understand messaging patterns. Provide a comprehensive analysis of his content strategy and what makes his videos so engaging.'
+        short: 'Research top-performing product review videos and analyze their content strategy',
+        long: 'Use video intelligence to research top-performing product review videos on TikTok. Upload and index recent product review videos, analyze video structure, hooks, pacing, visual elements, and engagement drivers. Extract transcripts and summaries to understand messaging patterns. Provide a comprehensive analysis of successful product review strategies.'
       },
       {
-        short: 'Analyze competitor brand content on hashtag #sustainability on TikTok',
-        long: 'Use video intelligence to analyze competitor brand content using hashtag #sustainability on TikTok. Upload and index videos from this hashtag, compare content approaches, identify top performers, analyze messaging themes, engagement patterns, and provide strategic insights on sustainability content marketing.'
+        short: 'Analyze competitor brand content promoting similar products on TikTok',
+        long: 'Use video intelligence to analyze competitor brand content promoting products similar to mine on TikTok. Upload and index videos from competitors, compare content approaches, identify top performers, analyze messaging themes, engagement patterns, and provide strategic insights on product content marketing.'
       },
       {
-        short: 'Find top trending beauty tutorials on TikTok and analyze their structure',
-        long: 'Search the video intelligence library for top trending beauty tutorials on TikTok. Analyze the video structure, hooks, pacing, visual storytelling, product placement techniques, and CTAs. Extract transcripts to understand verbal techniques. Provide insights on what makes beauty tutorial content successful and how to structure engaging tutorials.'
+        short: 'Find top trending product unboxing videos and analyze their structure',
+        long: 'Search the video intelligence library for top trending product unboxing videos on TikTok. Analyze the video structure, hooks, pacing, visual storytelling, product presentation techniques, and CTAs. Extract transcripts to understand verbal techniques. Provide insights on what makes product unboxing content successful and how to structure engaging unboxing videos for my product.'
       },
       {
-        short: 'Compare viral vs average-performing videos in the lifestyle niche on TikTok',
-        long: 'Use video intelligence to compare viral vs average-performing videos in the lifestyle niche on TikTok. Identify viral lifestyle videos and compare them with average performers from the same creators or similar content. Analyze differences in hooks, pacing, visual elements, CTAs, and engagement metrics. Provide insights on what separates viral content from average content.'
+        short: 'Compare viral vs average-performing product videos in my category on TikTok',
+        long: 'Use video intelligence to compare viral vs average-performing product videos in my product category on TikTok. Identify viral product videos and compare them with average performers from similar products. Analyze differences in hooks, pacing, visual elements, CTAs, and engagement metrics. Provide insights on what separates viral product content from average content.'
       },
       {
-        short: 'Analyze brand ambassador content effectiveness for luxury products on TikTok',
-        long: 'Use video intelligence to analyze brand ambassador content effectiveness for luxury products on TikTok. Upload videos from brand ambassadors, analyze content quality, engagement rates, audience alignment, product integration techniques, and messaging effectiveness. Compare performance across different ambassadors and provide insights on what makes effective luxury brand content.'
+        short: 'Analyze influencer content effectiveness for products like mine on TikTok',
+        long: 'Use video intelligence to analyze influencer content effectiveness for products similar to mine on TikTok. Upload videos from influencers promoting similar products, analyze content quality, engagement rates, audience alignment, product integration techniques, and messaging effectiveness. Compare performance across different influencers and provide insights on what makes effective product promotion content.'
       },
       {
-        short: 'Research trending short-form video formats and their engagement rates on TikTok',
-        long: 'Search the video intelligence library for trending short-form video formats on TikTok. Categorize formats (tutorials, behind-the-scenes, challenges, etc.), analyze engagement metrics for each format, identify successful patterns, and provide insights on which formats work best for different industries and audiences.'
+        short: 'Research trending product video formats and their engagement rates on TikTok',
+        long: 'Search the video intelligence library for trending product video formats on TikTok. Categorize formats (unboxing, reviews, tutorials, demos, etc.), analyze engagement metrics for each format, identify successful patterns, and provide insights on which formats work best for promoting products like mine.'
       },
       {
-        short: 'Analyze content from top creators in the wellness space on TikTok',
-        long: 'Use video intelligence to analyze content from top creators in the wellness space on TikTok. Upload videos from multiple wellness influencers, compare their content strategies, analyze hooks and CTAs, extract transcripts to understand messaging patterns, compare engagement metrics, and provide insights on effective wellness content marketing strategies.'
+        short: 'Analyze content from top creators promoting products in my category on TikTok',
+        long: 'Use video intelligence to analyze content from top creators promoting products in my category on TikTok. Upload videos from multiple influencers in my product space, compare their content strategies, analyze hooks and CTAs, extract transcripts to understand messaging patterns, compare engagement metrics, and provide insights on effective product content marketing strategies.'
       },
       {
         short: 'Find and analyze product launch videos on TikTok that generated high engagement',
-        long: 'Search the video intelligence library for product launch videos with high engagement on TikTok. Analyze video structure, hooks, storytelling techniques, product reveal moments, visual elements, CTAs, and engagement patterns. Extract insights on what makes product launch videos successful and best practices for creating engaging launch content.'
+        long: 'Search the video intelligence library for product launch videos with high engagement on TikTok. Analyze video structure, hooks, storytelling techniques, product reveal moments, visual elements, CTAs, and engagement patterns. Extract insights on what makes product launch videos successful and best practices for creating engaging launch content for my product.'
       },
     ],
   },
